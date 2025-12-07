@@ -1,0 +1,260 @@
+<!-- /public/conduction-one-wave-left-fix-slow.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Conduction – One Continuous Wave (Left Fix + Slower)</title>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    html,body{margin:0;height:100%;overflow:hidden;background:#000}
+    #conduction-container{position:fixed;inset:0}
+  </style>
+</head>
+<body>
+<div id="conduction-container"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+const container = document.getElementById('conduction-container');
+
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 1.2, 3.5);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+container.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.45;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 0.7));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+dirLight.position.set(2,2,3);
+scene.add(dirLight);
+
+// Timing & shaping
+export const conductionSettings = { bpm: 72, phaseOffset: 0, speedScale: 0.5 }; // why: global slow-down
+const timing = { avEnd:0.45, bundleEnd:0.60, qrsEnd:0.72, bandWidth:0.055 };
+const shape = {
+  midThresh:0.26, latThresh:0.62, feather:0.12,
+  splitDepth:0.46, railOffset:0.22, railHalfW:0.08, railBoost:0.06,
+  outFrac:0.55,
+  leftApexGateStart:0.68, leftApexGateFeather:0.12, leftDelay:0.0
+};
+
+const materials = [];
+const clock = new THREE.Clock();
+
+new GLTFLoader().load(
+  '/assets/cardiac_conduction_system.glb',
+  (gltf)=>{
+    scene.add(gltf.scene);
+    frameModel(gltf.scene);
+    gltf.scene.traverse((child)=>{
+      if (!child.isMesh) return;
+      if (child.name !== 'Default1_Default1_0') return;
+      applyShader(child);
+    });
+  },
+  undefined,
+  (e)=>console.error('GLB load error:', e)
+);
+
+// Shader (left Purkinje gating retained)
+function applyShader(mesh){
+  const box = new THREE.Box3().setFromObject(mesh);
+  const min = box.min, max = box.max, center = box.getCenter(new THREE.Vector3());
+
+  const apexPos = new THREE.Vector3(center.x, min.y, center.z);
+  const basePos = new THREE.Vector3(center.x, max.y, center.z);
+  const apexDir = new THREE.Vector3().subVectors(apexPos, basePos).normalize();
+  const abLen   = Math.max(apexPos.distanceTo(basePos), 1e-4);
+
+  const lrDir = new THREE.Vector3(1,0,0);
+  const lrHalfWidth = Math.max((max.x - min.x) * 0.5, 1e-4);
+
+  const mat = new THREE.ShaderMaterial({
+    extensions: { derivatives: true },
+    uniforms:{
+      // time
+      uTime:        { value: 0 },
+      uSpeed:       { value: (conductionSettings.bpm/60) * conductionSettings.speedScale }, // why: global slow
+      uPhaseOffset: { value: conductionSettings.phaseOffset },
+
+      // colors
+      uBaseColor:   { value: new THREE.Color(0x3c2e00) },
+      uGlowColor:   { value: new THREE.Color(0xffff88) },
+      uGlowSoft:    { value: 0.85 },
+
+      // axes
+      uApexPos:     { value: apexPos },
+      uBasePos:     { value: basePos },
+      uApexDir:     { value: apexDir },
+      uABLen:       { value: abLen },
+      uLRPosCenter: { value: center.clone() },
+      uLRDir:       { value: lrDir },
+      uLRHalfWidth: { value: lrHalfWidth },
+
+      // timing
+      uAvEnd:       { value: timing.avEnd },
+      uBundleEnd:   { value: timing.bundleEnd },
+      uQrsEnd:      { value: timing.qrsEnd },
+      uBandWidth:   { value: timing.bandWidth },
+
+      // shaping
+      uMidThresh:   { value: shape.midThresh },
+      uLatThresh:   { value: shape.latThresh },
+      uFeather:     { value: shape.feather },
+      uSplitDepth:  { value: shape.splitDepth },
+      uRailOffset:  { value: shape.railOffset },
+      uRailHalfW:   { value: shape.railHalfW },
+      uRailBoost:   { value: shape.railBoost },
+      uOutFrac:     { value: shape.outFrac },
+
+      // left-side gating
+      uLeftApexGateStart:   { value: shape.leftApexGateStart },
+      uLeftApexGateFeather: { value: shape.leftApexGateFeather },
+      uLeftDelay:           { value: shape.leftDelay }
+    },
+    transparent: true,
+    depthTest: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    vertexShader: `
+      varying float vSBA;  // 0=base(top) .. 1=apex(bottom)
+      varying float vLR;   // -1..1 (left..right)
+      uniform vec3  uApexPos, uBasePos, uApexDir;
+      uniform float uABLen;
+      uniform vec3  uLRPosCenter, uLRDir;
+      uniform float uLRHalfWidth;
+      void main() {
+        vec4 wp4 = modelMatrix * vec4(position,1.0);
+        float abProj = dot(wp4.xyz - uBasePos, uApexDir);
+        vSBA = clamp(abProj / max(uABLen, 1e-5), 0.0, 1.0);
+        float lrProj = dot(wp4.xyz - uLRPosCenter, normalize(uLRDir));
+        vLR = clamp(lrProj / max(uLRHalfWidth, 1e-5), -1.0, 1.0);
+        gl_Position = projectionMatrix * viewMatrix * wp4;
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      uniform float uTime, uSpeed, uPhaseOffset;
+      uniform vec3  uBaseColor, uGlowColor;
+      uniform float uGlowSoft;
+      uniform float uAvEnd, uBundleEnd, uQrsEnd, uBandWidth;
+      uniform float uMidThresh, uLatThresh, uFeather, uSplitDepth;
+      uniform float uRailOffset, uRailHalfW, uRailBoost, uOutFrac;
+      uniform float uLeftApexGateStart, uLeftApexGateFeather, uLeftDelay;
+      varying float vSBA; varying float vLR;
+
+      float ease(float x){ return (x<0.5)?4.0*x*x*x:1.0-pow(-2.0*x+2.0,3.0)/2.0; }
+      float sat(float x){ return clamp(x,0.0,1.0); }
+      float bandAA(float t, float T, float w){
+        float d = abs(t - T), aa = fwidth(d);
+        float width = max(w, aa*1.5);
+        float s = smoothstep(width, 0.0, d);
+        float g = exp(-0.5 * pow(d/max(width*0.6, 1e-5), 2.0));
+        return mix(s, g, clamp(uGlowSoft, 0.0, 1.0));
+      }
+      float railsMask(){
+        float after = smoothstep(uSplitDepth-0.02, uSplitDepth+0.02, vSBA);
+        float railL = 1.0 - smoothstep(uRailHalfW, uRailHalfW+0.06, abs(vLR + uRailOffset));
+        float railR = 1.0 - smoothstep(uRailHalfW, uRailHalfW+0.06, abs(vLR - uRailOffset));
+        return after * max(railL, railR);
+      }
+
+      void main(){
+        float beat = fract(uTime*uSpeed + uPhaseOffset);
+
+        float T_down = mix(uAvEnd, uBundleEnd, ease(vSBA));
+        T_down = max(0.0, T_down - uRailBoost * railsMask());
+
+        float post = max(uQrsEnd - T_down, 1e-4);
+        float ax = abs(vLR);
+        float radial = sat( (ax - uMidThresh) / max(1.0 - uMidThresh, 1e-5) );
+        float lat    = smoothstep(uLatThresh - uFeather, uLatThresh + uFeather, ax);
+
+        float progOut = ease(radial);
+        float progUp  = ease(1.0 - vSBA) * lat;
+
+        float isLeft  = step(vLR, 0.0);
+        float isRight = 1.0 - isLeft;
+
+        float apexGateLeft = smoothstep(uLeftApexGateStart, uLeftApexGateStart + uLeftApexGateFeather, vSBA);
+        float progLeft  = sat(uOutFrac * (progOut * apexGateLeft) + (1.0 - uOutFrac) * progUp);
+        float progRight = sat(uOutFrac *  progOut               + (1.0 - uOutFrac) * progUp);
+
+        float prog = progRight * isRight + progLeft * isLeft;
+
+        float T = clamp(T_down + post * prog + uLeftDelay * isLeft, uAvEnd + 0.002, uQrsEnd - 0.002);
+
+        float glow = bandAA(beat, T, uBandWidth);
+        vec3 color = mix(uBaseColor, uGlowColor, glow);
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `
+  });
+
+  mesh.material = mat;
+  materials.push(mat);
+}
+
+// Fit view
+function frameModel(object){
+  const box = new THREE.Box3().setFromObject(object);
+  const c = box.getCenter(new THREE.Vector3());
+  const s = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(s.x, s.y, s.z);
+  const fitH = maxDim / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov*0.5)));
+  const distance = Math.max(fitH, fitH/camera.aspect) * 1.2;
+  camera.position.copy(c.clone().add(new THREE.Vector3(0,0,1).multiplyScalar(distance)));
+  camera.near = distance/100; camera.far = distance*10;
+  camera.updateProjectionMatrix(); camera.lookAt(c);
+  controls.target.copy(c); controls.update();
+  dirLight.position.copy(camera.position.clone().add(new THREE.Vector3(2,2,1)));
+}
+
+// Resize + loop
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// Live speed tuning: '-' slower, '=' faster (0.1x .. 3x)
+addEventListener('keydown', (e)=>{
+  if (e.key === '-') conductionSettings.speedScale = Math.max(0.1, conductionSettings.speedScale - 0.05);
+  if (e.key === '=' || e.key === '+') conductionSettings.speedScale = Math.min(3.0, conductionSettings.speedScale + 0.05);
+});
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  const speed = (conductionSettings.bpm/60) * conductionSettings.speedScale;
+  materials.forEach(m=>{
+    m.uniforms.uTime.value = t;
+    m.uniforms.uSpeed.value = speed; // why: unified slow-down
+    m.uniforms.uPhaseOffset.value = conductionSettings.phaseOffset || 0.0;
+  });
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

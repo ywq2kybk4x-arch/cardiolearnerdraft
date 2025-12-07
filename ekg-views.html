@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>EKG Views – RCA Infarct Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Adjust this path if needed for your setup -->
+  <link rel="preload" href="./assets/rca_infarct_met_afleidingen_en_vector.glb"
+        as="fetch" crossorigin="anonymous" />
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg: #05060a;
+      --panel: #0b0e16;
+      --accent: #ff3366;
+      --accent-soft: #ff6699;
+      --text-main: #f5f7ff;
+      --text-muted: #9aa0c2;
+      --border-subtle: #1b2030;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at top, #15192a 0, #05060a 55%, #000 100%);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                   "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: minmax(0, 2.1fr) minmax(320px, 1.3fr);
+      grid-template-rows: 56px minmax(0, 1fr);
+      grid-template-areas:
+        "header header"
+        "scene  panel";
+      width: 100%;
+      height: 100%;
+    }
+
+    header {
+      grid-area: header;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      backdrop-filter: blur(18px);
+      background: linear-gradient(
+        to right,
+        rgba(10, 12, 20, 0.82),
+        rgba(10, 12, 20, 0.75)
+      );
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header h1 span.logo-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #ffdd55 0, #ff3366 55%, #8b1b4f 100%);
+      box-shadow: 0 0 12px rgba(255, 110, 150, 0.9);
+    }
+
+    header .sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    #scene-wrap {
+      grid-area: scene;
+      position: relative;
+      padding: 10px 10px 16px 16px;
+    }
+
+    #scene3d {
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #151728 0, #05060b 70%);
+      box-shadow:
+        0 32px 68px rgba(0, 0, 0, 0.75),
+        inset 0 0 0 1px rgba(255, 254, 255, 0.02);
+      position: relative;
+    }
+
+    #panel {
+      grid-area: panel;
+      padding: 10px 16px 16px 10px;
+    }
+
+    #panel-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      background: radial-gradient(
+          circle at top left,
+          rgba(255, 80, 140, 0.12) 0,
+          transparent 40%
+        ),
+        linear-gradient(to bottom, #070814, #05060e 55%, #050509 100%);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.85),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      padding: 14px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    #panel-header h2 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #panel-header h2::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 10px;
+      background: radial-gradient(circle, #7df9ff 0, #00e0ff 60%, #0090ff 100%);
+      box-shadow: 0 0 10px rgba(0, 208, 255, 0.75);
+    }
+
+    #panel-header .mode-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+
+    #mode-buttons {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: 999px;
+      background: rgba(8, 11, 25, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.6),
+        0 10px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .mode-btn {
+      position: relative;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      border: none;
+      padding: 6px 14px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.18s ease-out;
+    }
+
+    .mode-btn.active {
+      color: #040308;
+      background: radial-gradient(circle at top, #ffd7eb 0, #ff88b5 32%, #ff3366 100%);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        0 0 18px rgba(255, 71, 133, 0.9);
+    }
+
+    .mode-btn:not(.active):hover {
+      color: #e0e5ff;
+    }
+
+    #ekg-container {
+      flex: 1;
+      border-radius: 14px;
+      background: repeating-linear-gradient(
+          to vertical,
+          rgba(255, 255, 255, 0.03) 0,
+          rgba(255, 255, 255, 0.03) 1px,
+          transparent 1px,
+          transparent 9px
+        ),
+        repeating-linear-gradient(
+          to horizontal,
+          rgba(255, 255, 255, 0.02) 0,
+          rgba(255, 255, 255, 0.02) 1px,
+          transparent 1px,
+          transparent 9px
+        ),
+        radial-gradient(circle at top right, #1a1f33 0, #05060a 55%);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #ekg-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #ekg-overlay {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px 10px 4px;
+    }
+
+    .lead-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+    }
+
+    .lead-label {
+      width: 42px;
+      text-align: right;
+      opacity: 0.9;
+    }
+
+    .lead-indicator {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.12), transparent);
+    }
+
+    #legend-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      margin-top: 4px;
+      color: var(--text-muted);
+    }
+
+    #legend-row span.badge {
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent);
+    }
+
+    #legend-row span.badge strong {
+      color: #ff8aaf;
+      margin-right: 4px;
+    }
+
+    #legend-row .note {
+      opacity: 0.85;
+    }
+
+    #heart-caption {
+      position: absolute;
+      left: 18px;
+      bottom: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: radial-gradient(circle at top, rgba(0, 0, 0, 0.8), rgba(4, 6, 16, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    #heart-caption::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #ff5b8a 0, #ff145c 55%, #92123a 100%);
+      box-shadow: 0 0 10px rgba(255, 45, 108, 0.9);
+    }
+
+    @media (max-width: 960px) {
+      #app {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 56px minmax(0, 1.4fr) minmax(0, 1.2fr);
+        grid-template-areas:
+          "header"
+          "scene"
+          "panel";
+      }
+
+      #scene-wrap {
+        padding: 8px 10px 10px;
+      }
+
+      #panel {
+        padding: 4px 10px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div>
+        <h1><span class="logo-dot"></span> EKG Views</h1>
+        <div class="sub">3D RCA Infarct · Vector & Inferior Leads</div>
+      </div>
+      <div id="mode-buttons">
+        <button class="mode-btn active" data-mode="normal">Normal</button>
+        <button class="mode-btn" data-mode="rca-mi">RCA Inferior MI</button>
+      </div>
+    </header>
+
+    <section id="scene-wrap">
+      <div id="scene3d"></div>
+      <div id="heart-caption">Right Coronary Artery Territory · Inferior Wall</div>
+    </section>
+
+    <section id="panel">
+      <div id="panel-inner">
+        <div id="panel-header">
+          <h2>Inferior Lead Pattern</h2>
+          <div class="mode-label">Leads II · III · aVF · I · aVL</div>
+        </div>
+
+        <div id="ekg-container">
+          <canvas id="ekg-canvas"></canvas>
+          <div id="ekg-overlay">
+            <div class="lead-row">
+              <span class="lead-label">II</span>
+              <span class="lead-indicator"></span>
+            </div>
+            <div class="lead-row">
+              <span class="lead-label">III</span>
+              <span class="lead-indicator"></span>
+            </div>
+            <div class="lead-row">
+              <span class="lead-label">aVF</span>
+              <span class="lead-indicator"></span>
+            </div>
+            <div class="lead-row">
+              <span class="lead-label">I</span>
+              <span class="lead-indicator"></span>
+            </div>
+            <div class="lead-row">
+              <span class="lead-label">aVL</span>
+              <span class="lead-indicator"></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="legend-row">
+          <span class="badge">
+            <strong>RCA MI</strong> ↑ ST in II, III, aVF · ↓ ST in I, aVL
+          </span>
+          <span class="note">Heart vector tilts inferiorly/right in infarct mode.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+    // ----------------------------
+    // Global state
+    // ----------------------------
+    const conductionSettings = {
+      bpm: 72,
+      mode: "normal"  // "normal" | "rca-mi"
+    };
+
+    // UI mode switching
+    const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
+    modeButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const newMode = btn.getAttribute("data-mode");
+        conductionSettings.mode = newMode;
+        modeButtons.forEach(b => b.classList.toggle("active", b === btn));
+      });
+    });
+
+    // ----------------------------
+    // Three.js scene setup
+    // ----------------------------
+    const sceneContainer = document.getElementById("scene3d");
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const camera = new THREE.PerspectiveCamera(
+      40,
+      sceneContainer.clientWidth / sceneContainer.clientHeight,
+      0.1,
+      100
+    );
+    camera.position.set(0.3, 1.6, 4.0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(sceneContainer.clientWidth, sceneContainer.clientHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    sceneContainer.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.4;
+    controls.minDistance = 2.2;
+    controls.maxDistance = 6.0;
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1b1f2a, 0.55);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(2.4, 3.0, 3.0);
+    dirLight.castShadow = false;
+    scene.add(dirLight);
+
+    const backLight = new THREE.DirectionalLight(0x95b4ff, 0.45);
+    backLight.position.set(-3.0, -1.0, -3.0);
+    scene.add(backLight);
+
+    // ----------------------------
+    // Load GLB
+    // ----------------------------
+    const infarctMeshes = [];
+    const vectorMeshes = [];
+    const heartMeshes = [];
+    const originalMaterials = new Map();
+
+    const loader = new GLTFLoader();
+    loader.load(
+      // Adjust path if your server uses /assets/ instead of ./assets/
+      "./assets/rca_infarct_met_afleidingen_en_vector.glb",
+      (gltf) => {
+        const root = gltf.scene;
+        scene.add(root);
+        frameModel(root);
+
+        // Try to categorize meshes based on name/material/color
+        root.traverse((child) => {
+          if (!child.isMesh) return;
+          const name = (child.name || "").toLowerCase();
+          const mat = child.material;
+          if (!mat) return;
+
+          // Keep a copy of original
+          if (!originalMaterials.has(child)) {
+            originalMaterials.set(child, mat);
+          }
+
+          // Very rough heuristics; tweak if needed once you inspect console
+          const color = mat.color || new THREE.Color(0.7, 0.3, 0.3);
+          const r = color.r, g = color.g, b = color.b;
+
+          const looksInfarct =
+            name.includes("infarct") ||
+            name.includes("ischemia") ||
+            name.includes("rca") ||
+            (r > 0.55 && g < 0.35 && b < 0.35);
+
+          const looksVector =
+            name.includes("vector") ||
+            name.includes("arrow") ||
+            name.includes("mean_electrical");
+
+          if (looksInfarct) {
+            infarctMeshes.push(child);
+          } else if (looksVector) {
+            vectorMeshes.push(child);
+          } else {
+            heartMeshes.push(child);
+          }
+        });
+
+        // Give infarct meshes a slightly different material so we can pulse emissive
+        infarctMeshes.forEach((mesh) => {
+          const baseMat = mesh.material;
+          const infarctMat = baseMat.clone();
+          // Warm red base
+          infarctMat.color = new THREE.Color(0x9c1b2c);
+          if ("emissive" in infarctMat) {
+            infarctMat.emissive = new THREE.Color(0xff3355);
+            infarctMat.emissiveIntensity = 0.0;
+          }
+          mesh.material = infarctMat;
+        });
+
+        console.log("Infarct meshes:", infarctMeshes.map(m => m.name));
+        console.log("Vector meshes:", vectorMeshes.map(m => m.name));
+      },
+      undefined,
+      (err) => {
+        console.error("Error loading RCA infarct GLB:", err);
+      }
+    );
+
+    function frameModel(object) {
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      const fitHeightDistance = maxDim / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+      const fitWidthDistance = fitHeightDistance / camera.aspect;
+      const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.25;
+
+      const direction = new THREE.Vector3(0, 0.1, 1).normalize();
+      camera.position.copy(center.clone().add(direction.multiplyScalar(distance)));
+      camera.near = distance / 100;
+      camera.far = distance * 10;
+      camera.updateProjectionMatrix();
+      camera.lookAt(center);
+      controls.target.copy(center);
+      controls.update();
+    }
+
+    // ----------------------------
+    // EKG Canvas setup
+    // ----------------------------
+    const ekgCanvas = document.getElementById("ekg-canvas");
+    const ekgCtx = ekgCanvas.getContext("2d");
+
+    function resizeEKGCanvas() {
+      const rect = ekgCanvas.getBoundingClientRect();
+      ekgCanvas.width = rect.width * window.devicePixelRatio;
+      ekgCanvas.height = rect.height * window.devicePixelRatio;
+      ekgCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    }
+    resizeEKGCanvas();
+    window.addEventListener("resize", () => {
+      onWindowResize();
+      resizeEKGCanvas();
+    });
+
+    function onWindowResize() {
+      const rect = sceneContainer.getBoundingClientRect();
+      camera.aspect = rect.width / rect.height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(rect.width, rect.height);
+    }
+
+    // Basic stylized waveform generator
+    const leadNames = ["II", "III", "aVF", "I", "aVL"];
+
+    function drawEKG(t) {
+      const ctx = ekgCtx;
+      const w = ekgCanvas.width / window.devicePixelRatio;
+      const h = ekgCanvas.height / window.devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+
+      const rowHeight = h / leadNames.length;
+      const baselineGap = rowHeight * 0.55;
+
+      const isMI = conductionSettings.mode === "rca-mi";
+
+      // Draw leads
+      for (let i = 0; i < leadNames.length; i++) {
+        const y0 = i * rowHeight + baselineGap;
+
+        // pick amplitude + ST shifts per lead
+        let baseAmp = 10;
+        let stShift = 0;
+        if (isMI) {
+          if (i <= 2) {
+            // II, III, aVF → ST elevation
+            stShift = -7;
+            baseAmp = 14;
+          } else {
+            // I, aVL → reciprocal depression
+            stShift = +6;
+            baseAmp = 9;
+          }
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(0, y0);
+
+        const speed = 2.1; // how fast pattern scrolls
+
+        for (let x = 0; x < w; x++) {
+          const normX = x / w;
+          const phase = normX * 4 * Math.PI + t * speed;
+
+          // Base pseudo-QRS + T: sharp spike + smooth hump
+          const qrs = Math.exp(-Math.pow((phase % (2 * Math.PI)) - 0.6, 2) * 12) * -baseAmp;
+          const tWave = Math.exp(-Math.pow((phase % (2 * Math.PI)) - 3.0, 2) * 1.4) * (baseAmp * 0.5);
+
+          let y = y0 + qrs + tWave + stShift;
+
+          // slight noise for realism
+          y += (Math.sin(phase * 3.1 + i) * 0.7);
+
+          ctx.lineTo(x, y);
+        }
+
+        ctx.strokeStyle = isMI
+          ? i <= 2
+            ? "rgba(255, 120, 160, 0.95)"
+            : "rgba(255, 130, 190, 0.6)"
+          : "rgba(240, 250, 255, 0.9)";
+
+        ctx.lineWidth = isMI ? 1.35 : 1.2;
+        ctx.shadowColor = isMI
+          ? "rgba(255, 70, 140, 0.65)"
+          : "rgba(0, 220, 255, 0.55)";
+        ctx.shadowBlur = isMI ? 7 : 5;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    // ----------------------------
+    // Animation loop
+    // ----------------------------
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const t = clock.getElapsedTime();
+
+      // Pulse infarct region in MI mode
+      const isMI = conductionSettings.mode === "rca-mi";
+      infarctMeshes.forEach((mesh) => {
+        const mat = mesh.material;
+        if (!mat || !("emissiveIntensity" in mat)) return;
+
+        if (isMI) {
+          const base = 0.15;
+          const pulse = 0.5 + 0.45 * Math.sin(t * 5.0);
+          mat.emissiveIntensity = base + pulse;
+        } else {
+          // subtle baseline
+          mat.emissiveIntensity = 0.08;
+        }
+      });
+
+      // Slightly tilt vector arrow in MI mode
+      vectorMeshes.forEach((mesh) => {
+        if (isMI) {
+          mesh.visible = true;
+          mesh.rotation.z = 0.35 + 0.08 * Math.sin(t * 2.2); // tilt inferior/right-ish
+        } else {
+          mesh.visible = true;
+          mesh.rotation.z = 0.0 + 0.04 * Math.sin(t * 1.8);
+        }
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+
+      // EKG
+      drawEKG(t * 0.65);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
