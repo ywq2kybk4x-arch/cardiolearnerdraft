@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>3d EKG Viewer</title>
+
+  <!-- Use EXACTLY the same importmap as your working page -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/examples/jsm/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+    }
+    canvas {
+      display: block;
+    }
+    .lead-label {
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 3px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 0 4px rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+    import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+    // -----------------------------
+    // BASIC SCENE SETUP
+    // -----------------------------
+    const scene = new THREE.Scene();
+    window.scene = scene;
+    scene.background = new THREE.Color(0x111111);
+
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
+    camera.position.set(3, 2, 3);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    document.body.appendChild(labelRenderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // -----------------------------
+    // LIGHTING
+    // -----------------------------
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
+    scene.add(hemi);
+
+    const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+    dir.position.set(5, 10, 7);
+    scene.add(dir);
+
+    // -----------------------------
+    // LOAD YOUR GLB
+    // -----------------------------
+    const loader = new GLTFLoader();
+
+loader.load(
+  'assets/3dekgviewer.glb',   // ✅ updated path
+  (gltf) => {
+    const root = gltf.scene;
+    scene.add(root);
+
+    // center model at origin
+    const box = new THREE.Box3().setFromObject(root);
+    const center = box.getCenter(new THREE.Vector3());
+    root.position.sub(center);
+
+    setupLeadLabels(root);
+  },
+  undefined,
+  (err) => console.error('GLTF load error:', err)
+);
+
+    // -----------------------------
+    // LEAD ANCHOR NAMES (from Blender)
+    // -----------------------------
+    const leadAnchors = {
+      'aVF': 'aVF',
+      'aVL': 'aVL',
+      'aVR': 'aVR',
+      'I': 'Lead_I',
+      'II': 'Lead_II',
+      'III': 'Lead_III',
+      'V1': 'v1',
+      'V2': 'v2',
+      'V3': 'v3',
+      'V4': 'v4',
+      'V5': 'v5',
+      'V6': 'v6'
+    };
+
+    function setupLeadLabels(root) {
+      Object.entries(leadAnchors).forEach(([labelText, objectName]) => {
+        const anchor = root.getObjectByName(objectName);
+
+        if (!anchor) {
+          console.warn('❌ Missing anchor object:', objectName);
+          return;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'lead-label';
+        div.textContent = labelText;
+
+        const label = new CSS2DObject(div);
+        label.position.set(0, 0.05, 0); // small offset so it’s not buried in the sphere
+        anchor.add(label);
+      });
+    }
+
+    // -----------------------------
+    // ANIMATION LOOP
+    // -----------------------------
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+    }
+    animate();
+
+    // -----------------------------
+    // RESIZE HANDLING
+    // -----------------------------
+    window.addEventListener('resize', () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+      labelRenderer.setSize(w, h);
+    });
+  </script>
+</body>
+</html>

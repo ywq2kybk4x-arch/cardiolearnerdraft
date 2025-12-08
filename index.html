@@ -8,6 +8,14 @@
     <script src="./assets/chartjs-plugin-annotation.js"></script>
     <script src="./assets/ecg-simulator.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+    </script>
     <style>
         * {
             margin: 0;
@@ -487,6 +495,36 @@
             background: #0f172a;
             box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
         }
+        #conduction-3d-viewer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            overflow: hidden;
+        }
+        #conduction-3d-viewer canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-height: none;
+        }
+        #conduction-3d-viewer .label-renderer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .lead-label {
+            font-family: 'Inter', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 4px 8px;
+            border-radius: 999px;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            pointer-events: none;
+        }
         .model-3d-viewer model-viewer {
             width: 100%;
             height: 100%;
@@ -909,7 +947,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🫀 Interactive Cardiac Physiology Simulator</h1>
+            <h1>Interactive Cardiac Physiology Simulator</h1>
             <p>Explore cardiac hemodynamics and pathophysiology</p>
         </div>
         
@@ -1085,7 +1123,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <img id="tamponadeImage" src="/assets/PericarditisvsTamponade.png" alt="Pericarditis vs Cardiac Tamponade" style="display: none; width: 100%; max-width: 900px; margin: 16px auto 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);">
+                            <img id="tamponadeImage" src="assets/PericarditisvsTamponade.png" alt="Pericarditis vs Cardiac Tamponade" style="display: none; width: 100%; max-width: 900px; margin: 16px auto 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);">
                         </div>
                         
                         <div id="functionCurvesContainer" class="chart-container" style="grid-column: span 2; display: block;">
@@ -1479,35 +1517,32 @@
         <div id="conduction-content" class="tab-content">
             <div class="model-3d-grid">
                 <div class="model-3d-viewer">
-                    <div class="sketchfab-embed-wrapper" style="width:100%; height:100%; display:flex; flex-direction:column; gap:8px;">
-                        <iframe
-                            title="Vectoren van de Kamer Activatie en Afleidingen"
-                            frameborder="0"
-                            allowfullscreen
-                            mozallowfullscreen="true"
-                            webkitallowfullscreen="true"
-                            allow="autoplay; fullscreen; xr-spatial-tracking"
-                            xr-spatial-tracking
-                            execution-while-out-of-viewport
-                            execution-while-not-rendered
-                            web-share
-                            src="https://sketchfab.com/models/7505649501714d179a7b46dfb1c4cac1/embed?ui_watermark_link=0&ui_watermark=0"
-                            style="flex:1; min-height:360px; border:none; border-radius:12px; overflow:hidden;"
-                        ></iframe>
-                        <p style="font-size:13px; font-weight:normal; margin:0; color:#4A4A4A; text-align:center;">
-                            <a href="https://sketchfab.com/3d-models/vectoren-van-de-kamer-activatie-en-afleidingen-7505649501714d179a7b46dfb1c4cac1?utm_medium=embed&utm_campaign=share-popup&utm_content=7505649501714d179a7b46dfb1c4cac1" target="_blank" rel="nofollow" style="font-weight:bold; color:#1CAAD9;">Vectoren van de Kamer Activatie en Afleidingen</a>
-                            by
-                            <a href="https://sketchfab.com/eLearningUMCG?utm_medium=embed&utm_campaign=share-popup&utm_content=7505649501714d179a7b46dfb1c4cac1" target="_blank" rel="nofollow" style="font-weight:bold; color:#1CAAD9;">E-learning UMCG</a>
-                            on
-                            <a href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=7505649501714d179a7b46dfb1c4cac1" target="_blank" rel="nofollow" style="font-weight:bold; color:#1CAAD9;">Sketchfab</a>
-                        </p>
+                    <div id="conduction-3d-viewer">
+                        <div id="conduction-loading-label" class="lead-label" style="position:absolute; top:12px; left:12px; z-index:2; background: rgba(0,0,0,0.6);">
+                            Loading 3D conduction system...
+                        </div>
                     </div>
                 </div>
                 <div class="model-3d-sidebar">
-                    <h3>Cardiac Conduction System</h3>
-                    <p>Inspect the 3D conduction system: SA node, internodal pathways, AV node, bundle of His, bundle branches, and Purkinje network.</p>
-                    <p><strong>Pair with ECG tab:</strong> rotate the model while reviewing PR/QRS concepts to reinforce spatial pathways that generate surface ECG signals.</p>
-                    <p><strong>Study tips:</strong> trace the impulse path from SA → AV → His → bundle branches → Purkinje; note the proximity of the AV node to the tricuspid annulus and the septal blood supply.</p>
+                    <h3>3D ECG Lead Orientation Map</h3>
+<p>
+Use this 3D model to <strong>visualize how the ECG leads surround the heart in space</strong>. Each marker represents a surface lead, letting you see which region of the heart its vector “looks at.”
+</p>
+
+<p><strong>What this is for:</strong></p>
+<ul>
+  <li>Understand how limb leads (I, II, III, aVR, aVL, aVF) form the <strong>frontal plane</strong> around the heart</li>
+  <li>See how precordial leads (V1–V6) wrap around the chest to create the <strong>horizontal plane</strong></li>
+  <li>Build intuition for which leads correspond to <strong>septal, anterior, lateral, and inferior</strong> walls</li>
+</ul>
+
+<p><strong>How to use it:</strong></p>
+<ul>
+  <li>Rotate the model and note the direction each lead points relative to the ventricles</li>
+  <li>Mentally pair each lead with its viewpoint (e.g., II and aVF → inferior wall, V5–V6 → lateral wall)</li>
+  <li>Use this spatial map when interpreting ECGs to explain ST changes, T-wave changes, or Q waves in specific leads</li>
+</ul>
+
                 </div>
             </div>
             <div class="ecg-shell">
@@ -1677,6 +1712,135 @@
         </div>
     </div>
 
+    <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+    import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+    const leadAnchors = {
+        aVF: 'aVF',
+        aVL: 'aVL',
+        aVR: 'aVR',
+        I: 'Lead_I',
+        II: 'Lead_II',
+        III: 'Lead_III',
+        V1: 'v1',
+        V2: 'v2',
+        V3: 'v3',
+        V4: 'v4',
+        V5: 'v5',
+        V6: 'v6'
+    };
+
+    let conduction3DState = null;
+
+    function setupLeadLabels(root) {
+        Object.entries(leadAnchors).forEach(([labelText, objectName]) => {
+            const anchor = root.getObjectByName(objectName);
+            if (!anchor) {
+                console.warn('Missing anchor object:', objectName);
+                return;
+            }
+            const div = document.createElement('div');
+            div.className = 'lead-label';
+            div.textContent = labelText;
+            const label = new CSS2DObject(div);
+            label.position.set(0, 0.05, 0);
+            anchor.add(label);
+        });
+    }
+
+    function createConductionViewer() {
+        if (conduction3DState) return conduction3DState;
+        const container = document.getElementById('conduction-3d-viewer');
+        if (!container) return null;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+        camera.position.set(3, 2, 3);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        container.appendChild(renderer.domElement);
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.domElement.classList.add('label-renderer');
+        container.appendChild(labelRenderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
+        scene.add(hemi);
+
+        const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+        dir.position.set(5, 10, 7);
+        scene.add(dir);
+
+        const loader = new GLTFLoader();
+        loader.load(
+            'assets/3dekgviewer.glb',
+            (gltf) => {
+                const root = gltf.scene;
+                scene.add(root);
+                const box = new THREE.Box3().setFromObject(root);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                root.position.sub(center);
+                const maxDim = Math.max(size.x, size.y, size.z) || 1;
+                const fitDistance = maxDim * 1.2;
+                camera.position.set(fitDistance * 0.8, fitDistance * 0.6, fitDistance * 0.8);
+                controls.target.set(0, 0, 0);
+                controls.update();
+                setupLeadLabels(root);
+                const loadingLabel = document.getElementById('conduction-loading-label');
+                if (loadingLabel && loadingLabel.parentNode === container) {
+                    loadingLabel.remove();
+                }
+            },
+            undefined,
+            (err) => console.error('GLTF load error:', err)
+        );
+
+        const resize = () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            if (!width || !height) return;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+            labelRenderer.setSize(width, height);
+        };
+
+        const animate = () => {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        };
+        animate();
+
+        window.addEventListener('resize', resize);
+
+        conduction3DState = { scene, camera, renderer, labelRenderer, controls, container, resize };
+        resize();
+        return conduction3DState;
+    }
+
+    window.initConduction3DViewer = function() {
+        const state = createConductionViewer();
+        if (state && state.resize) state.resize();
+    };
+    window.resizeConduction3DViewer = function() {
+        if (conduction3DState && conduction3DState.resize) {
+            conduction3DState.resize();
+        }
+    };
+    </script>
+
     <script>
         // Initialize charts
         let pvLoopChart, functionCurvesChart;
@@ -1745,8 +1909,8 @@
                 description: 'Systolic dysfunction with EF < 40%'
             },
             hfpef: {
-                preload: 90,  // Reduced due to diastolic dysfunction
-                afterload: 1350,  // Often hypertensive
+                preload: 85,  // Reduced due to diastolic dysfunction
+                afterload: 1360,  // Often hypertensive
                 contractility: 1.0,  // Preserved systolic function
                 heartRate: 75,
                 name: 'Heart Failure (HFpEF)',
@@ -1769,9 +1933,9 @@
                 description: 'Pericardial effusion with hemodynamic compromise'
             },
             septicShock: {
-                preload: 140,  // Relative hypovolemia corrected with aggressive fluids
-                afterload: 950,  // Severe vasodilation
-                contractility: 1.05,  // Hyperdynamic early phase
+                preload: 98,  // Relative hypovolemia corrected with aggressive fluids
+                afterload: 820,  // Severe vasodilation
+                contractility: 0.69,  // Hyperdynamic early phase
                 heartRate: 120,
                 name: 'Septic Shock',
                 description: 'Distributive shock with low SVR'
@@ -1841,6 +2005,14 @@
                 document.getElementById(panel).classList.toggle('active', tabMap[key].panel === panel);
             });
             if (key === 'conduction') {
+                if (window.initConduction3DViewer) {
+                    window.initConduction3DViewer();
+                    requestAnimationFrame(() => {
+                        if (window.resizeConduction3DViewer) {
+                            window.resizeConduction3DViewer();
+                        }
+                    });
+                }
                 if (!ecgInitialized) {
                     initEcgSimulator();
                     ecgInitialized = true;
