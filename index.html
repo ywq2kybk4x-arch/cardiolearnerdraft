@@ -1097,7 +1097,6 @@
             <button class="tab-button" id="pathologies-tab-btn">Cardiac Pathologies</button>
             <button class="tab-button" id="shock-tab-btn">Shock Simulator</button>
             <button class="tab-button" id="quiz-tab-btn">PV Loop Quiz</button>
-            <button class="tab-button" id="teen-heart-tab-btn">Teenage Heart 3D</button>
             <button class="tab-button" id="conduction-tab-btn">Conduction System 3D</button>
         </div>
         
@@ -1694,21 +1693,6 @@
                             <p id="answerPanelBody">Click “Show Answer” to reveal the target preload, afterload, and contractility for the selected pathology.</p>
                         </div>
                     </div>
-            </div>
-        </div>
-
-        <div id="teen-heart-content" class="tab-content">
-            <div class="model-3d-grid">
-                <div class="model-3d-viewer">
-                    <model-viewer src="assets/normal_teenage_heart.glb" camera-controls auto-rotate shadow-intensity="1" exposure="0.9" ar ar-modes="webxr scene-viewer quick-look">
-                    </model-viewer>
-                </div>
-                <div class="model-3d-sidebar">
-                    <h3>Teenage Heart Model</h3>
-                    <p>Explore a realistic 3D model of a normal teenage heart. Drag to rotate, scroll or pinch to zoom, and inspect chambers, valves, and surface anatomy from any angle.</p>
-                    <p><strong>Suggested uses:</strong> correlate chamber volumes with preload/afterload concepts, locate coronary grooves, and visualize the relationship between LV shape and PV loop geometry.</p>
-                    <p><strong>Controls:</strong> click-drag to orbit, scroll to zoom, and use the built-in buttons for recenter or fullscreen.</p>
-                </div>
             </div>
         </div>
 
@@ -2472,7 +2456,6 @@
             pathologies: { btn: 'pathologies-tab-btn', panel: 'pathologies-content' },
             shock: { btn: 'shock-tab-btn', panel: 'shock-content' },
             quiz: { btn: 'quiz-tab-btn', panel: 'quiz-content' },
-            teenHeart: { btn: 'teen-heart-tab-btn', panel: 'teen-heart-content' },
             conduction: { btn: 'conduction-tab-btn', panel: 'conduction-content' }
         };
 
