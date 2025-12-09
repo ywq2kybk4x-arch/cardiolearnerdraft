@@ -121,6 +121,80 @@
         .control-group {
             margin-bottom: 25px;
         }
+        .pv-controls {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 18px;
+            margin-top: 16px;
+        }
+        .pv-controls .control-group {
+            margin-bottom: 20px;
+        }
+        .control-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .slider-label {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #1d4ed8;
+        }
+        .slider-ticks {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            font-size: 0.8em;
+            color: #6b7280;
+            margin-top: 8px;
+            gap: 4px;
+        }
+        .slider-ticks span {
+            text-align: center;
+        }
+        .pv-controls .slider {
+            width: 100%;
+        }
+        #showAnswerButton {
+            background: #059669;
+            border: none;
+            color: white;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #showAnswerButton:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(5, 150, 105, 0.4);
+        }
+        .answer-panel {
+            display: none;
+            margin-top: 16px;
+            background: #ffffff;
+            border-radius: 14px;
+            border: 1px solid #d1d5db;
+            padding: 16px 18px;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.1);
+        }
+        .answer-panel.visible {
+            display: block;
+        }
+        .answer-panel h4 {
+            margin-bottom: 8px;
+            font-size: 1em;
+            color: #0f5132;
+        }
+        .answer-panel p {
+            margin: 4px 0;
+            color: #1f2933;
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
         
         .control-group label {
             display: block;
@@ -1529,22 +1603,75 @@
                             <option value="cardiogenicShock">Cardiogenic Shock</option>
                         </select>
                     </div>
-                    <div class="control-group">
-                        <label for="quizEDV">End-Diastolic Volume (mL)</label>
-                        <input type="range" id="quizEDV" class="slider" min="60" max="240" value="120" step="2">
-                        <div class="help-text">Move right to widen/fill more.</div>
-                    </div>
-                    <div class="control-group">
-                        <label for="quizESV">End-Systolic Volume (mL)</label>
-                        <input type="range" id="quizESV" class="slider" min="10" max="200" value="50" step="2">
-                        <div class="help-text">Move right to leave more blood behind (weaker pump).</div>
-                    </div>
-                    <div class="control-group">
-                        <label for="quizSystolic">Peak Systolic Pressure (mmHg)</label>
-                        <input type="range" id="quizSystolic" class="slider" min="60" max="220" value="125" step="2">
-                        <div class="help-text">Higher in pressure overload; lower in distributive shock.</div>
+                    <div id="pvControls" class="pv-controls">
+                        <!-- PRELOAD -->
+                        <div class="control-group">
+                            <div class="control-label-row">
+                                <label for="preloadSlider">Preload (EDV)</label>
+                                <span id="preloadLabel" class="slider-label">No change</span>
+                            </div>
+                            <input
+                                id="preloadSlider"
+                                type="range"
+                                class="slider"
+                                min="0"
+                                max="2"
+                                step="1"
+                                value="1"
+                            />
+                            <div class="slider-ticks">
+                                <span>Reduced</span>
+                                <span>No change</span>
+                                <span>Increased</span>
+                            </div>
+                        </div>
+
+                        <!-- AFTERLOAD -->
+                        <div class="control-group">
+                            <div class="control-label-row">
+                                <label for="afterloadSlider">Afterload (peak systolic)</label>
+                                <span id="afterloadLabel" class="slider-label">No change</span>
+                            </div>
+                            <input
+                                id="afterloadSlider"
+                                type="range"
+                                class="slider"
+                                min="0"
+                                max="2"
+                                step="1"
+                                value="1"
+                            />
+                            <div class="slider-ticks">
+                                <span>Reduced</span>
+                                <span>No change</span>
+                                <span>Increased</span>
+                            </div>
+                        </div>
+
+                        <!-- CONTRACTILITY -->
+                        <div class="control-group">
+                            <div class="control-label-row">
+                                <label for="inotropySlider">Contractility (ESV)</label>
+                                <span id="inotropyLabel" class="slider-label">No change</span>
+                            </div>
+                            <input
+                                id="inotropySlider"
+                                type="range"
+                                class="slider"
+                                min="0"
+                                max="2"
+                                step="1"
+                                value="1"
+                            />
+                            <div class="slider-ticks">
+                                <span>Reduced</span>
+                                <span>No change</span>
+                                <span>Increased</span>
+                            </div>
+                        </div>
                     </div>
                     <button class="reset-button" style="width: 100%; margin-top: 5px;" id="quizSubmit">Submit Attempt</button>
+                    <button type="button" id="showAnswerButton">Show Answer</button>
                     <div class="quiz-feedback" id="quizFeedback">Pick a lesion and adjust the loop to match it.</div>
                 </div>
                     <div class="chart-container quiz-chart-container">
@@ -1561,6 +1688,10 @@
                         <canvas id="pvQuizChart" style="height: 550px; display: block; box-sizing: border-box; width: 748px;"></canvas>
                         <div style="margin-top: 10px; font-size: 0.9em; color: #2c3e50;">
                             <strong>Tips:</strong> Increase EDV for volume overload (MR/AR), decrease EDV for poor filling (MS/HFpEF). Raise peak pressure for AS/HCM; drop it for septic shock. Increase ESV for weak systolic function (HFrEF, cardiogenic shock).
+                        </div>
+                        <div class="answer-panel" id="answerPanel">
+                            <h4 id="answerPanelTitle">Correct Target Loop</h4>
+                            <p id="answerPanelBody">Click “Show Answer” to reveal the target preload, afterload, and contractility for the selected pathology.</p>
                         </div>
                     </div>
             </div>
@@ -2137,16 +2268,16 @@
                 description: 'Chronic MR with volume overload'
             },
             aorticRegurg: {
-                preload: 190,  // Significantly increased - volume overload (matches reference image)
-                afterload: 900,  // Decreased due to regurgitant pathway
+                preload: 156,  // Significantly increased - volume overload (matches reference image)
+                afterload: 1134,  // Decreased due to regurgitant pathway
                 contractility: 1.0,  // Initially preserved
                 heartRate: 75,
                 name: 'Aortic Regurgitation',
                 description: 'Chronic AR with volume overload'
             },
             mitralStenosis: {
-                preload: 75,  // Significantly reduced LV filling
-                afterload: 1200,  // Normal
+                preload: 104,  // Significantly reduced LV filling
+                afterload: 1085,  // Normal
                 contractility: 1.0,  // LV function preserved
                 heartRate: 90,  // Tachycardia to maintain CO
                 name: 'Mitral Stenosis',
@@ -2237,7 +2368,103 @@
             cardiogenicShock: { edv: 150, esv: 110, systolic: 90, width: 'narrow', desc: 'Severely depressed contractility: very high ESV, low pressure, narrow loop.' }
         };
 
+        const PATHOLOGY_FEEDBACK = {
+            aorticStenosis: {
+                correct: 'Correct! A stiff aortic valve raises afterload, while preload and contractility stay near baseline to preserve output.',
+                parameters: {
+                    preload: 'LV filling is typically preserved—should preload stay around No change?',
+                    afterload: 'A stiff valve increases resistance—should afterload be Increased?',
+                    contractility: 'Contractility is usually normal initially—did you leave it near No change?'
+                },
+                expected: { preload: 1, afterload: 2, contractility: 1 },
+                explanation: 'High systolic pressure stretches the PV loop upward, EDV stays moderate (slight compensatory increase) while ESV rises a bit because the valve is hard to eject across.'
+            },
+            aorticRegurg: {
+                correct: 'Correct! Regurgitant volume increases preload while afterload often drops thanks to the low-resistance leak back into the LV.',
+                parameters: {
+                    preload: 'Regurgitation dumps volume into the LV—should preload be Increased?',
+                    afterload: 'Blood can escape into both the aorta and atrium—should afterload trend toward Reduced?',
+                    contractility: 'Contractility is usually preserved—did you keep it near No change?'
+                },
+                expected: { preload: 2, afterload: 0, contractility: 1 },
+                explanation: 'Large regurgitant volume widens the loop with high EDV, modest ESV, and a somewhat lower peak pressure due to the volume-loaded ventricle.'
+            },
+            mitralStenosis: {
+                correct: 'Correct! Thickened leaflets limit filling, so preload goes down while afterload and contractility remain around baseline.',
+                parameters: {
+                    preload: 'A tight mitral valve limits flow—should preload be Reduced?',
+                    afterload: 'Afterload stays roughly normal—did you keep it near No change?',
+                    contractility: 'Contractility remains preserved—was it left near No change?'
+                },
+                expected: { preload: 0, afterload: 1, contractility: 1 },
+                explanation: 'Filling restriction narrows the loop (low EDV) while ESV and systolic pressure stay close to normal, so stroke volume is reduced.'
+            },
+            mitralRegurg: {
+                correct: 'Correct! Mitral regurgitation is a volume overload—preload increases and afterload drops while contractility stays normal.',
+                parameters: {
+                    preload: 'Blood leaks back into the atrium—should preload be Increased?',
+                    afterload: 'Forward output now sees a low-resistance regurgitant path—should afterload move toward Reduced?',
+                    contractility: 'Contractility is maintained—did you leave it near No change?'
+                },
+                expected: { preload: 2, afterload: 0, contractility: 1 },
+                explanation: 'Volume overload pushes EDV high and widens the loop; ESV can stay near normal while systolic pressure dips as the LV ejects through the leak.'
+            },
+            hfref: {
+                correct: 'Correct! Systolic failure piles up preload and afterload while contractility falls due to pump weakness.',
+                parameters: {
+                    preload: 'Poor ejection leaves more blood in the ventricle—should preload be Increased?',
+                    afterload: 'Neurohormonal activation keeps afterload high—did you set it to Increased?',
+                    contractility: 'The weak LV cannot generate force—should contractility be Reduced?'
+                },
+                expected: { preload: 2, afterload: 2, contractility: 0 },
+                explanation: 'Weak contractility leaves a tall, wide loop with high ESV and a lower peak pressure despite elevated afterload.'
+            },
+            hfpef: {
+                correct: 'Correct! Diastolic dysfunction lowers preload, afterload stays high if hypertensive, and contractility remains normal.',
+                parameters: {
+                    preload: 'A stiff ventricle fills poorly—should preload be Reduced?',
+                    afterload: 'Hypertension is common—can afterload be Increased?',
+                    contractility: 'Systolic pump function is preserved—did you leave it near No change?'
+                },
+                expected: { preload: 0, afterload: 2, contractility: 1 },
+                explanation: 'Stiff LV fills poorly (low EDV) but systolic pressure stays high due to hypertension; ESV stays near normal.'
+            },
+            septicShock: {
+                correct: 'Correct! Distributive shock drops preload and afterload while the heart often becomes hyperdynamic.',
+                parameters: {
+                    preload: 'Relative vasodilation decreases venous return—should preload be Reduced?',
+                    afterload: 'Systemic resistance plummets—did you move afterload to Reduced?',
+                    contractility: 'The heart often becomes hyperdynamic—should contractility be Increased?'
+                },
+                expected: { preload: 0, afterload: 0, contractility: 2 },
+                explanation: 'Vasodilation brings low afterload/preload—loop shrinks downward with low systolic pressure, while contractility may rise to preserve output.'
+            },
+            cardiogenicShock: {
+                correct: 'Correct! Pump failure increases preload, keeps afterload high, and severely reduces contractility.',
+                parameters: {
+                    preload: 'Blood pools behind the failing LV—should preload be Increased?',
+                    afterload: 'Compensatory vasoconstriction keeps afterload Elevated—did you leave it at Increased?',
+                    contractility: 'Contractility crashes—should it be Reduced?'
+                },
+                expected: { preload: 2, afterload: 2, contractility: 0 },
+                explanation: 'Failing pump widens the loop (high EDV/ESV) but lowers peak pressure because contractility is poor, despite high afterload.'
+            }
+        };
+
+        const QUIZ_SLIDER_LABELS = ['Reduced', 'No change', 'Increased'];
+        const QUIZ_PRELOAD_EDV = [95, 120, 150];
+        const QUIZ_AFTERLOAD_PRESSURE = [95, 125, 170];
+        const QUIZ_AFTERLOAD_VALUES = [900, 1200, 1600];
+        const QUIZ_CONTRACTILITY_ESV = [110, 60, 35];
+        const QUIZ_CONTRACTILITY_FACTORS = [0.7, 1.0, 1.3];
+        const QUIZ_SLIDER_LABEL_MAP = {
+            preloadSlider: 'preloadLabel',
+            afterloadSlider: 'afterloadLabel',
+            inotropySlider: 'inotropyLabel'
+        };
+
         let pvQuizChart;
+        let answerOverlayVisible = false;
         
         // Simple tab switching (includes new 3D tabs)
         const tabMap = {
@@ -2538,8 +2765,8 @@
                         <h3>📚 Key Concepts - Hypertrophic Cardiomyopathy (HCM)</h3>
                         <p><strong>Pathophysiology:</strong> Genetic mutations in sarcomeric proteins cause myocyte disarray and hypertrophy. Diastolic dysfunction is the primary hemodynamic problem - the stiff ventricle cannot fill properly.</p>
                         <p><strong>Dynamic LVOT Obstruction:</strong> In obstructive HCM (HOCM), systolic anterior motion (SAM) of the mitral valve creates LVOT obstruction. Obstruction WORSENS with ↓ preload or ↓ afterload.</p>
-                        <p><strong>Paradoxical Responses:</strong> Valsalva/standing WORSEN obstruction (decrease preload). Squatting/handgrip IMPROVE it (increase preload/afterload). Opposite of typical murmurs!</p>
-                        <p><strong>PV Loop Changes:</strong> Steep diastolic curve (poor compliance), ↑ LVEDP. In HOCM: characteristic "spike and dome" pattern during ejection due to dynamic obstruction.</p>
+                        <p><strong>Paradoxical Responses:</strong> Valsalva/standing WORSEN obstruction (decrease preload). Squatting/handgrip IMPROVE it (increase preload/afterload). </p>
+                        <p><strong>PV Loop Changes:</strong> Steep diastolic curve (poor compliance), ↑ LVEDP. In HOCM: characteristic "spike and dome" pattern during ejection due to dynamic obstruction. <strong> Note: It is difficult to accurately represent the HOCM PV loop spine-and-dome pattern. This graph is for general understanding. <strong> </p>
                         <p><strong>Management:</strong> Beta-blockers (↓ contractility, ↑ filling time), avoid dehydration/vasodilators, septal reduction therapy if severe obstruction.</p>
                     `;
                     infoHTML = `<h3>📚 Currently Viewing: HCM</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
@@ -2896,6 +3123,10 @@
             updateFunctionCurves();
             // Show normal key concepts banner on initial load
             updatePathologyInfo('normal');
+            const closeAnswerBtn = document.getElementById('closeAnswerModal');
+            if (closeAnswerBtn) {
+                closeAnswerBtn.addEventListener('click', hideAnswerOverlay);
+            }
         });
         
         function initializeCharts() {
@@ -3141,15 +3372,57 @@
         }
 
         // Quiz helpers
-        function getQuizValues() {
-            const edv = parseFloat(document.getElementById('quizEDV').value);
-            const esv = Math.min(parseFloat(document.getElementById('quizESV').value), edv - 5);
-            const systolic = parseFloat(document.getElementById('quizSystolic').value);
-            // Ensure ESV slider stays below EDV
-            if (esv + 5 > edv) {
-                document.getElementById('quizESV').value = edv - 5;
+        function getQuizSliderIndex(sliderId) {
+            const slider = document.getElementById(sliderId);
+            if (!slider) return 1;
+            const parsed = parseInt(slider.value, 10);
+            if (Number.isNaN(parsed)) return 1;
+            return Math.min(2, Math.max(0, parsed));
+        }
+
+        function updateQuizSliderLabel(sliderId) {
+            const labelId = QUIZ_SLIDER_LABEL_MAP[sliderId];
+            const labelEl = labelId ? document.getElementById(labelId) : null;
+            if (!labelEl) return;
+            const idx = getQuizSliderIndex(sliderId);
+            labelEl.textContent = QUIZ_SLIDER_LABELS[idx];
+        }
+
+        function getQuizValues(pathologyKey) {
+            const preloadIdx = getQuizSliderIndex('preloadSlider');
+            const afterloadIdx = getQuizSliderIndex('afterloadSlider');
+            const contractilityIdx = getQuizSliderIndex('inotropySlider');
+            const matchGuidance = () => {
+                const guidance = PATHOLOGY_FEEDBACK[pathologyKey];
+                if (!guidance) return false;
+                const selections = {
+                    preload: preloadIdx,
+                    afterload: afterloadIdx,
+                    contractility: contractilityIdx
+                };
+                return Object.entries(guidance.expected).every(([param, expected]) => selections[param] === expected);
+            };
+
+            const afterload = QUIZ_AFTERLOAD_VALUES[afterloadIdx];
+            const contractility = QUIZ_CONTRACTILITY_FACTORS[contractilityIdx];
+
+            if (matchGuidance() && quizTargets[pathologyKey]) {
+                const target = quizTargets[pathologyKey];
+                return {
+                    edv: target.edv,
+                    esv: target.esv,
+                    systolic: target.systolic,
+                    afterload,
+                    contractility: (pathologyPresets[pathologyKey]?.contractility ?? contractility)
+                };
             }
-            return { edv, esv, systolic };
+
+            const edv = QUIZ_PRELOAD_EDV[preloadIdx];
+            const systolic = QUIZ_AFTERLOAD_PRESSURE[afterloadIdx];
+            let esv = QUIZ_CONTRACTILITY_ESV[contractilityIdx];
+            esv = Math.min(esv, edv - 5);
+            esv = Math.max(15, esv);
+            return { edv, esv, systolic, afterload, contractility };
         }
 
         function buildSimpleLoop(edv, esv, systolic) {
@@ -3196,6 +3469,18 @@
                             pointRadius: 0,
                             tension: 0.3,
                             fill: false
+                        },
+                        {
+                            label: 'Correct target',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            borderDash: [6, 4],
+                            pointRadius: 0,
+                            tension: 0.3,
+                            fill: false,
+                            hidden: true
                         }
                     ]
                 },
@@ -3216,8 +3501,12 @@
         }
 
         function updateQuizChart() {
+            if (answerOverlayVisible) {
+                hideAnswerOverlay();
+            }
             if (!pvQuizChart) return;
-            const { edv, esv, systolic } = getQuizValues();
+            const pathologyKey = document.getElementById('quizPathology').value;
+            const { edv, esv, systolic, afterload, contractility } = getQuizValues(pathologyKey);
             const user = buildSimpleLoop(edv, esv, systolic);
             const normal = buildSimpleLoop(120, 50, 125);
             pvQuizChart.data.datasets[0].data = user;
@@ -3231,11 +3520,7 @@
             };
             // Derive preload/afterload/contractility/HR in quiz from current sliders
             const preload = edv;
-            const afterloadSlider = document.getElementById('afterload');
-            const contractilitySlider = document.getElementById('contractility');
             const heartRateSlider = document.getElementById('heartRate');
-            const afterload = afterloadSlider ? parseFloat(afterloadSlider.value) : 1200;
-            const contractility = contractilitySlider ? parseFloat(contractilitySlider.value) : 1.0;
             const heartRate = heartRateSlider ? parseFloat(heartRateSlider.value) : 70;
             const sv = Math.max(edv - esv, 10);
             const co = (sv * heartRate) / 1000;
@@ -3266,51 +3551,132 @@
             setChipState('quiz-chip-ef', ef >= 55 && ef <= 70);
         }
 
+        function hideAnswerOverlay() {
+            if (!answerOverlayVisible) return;
+            if (pvQuizChart && pvQuizChart.data.datasets[2]) {
+                const dataset = pvQuizChart.data.datasets[2];
+                dataset.data = [];
+                dataset.hidden = true;
+                pvQuizChart.update('none');
+            }
+            answerOverlayVisible = false;
+            const btn = document.getElementById('showAnswerButton');
+            if (btn) btn.textContent = 'Show Answer';
+            const panel = document.getElementById('answerPanel');
+            if (panel) panel.classList.remove('visible');
+        }
+
+        function openAnswerOverlay(pathologyKey) {
+            if (!pvQuizChart) return;
+            const target = quizTargets[pathologyKey];
+            if (!target) return;
+            const dataset = pvQuizChart.data.datasets[2];
+            if (dataset) {
+                dataset.data = buildSimpleLoop(target.edv, target.esv, target.systolic);
+                dataset.hidden = false;
+                pvQuizChart.update('none');
+            }
+            answerOverlayVisible = true;
+            const btn = document.getElementById('showAnswerButton');
+            if (btn) btn.textContent = 'Hide Answer';
+            const panel = document.getElementById('answerPanel');
+            const guidance = PATHOLOGY_FEEDBACK[pathologyKey];
+            if (panel) {
+                const title = document.getElementById('answerPanelTitle');
+                const body = document.getElementById('answerPanelBody');
+                const preset = pathologyPresets[pathologyKey];
+                if (title) {
+                    title.textContent = `Correct loop: ${preset ? preset.name : 'Target'}`;
+                }
+                if (body) {
+                    const contractText = preset ? `Contractility ≈ ${preset.contractility.toFixed(1)}×.` : '';
+                    const explanation = guidance ? guidance.explanation : target.desc;
+                    body.innerHTML = `<p style="margin-bottom: 6px;">Preload (EDV): ${target.edv} mL · ESV: ${target.esv} mL · Peak systolic: ${target.systolic} mmHg.</p><p style="margin: 0;">${explanation} ${contractText}</p>`;
+                }
+                panel.classList.add('visible');
+            }
+        }
+
         function evaluateQuiz() {
             const pathology = document.getElementById('quizPathology').value;
-            const target = quizTargets[pathology];
-            if (!target) return;
-            const { edv, esv, systolic } = getQuizValues();
-            const userWidth = edv - esv;
-            const targetWidth = target.edv - target.esv;
-
-            const widthDirOk = (target.width === 'wide' && userWidth > targetWidth * 0.9) ||
-                               (target.width === 'narrow' && userWidth < targetWidth * 1.15) ||
-                               (target.width === 'moderate');
-            const edvOk = Math.abs(edv - target.edv) <= 25;
-            const esvOk = Math.abs(esv - target.esv) <= 25;
-            const sysOk = Math.abs(systolic - target.systolic) <= 25 || (target.systolic < 110 && systolic < 115);
-
-            const score = [widthDirOk, edvOk, esvOk, sysOk].filter(Boolean).length;
             const feedback = document.getElementById('quizFeedback');
-            if (score >= 3) {
-                feedback.style.background = '#d4edda';
-                feedback.style.border = '1px solid #28a745';
-                feedback.style.color = '#155724';
-                feedback.textContent = `Great work! You're on target: ${target.desc}`;
+            if (!feedback) return;
+            const guidance = PATHOLOGY_FEEDBACK[pathology];
+            if (!guidance) {
+                feedback.textContent = 'Select a supported pathology.';
+                return;
+            }
+            const selections = {
+                preload: getQuizSliderIndex('preloadSlider'),
+                afterload: getQuizSliderIndex('afterloadSlider'),
+                contractility: getQuizSliderIndex('inotropySlider')
+            };
+            const issues = [];
+            Object.entries(guidance.expected).forEach(([param, expected]) => {
+                if (selections[param] !== expected) {
+                    const label = param.charAt(0).toUpperCase() + param.slice(1);
+                    const question = guidance.parameters[param];
+                    const chosenLabel = QUIZ_SLIDER_LABELS[selections[param]] || 'Unknown';
+                    issues.push(`<strong>${label}</strong>: ${question} (you selected ${chosenLabel}).`);
+                }
+            });
+            if (issues.length === 0) {
+                feedback.style.background = '#ecfdf5';
+                feedback.style.border = '1px solid #a7f3d0';
+                feedback.style.color = '#065f46';
+                feedback.innerHTML = guidance.correct;
             } else {
-                feedback.style.background = '#f8d7da';
-                feedback.style.border = '1px solid #f5c6cb';
-                feedback.style.color = '#721c24';
-                feedback.textContent = `❌ Not quite. ${target.desc} Aim for EDV ${target.edv} mL, ESV ${target.esv} mL, peak ~${target.systolic} mmHg.`;
+                feedback.style.background = '#fef2f2';
+                feedback.style.border = '1px solid #fecaca';
+                feedback.style.color = '#b91c1c';
+                feedback.innerHTML = issues.join('<br>');
             }
         }
 
         function attachQuizListeners() {
-            document.getElementById('quizPathology').addEventListener('change', () => {
-                // Reset to normal starting point to encourage adjustment
-                document.getElementById('quizEDV').value = 120;
-                document.getElementById('quizESV').value = 50;
-                document.getElementById('quizSystolic').value = 125;
-                updateQuizChart();
-                document.getElementById('quizFeedback').textContent = 'Adjust the loop to match the chosen lesion, then submit.';
-            });
-            ['quizEDV','quizESV','quizSystolic'].forEach(id => {
-                document.getElementById(id).addEventListener('input', () => {
+            const sliderIds = Object.keys(QUIZ_SLIDER_LABEL_MAP);
+            sliderIds.forEach(sliderId => {
+                const slider = document.getElementById(sliderId);
+                if (!slider) return;
+                slider.addEventListener('input', () => {
+                    updateQuizSliderLabel(sliderId);
                     updateQuizChart();
                 });
             });
-            document.getElementById('quizSubmit').addEventListener('click', evaluateQuiz);
+
+            const pathologySelect = document.getElementById('quizPathology');
+            if (pathologySelect) {
+                pathologySelect.addEventListener('change', () => {
+                    sliderIds.forEach(sliderId => {
+                        const slider = document.getElementById(sliderId);
+                        if (slider) slider.value = '1';
+                        updateQuizSliderLabel(sliderId);
+                    });
+                    updateQuizChart();
+                    const feedback = document.getElementById('quizFeedback');
+                    if (feedback) {
+                        feedback.textContent = 'Adjust the loop to match the chosen lesion, then submit.';
+                    }
+                });
+            }
+
+            const submitButton = document.getElementById('quizSubmit');
+            if (submitButton) {
+                submitButton.addEventListener('click', evaluateQuiz);
+            }
+
+            sliderIds.forEach(id => updateQuizSliderLabel(id));
+            const showAnswerBtn = document.getElementById('showAnswerButton');
+            if (showAnswerBtn) {
+                showAnswerBtn.addEventListener('click', () => {
+                    const pathology = document.getElementById('quizPathology').value;
+                    if (answerOverlayVisible) {
+                        hideAnswerOverlay();
+                        return;
+                    }
+                    openAnswerOverlay(pathology);
+                });
+            }
         }
         
         function handleSliderChange(event) {
@@ -5429,6 +5795,10 @@ function resetASQuestion(qName) {
                             <button id="toggle-as-questions-btn" onclick="toggleASPracticeQuestions()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: 600; cursor: pointer; margin-top: 20px; display: none; transition: all 0.3s;">
                               Show Aortic Stenosis Practice Questions (10 Questions)
                             </button>
-</div>
-
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body></html>
