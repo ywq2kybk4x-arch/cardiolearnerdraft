@@ -548,6 +548,73 @@
             line-height: 1.55;
             font-size: 0.95em;
         }
+
+        .coronary-button-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 6px 0 10px;
+        }
+
+        .coronary-button {
+            flex: 1;
+            min-width: 0;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid #d1d5db;
+            background: #f3f4f6;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .coronary-button:hover {
+            background: #e5e7eb;
+        }
+
+        .coronary-button.active {
+            background: #1d4ed8;
+            color: #ffffff;
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 1px rgba(37,99,235,0.3);
+        }
+
+        .coronary-info-grid {
+            display: grid;
+            gap: 6px;
+            font-size: 0.9em;
+        }
+
+        .coronary-info-label {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .coronary-info-value {
+            color: #374151;
+        }
+
+        .coronary-leads-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        /* Highlighted ECG lead labels in the 3D CSS2D overlay */
+        .lead-label-active {
+            transform: scale(1.15);
+            background: rgba(37,99,235,0.9);
+            color: #ffffff;
+            border-color: rgba(191,219,254,1);
+            box-shadow: 0 0 8px rgba(59,130,246,0.8);
+        }
         
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
@@ -1524,25 +1591,46 @@
                     </div>
                 </div>
                 <div class="model-3d-sidebar">
-                    <h3>3D ECG Lead Orientation Map</h3>
-<p>
-Use this 3D model to <strong>visualize how the ECG leads surround the heart in space</strong>. Each marker represents a surface lead, letting you see which region of the heart its vector “looks at.”
-</p>
+                    <h3>Coronary Territories &amp; ECG Leads</h3>
+                    <p style="margin-bottom: 8px;">
+                        Click a coronary artery to <strong>highlight it on the 3D heart</strong> and see its
+                        classic MI territory, ECG leads, and key complications.
+                    </p>
 
-<p><strong>What this is for:</strong></p>
-<ul>
-  <li>Understand how limb leads (I, II, III, aVR, aVL, aVF) form the <strong>frontal plane</strong> around the heart</li>
-  <li>See how precordial leads (V1–V6) wrap around the chest to create the <strong>horizontal plane</strong></li>
-  <li>Build intuition for which leads correspond to <strong>septal, anterior, lateral, and inferior</strong> walls</li>
-</ul>
+                    <div class="coronary-button-row">
+                        <button class="coronary-button" data-coronary="LAD">LAD</button>
+                        <button class="coronary-button" data-coronary="RCA">RCA</button>
+                        <button class="coronary-button" data-coronary="LCX">LCX</button>
+                    </div>
 
-<p><strong>How to use it:</strong></p>
-<ul>
-  <li>Rotate the model and note the direction each lead points relative to the ventricles</li>
-  <li>Mentally pair each lead with its viewpoint (e.g., II and aVF → inferior wall, V5–V6 → lateral wall)</li>
-  <li>Use this spatial map when interpreting ECGs to explain ST changes, T-wave changes, or Q waves in specific leads</li>
-</ul>
+                    <div class="coronary-info-grid">
+                        <div>
+                            <div class="coronary-info-label">Selected Artery</div>
+                            <div class="coronary-info-value" id="coronary-name">—</div>
+                        </div>
 
+                        <div>
+                            <div class="coronary-info-label">MI Territory</div>
+                            <div class="coronary-info-value" id="coronary-mi">—</div>
+                        </div>
+
+                        <div>
+                            <div class="coronary-info-label">Classic ECG Leads</div>
+                            <div class="coronary-info-value">
+                                <span class="coronary-leads-pill" id="coronary-leads">—</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="coronary-info-label">Key Structures at Risk</div>
+                            <div class="coronary-info-value" id="coronary-structures">—</div>
+                        </div>
+
+                        <div>
+                            <div class="coronary-info-label">Hallmark Complications</div>
+                            <div class="coronary-info-value" id="coronary-complications">—</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="ecg-shell">
@@ -1733,7 +1821,46 @@ Use this 3D model to <strong>visualize how the ECG leads surround the heart in s
         V6: 'v6'
     };
 
-    
+    const coronaryMap = {
+        LAD: {
+            id: 'LAD',
+            name: 'Left Anterior Descending (LAD)',
+            meshName: 'Arteries3_Arteries3_0',
+            miTerritory: 'Anterior MI (± Septal, Apical)',
+            leads: 'V1–V4 (± V5)',
+            keyStructures: 'Anterior LV wall, Septum, Apex',
+            complications: '↓ EF, ventricular arrhythmias, bundle branch blocks, acute HF',
+            highlightLeads: ['V1', 'V2', 'V3', 'V4', 'V5']
+        },
+        RCA: {
+            id: 'RCA',
+            name: 'Right Coronary Artery (RCA)',
+            meshName: 'Arteries5_Arteries5_0',
+            miTerritory: 'Inferior MI',
+            leads: 'II, III, aVF',
+            keyStructures: 'Inferior LV wall, RV, AV node (most common supply)',
+            complications: 'Bradycardia, AV block, RV infarct → hypotension',
+            highlightLeads: ['II', 'III', 'aVF']
+        },
+        LCX: {
+            id: 'LCX',
+            name: 'Left Circumflex (LCX)',
+            meshName: 'Arteries1_Arteries1_0',
+            miTerritory: 'Lateral MI (± Posterior)',
+            leads: 'I, aVL, V5–V6 (Posterior: V7–V9)',
+            keyStructures: 'Lateral LV wall, papillary muscles',
+            complications: 'Papillary muscle rupture → acute MR, pulmonary edema',
+            highlightLeads: ['I', 'aVL', 'V5', 'V6', 'V7', 'V8', 'V9']
+        }
+    };
+
+    const coronaryState = {
+        LAD: { meshes: [], originalMaterials: [] },
+        RCA: { meshes: [], originalMaterials: [] },
+        LCX: { meshes: [], originalMaterials: [] }
+    };
+
+    const leadLabelMap = {};
 
     let conduction3DState = null;
 
@@ -1744,14 +1871,111 @@ Use this 3D model to <strong>visualize how the ECG leads surround the heart in s
                 console.warn('Missing anchor object:', objectName);
                 return;
             }
-            const div = document.createElement('div');
-            div.className = 'lead-label';
-            div.textContent = labelText;
-            const label = new CSS2DObject(div);
+
+            const labelElement = document.createElement('div');
+            labelElement.className = 'lead-label';
+            labelElement.textContent = labelText;
+
+            const label = new CSS2DObject(labelElement);
             label.position.set(0, 0.05, 0);
             anchor.add(label);
+
+            leadLabelMap[labelText] = {
+                label,
+                element: labelElement
+            };
         });
     }
+
+     function registerCoronaryMeshes(root) {
+        Object.values(coronaryMap).forEach((coro) => {
+            const holder = root.getObjectByName(coro.meshName);
+            if (!holder) {
+                console.warn('Coronary mesh not found in GLB:', coro.meshName);
+                return;
+            }
+
+            const bucket = coronaryState[coro.id];
+
+            holder.traverse((child) => {
+                if (child.isMesh) {
+                    // Make a neutral, non-glowing baseline material
+                    const neutralMat = child.material.clone();
+                    neutralMat.color.set(0xcccccc);          // light gray
+                    neutralMat.emissive.set(0x000000);       // no emissive glow
+                    neutralMat.emissiveIntensity = 0.0;
+
+                    child.material = neutralMat;
+
+                    bucket.meshes.push(child);
+                    bucket.originalMaterials.push(neutralMat);
+                }
+            });
+        });
+    }
+
+    function clearCoronaryHighlight() {
+        Object.values(coronaryState).forEach((bucket) => {
+            bucket.meshes.forEach((mesh, idx) => {
+                if (bucket.originalMaterials[idx]) {
+                    mesh.material = bucket.originalMaterials[idx];
+                }
+            });
+        });
+    }
+
+    function updateCoronaryInfoPanel(coro) {
+        const nameEl = document.getElementById('coronary-name');
+        const miEl = document.getElementById('coronary-mi');
+        const leadsEl = document.getElementById('coronary-leads');
+        const structuresEl = document.getElementById('coronary-structures');
+        const complicationsEl = document.getElementById('coronary-complications');
+
+        if (!nameEl) return;
+
+        nameEl.textContent = coro.name;
+        miEl.textContent = coro.miTerritory;
+        leadsEl.textContent = coro.leads;
+        structuresEl.textContent = coro.keyStructures;
+        complicationsEl.textContent = coro.complications;
+    }
+
+    function updateLeadHighlights(activeLeads = []) {
+        Object.entries(leadLabelMap).forEach(([name, obj]) => {
+            const el = obj.element;
+            if (!el) return;
+
+            if (activeLeads.includes(name)) {
+                el.classList.add('lead-label-active');
+            } else {
+                el.classList.remove('lead-label-active');
+            }
+        });
+    }
+
+    function highlightCoronary(id) {
+        const coro = coronaryMap[id];
+        const bucket = coronaryState[id];
+        if (!coro || !bucket) return;
+
+        clearCoronaryHighlight();
+        updateLeadHighlights([]);
+
+        bucket.meshes.forEach((mesh) => {
+            const highlightMat = mesh.material.clone();
+            highlightMat.color.set(0xffd700);
+            highlightMat.emissive = new THREE.Color(0xffaa00);
+            highlightMat.emissiveIntensity = 0.9;
+            highlightMat.metalness = 0.1;
+            highlightMat.roughness = 0.35;
+            mesh.material = highlightMat;
+        });
+
+        updateCoronaryInfoPanel(coro);
+        updateLeadHighlights(coro.highlightLeads || []);
+    }
+
+    window.highlightCoronary = highlightCoronary;
 
     function createConductionViewer() {
         if (conduction3DState) return conduction3DState;
@@ -1798,10 +2022,13 @@ Use this 3D model to <strong>visualize how the ECG leads surround the heart in s
                 controls.target.set(0, 0, 0);
                 controls.update();
                 setupLeadLabels(root);
+                registerCoronaryMeshes(root);
                 const loadingLabel = document.getElementById('conduction-loading-label');
                 if (loadingLabel && loadingLabel.parentNode === container) {
                     loadingLabel.remove();
                 }
+
+                highlightCoronary('LAD');
             },
             undefined,
             (err) => console.error('GLTF load error:', err)
@@ -1831,6 +2058,29 @@ Use this 3D model to <strong>visualize how the ECG leads surround the heart in s
         resize();
         return conduction3DState;
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const buttons = Array.from(document.querySelectorAll('[data-coronary]'));
+        if (!buttons.length) return;
+
+        buttons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.coronary;
+                if (!id) return;
+
+                highlightCoronary(id);
+
+                buttons.forEach((b) => {
+                    b.classList.toggle('active', b === btn);
+                });
+            });
+        });
+
+        const defaultBtn = buttons.find((b) => b.dataset.coronary === 'LAD') || buttons[0];
+        if (defaultBtn) {
+            defaultBtn.classList.add('active');
+        }
+    });
 
     window.initConduction3DViewer = function() {
         const state = createConductionViewer();
