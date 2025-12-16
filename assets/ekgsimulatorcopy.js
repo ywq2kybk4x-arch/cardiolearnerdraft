@@ -746,6 +746,8 @@ class EcgSimulator {
       this.currentRhythm !== 'avb3' &&
       this.currentRhythm !== 'mvtach' &&
       this.currentRhythm !== 'pvtach';
+    const isAfib =
+      this.currentRhythm === 'afib' || this.currentRhythm === 'atrial_fibrillation';
 
     const conductionBeats = beats.filter((beat) => beat && beat.hasQRS !== false);
 
@@ -770,7 +772,7 @@ class EcgSimulator {
     const qrsValues = collectValues((beat) => beat.qrs);
     const qtValues = collectValues((beat) => beat.qt);
 
-    const prText = formatRange('PR', prValues, null, allowPR);
+    const prText = isAfib ? 'PR —' : formatRange('PR', prValues, null, allowPR);
     const qrsText = formatRange('QRS', qrsValues, this.intervals.qrsDurationMs);
     const qtText = formatRange('QT', qtValues, this.intervals.qtIntervalMs);
 
@@ -865,6 +867,43 @@ class EcgSimulator {
     this.atrialSchedule = [];
 
     const durationMs = (this.config.displayTime || 10) * 1000;
+    const isAfib =
+      this.currentRhythm === 'afib' || this.currentRhythm === 'atrial_fibrillation';
+
+    if (isAfib) {
+      this.initAfibNoise();
+      const meanRr = 60000 / this.config.heartRate;
+      let t = 0;
+      const randn = () => {
+        let u = 0;
+        let v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      };
+
+      while (t < durationMs) {
+        const rr = Math.max(350, Math.min(1800, meanRr * Math.exp(0.25 * randn())));
+        const qrs = this.intervals.qrsDurationMs;
+        const qt = this.intervals.qtIntervalMs;
+
+        this.addBeat({
+          rTime: t + qrs / 2,
+          hasP: false,
+          hasQRS: true,
+          pr: 0,
+          qrs,
+          qt
+        });
+
+        t += rr;
+      }
+
+      this.rhythmDurationMs = durationMs;
+      this.drawTrace();
+      return;
+    }
+
     const baseRrMs = 60000 / this.config.heartRate;
 
     switch (this.currentRhythm) {
@@ -1116,6 +1155,67 @@ class EcgSimulator {
     return this.waveAmpsPx.t * Math.exp(-0.5 * Math.pow(delta / (sigma || 1), 2));
   }
 
+  initAfibNoise() {
+    // Create stable “f-wave” components for this rhythm run.
+    // AFib f-waves often ~4–9 Hz with irregular morphology.
+    const n = 8;
+    const comps = [];
+    for (let i = 0; i < n; i++) {
+      const freq = 4 + Math.random() * 6; // 4–10 Hz
+      const phase = Math.random() * Math.PI * 2; // random phase
+      const weight = 0.4 + Math.random() * 0.9; // amplitude weight
+      comps.push({ freq, phase, weight });
+    }
+    this._afibNoise = comps;
+    this._afibNoiseDriftPhase = Math.random() * Math.PI * 2;
+  }
+
+  afibBaseline(tMs) {
+    const comps = this._afibNoise;
+    if (!comps || !comps.length) return 0;
+
+    const timeSec = tMs / 1000;
+
+    // Target fibrillatory amplitude ~0.10–0.18 mV (visually obvious but not huge)
+    // Convert mV -> px using MV_TO_PX.
+    const baseAmpPx = 0.14 * MV_TO_PX;
+
+    // Slow amplitude modulation to avoid “machine-like” regularity
+    const drift =
+      0.75 + 0.25 * Math.sin(2 * Math.PI * 0.25 * timeSec + (this._afibNoiseDriftPhase || 0));
+
+    // Sum of sinusoids -> “noisy” f-wave
+    let s = 0;
+    let wsum = 0;
+    for (const c of comps) {
+      s += c.weight * Math.sin(2 * Math.PI * c.freq * timeSec + c.phase);
+      wsum += c.weight;
+    }
+    if (wsum > 0) s /= wsum;
+
+    // Add a small higher-frequency roughness component
+    const rough =
+      0.25 * Math.sin(2 * Math.PI * 16.0 * timeSec + 1.3) +
+      0.2 * Math.sin(2 * Math.PI * 22.0 * timeSec + 2.1);
+
+    return baseAmpPx * drift * (0.85 * s + 0.15 * rough);
+  }
+
+  afibQrsBlanking(timeMsFromR) {
+    if (!Number.isFinite(timeMsFromR)) return 1;
+    const x = Math.abs(timeMsFromR);
+    const sigma = 25; // tighter than before
+    return 1 - Math.exp(-0.5 * (x / sigma) * (x / sigma));
+  }
+
+  afibTBlanking(timeMsFromT) {
+    if (!Number.isFinite(timeMsFromT)) return 1;
+    const x = Math.abs(timeMsFromT);
+    const sigma = 70;
+    const dip = Math.exp(-0.5 * (x / sigma) * (x / sigma));
+    return 1 - 0.55 * dip;
+  }
+
   getVoltageAtTimeMs(tMs) {
     if (this.currentRhythm === 'mvtach') {
       const t = tMs / 1000;
@@ -1154,6 +1254,10 @@ class EcgSimulator {
     const duration = this.rhythmDurationMs || 8000;
     const time = ((tMs % duration) + duration) % duration;
     let y = 0;
+    let nearestDtFromR = Infinity;
+    let nearestDtFromT = Infinity;
+    const isAfib =
+      this.currentRhythm === 'afib' || this.currentRhythm === 'atrial_fibrillation';
 
     if (this.currentRhythm === 'avb3') {
       for (const p of this.atrialSchedule) {
@@ -1161,7 +1265,7 @@ class EcgSimulator {
           y += this.drawPWave(time, p.pTime, p.width);
         }
       }
-    } else {
+    } else if (!isAfib) {
       for (const beat of this.beatSchedule) {
         if (!beat.hasP) continue;
         const pCenter = beat.rTime - beat.pr + 40;
@@ -1174,8 +1278,11 @@ class EcgSimulator {
     for (const beat of this.beatSchedule) {
       if (!beat.hasQRS) continue;
 
+      const dt = time - beat.rTime;
+      if (Math.abs(dt) < Math.abs(nearestDtFromR)) nearestDtFromR = dt;
+
       // ---- QRS (only draw when we're near it) ----
-      if (Math.abs(time - beat.rTime) <= beat.qrs * 2) {
+      if (Math.abs(dt) <= beat.qrs * 2) {
         y += this.drawQRSComplex(
           time,
           beat.rTime,
@@ -1197,31 +1304,20 @@ class EcgSimulator {
 
       const tCenter = (tStart + tEnd) / 2;
       const tWidth = Math.max(80, tEnd - tStart);
+      const dtT = time - tCenter;
+      if (Math.abs(dtT) < Math.abs(nearestDtFromT)) nearestDtFromT = dtT;
 
-      const allowT = (beat.hasT !== false) && (this.currentRhythm !== 'afib');
+      const allowT = beat.hasT !== false;
       if (allowT && Math.abs(time - tCenter) <= tWidth * 2) {
         y += this.drawTWave(time, tCenter, tWidth);
       }
     }
 
-    if (this.currentRhythm === 'afib') {
-  // AFib baseline: deterministic fibrillatory ("f") waves + mild baseline wander
-  // (No Math.random() here, so it won't "shake" frame-to-frame.)
-  const t = time; // ms
-
-  // Fibrillatory waves ~6–9 Hz (360–540/min). Mix several close freqs for organic look.
-  const f1 = Math.sin((2 * Math.PI * 6.6 * t) / 1000);
-  const f2 = Math.sin((2 * Math.PI * 7.8 * t) / 1000 + 1.3);
-  const f3 = Math.sin((2 * Math.PI * 8.9 * t) / 1000 + 2.1);
-
-  const fWaves = (f1 + 0.6 * f2 + 0.35 * f3) / (1 + 0.6 + 0.35);
-
-  // Very mild baseline wander (respiration/motion), keep subtle
-  const wander = Math.sin((2 * Math.PI * 0.25 * t) / 1000 + 0.4);
-
-  // Keep amplitude small so it reads as AFib (not flutter)
-  y += AMP_P_PX * 0.22 * fWaves + AMP_P_PX * 0.05 * wander;
-}
+    if (isAfib) {
+      const blankQRS = this.afibQrsBlanking(nearestDtFromR);
+      const blankT = this.afibTBlanking(nearestDtFromT);
+      y += this.afibBaseline(time) * blankQRS * blankT;
+    }
 
     return y;
   }

@@ -83,13 +83,76 @@ const BASE_INTERVALS = {
   tWaveDurationMs: 180
 };
 
+const AFIB_T_SCALE = 0.22; // 0.15–0.35 is a good tuning range
+const STEMI_CONFIG = { stMv: 0.25 };
+const STEMI_IDS = ['stemi_inferior', 'stemi_anterior', 'stemi_lateral'];
+
+const normalizeLeadMap = (map = {}) => {
+  const normalized = {};
+  for (const [lead, value] of Object.entries(map)) {
+    normalized[normLead(lead)] = value;
+  }
+  return normalized;
+};
+
+const STEMI_LEAD_MAPS = {
+  inferior: normalizeLeadMap({
+    II: 1.0,
+    III: 1.1,
+    AVF: 1.0,
+    I: -0.6,
+    AVL: -0.6
+  }),
+  anterior: normalizeLeadMap({
+    V1: 0.7,
+    V2: 1.0,
+    V3: 1.0,
+    V4: 0.8,
+    II: -0.5,
+    III: -0.6,
+    AVF: -0.5
+  }),
+  lateral: normalizeLeadMap({
+    I: 1.0,
+    AVL: 1.0,
+    V5: 0.9,
+    V6: 0.9,
+    II: -0.5,
+    III: -0.6,
+    AVF: -0.5
+  })
+};
+
+const smoothstep = (edge0, edge1, x) => {
+  const t = clamp((x - edge0) / ((edge1 - edge0) || 1), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
 const degWrap = (deg) => {
   let d = ((deg + 180) % 360 + 360) % 360;
   if (d > 180) d -= 360;
   return d;
 };
 
-const clamp = (x, lo, hi) => Math.min(Math.max(x, lo), hi);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function () {
+    t += 0x6d2b79f5;
+    let a = Math.imul(t ^ (t >>> 15), t | 1);
+    a ^= a + Math.imul(a ^ (a >>> 7), a | 61);
+    return ((a ^ (a >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function randnBM(rng) {
+  let u = 0;
+  let v = 0;
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
 
 const safeNonZero = (g, minAbs = 0.18) => {
   if (!Number.isFinite(g)) return minAbs;
@@ -119,6 +182,27 @@ const RHYTHM_PRESETS = {
     defaultHR: 110,
     hrClamp: { min: 90, max: 160 },
     intervals: { prIntervalMs: 0, qrsDurationMs: 90, qtIntervalMs: 380, pWaveDurationMs: 0, tWaveDurationMs: 180 }
+  },
+  stemi_inferior: {
+    id: 'stemi_inferior',
+    label: 'Inferior STEMI (II, III, aVF)',
+    defaultHR: 80,
+    hrClamp: { min: 40, max: 140 },
+    intervals: { prIntervalMs: 160, qrsDurationMs: 90, qtIntervalMs: 400, pWaveDurationMs: 90, tWaveDurationMs: 180 }
+  },
+  stemi_anterior: {
+    id: 'stemi_anterior',
+    label: 'Anterior STEMI (V1–V4)',
+    defaultHR: 80,
+    hrClamp: { min: 40, max: 140 },
+    intervals: { prIntervalMs: 160, qrsDurationMs: 90, qtIntervalMs: 400, pWaveDurationMs: 90, tWaveDurationMs: 180 }
+  },
+  stemi_lateral: {
+    id: 'stemi_lateral',
+    label: 'Lateral STEMI (I, V5–V6)',
+    defaultHR: 80,
+    hrClamp: { min: 40, max: 140 },
+    intervals: { prIntervalMs: 160, qrsDurationMs: 90, qtIntervalMs: 400, pWaveDurationMs: 90, tWaveDurationMs: 180 }
   },
   avb1: {
     id: 'avb1',
@@ -203,11 +287,21 @@ class Ecg12Simulator {
       speed: 25
     };
     this.currentRhythm = this.normalizeRhythmId(config.rhythm || 'sinus');
+    this._seedBase = Math.floor(Math.random() * 0x7fffffff);
+    this._seedCounter = 1;
+    this.rngSeed = 0;
+    this._rng = null;
+    this._gaussSpare = null;
+    this._afibNoise = [];
+    this._afibNoiseDriftPhase = 0;
+    this.stemiStMv = STEMI_CONFIG.stMv;
+    this.initRhythmSeed();
+    this.randomizeAfibPhases();
     this.debugLeadModel = false;
     this.debugLeadModelOverlay = false;
 
     this.highlights = { P: false, QRS: false, T: false };
-    this.intervalHighlights = { PR: false, QRSd: false, QT: false };
+    this.intervalHighlights = { PR: false, QRSd: false, QT: false, RR: false };
     this.axisMode = this.normalizeAxisMode(config.axisMode || 'normal');
     this.axisDeg = this.axisDegFromMode(this.axisMode);
     if (typeof config.axisDeg === 'number') {
@@ -255,6 +349,10 @@ class Ecg12Simulator {
     const preset = this.getCurrentPreset();
     const clampedValue = this.clampHeartRate(bpm, preset);
     this.config.heartRate = clampedValue;
+    this.resetRandomness();
+    if (this.currentRhythm === 'afib') {
+      this.randomizeAfibPhases();
+    }
     this.regenerateRhythm();
     this.sweepStartTime = this.simulatedTimeMs;
     return clampedValue;
@@ -274,6 +372,10 @@ class Ecg12Simulator {
         targetPreset
       );
       this.applyPresetIntervals(targetPreset);
+    }
+    this.resetRandomness();
+    if (this.currentRhythm === 'afib') {
+      this.randomizeAfibPhases();
     }
     this.regenerateRhythm();
     this.sweepStartTime = this.simulatedTimeMs;
@@ -368,6 +470,27 @@ class Ecg12Simulator {
 
   getCurrentRhythm() {
     return this.currentRhythm;
+  }
+
+  isStemiRhythm(rhythm = this.currentRhythm) {
+    const id = this.normalizeRhythmId(rhythm);
+    return STEMI_IDS.includes(id);
+  }
+
+  getStemiKind(rhythm = this.currentRhythm) {
+    const id = this.normalizeRhythmId(rhythm);
+    if (!this.isStemiRhythm(id)) return null;
+    if (id.endsWith('inferior')) return 'inferior';
+    if (id.endsWith('anterior')) return 'anterior';
+    if (id.endsWith('lateral')) return 'lateral';
+    return null;
+  }
+
+  getStemiLeadMultiplier(leadKey, rhythm = this.currentRhythm) {
+    const kind = this.getStemiKind(rhythm);
+    if (!kind) return 0;
+    const map = STEMI_LEAD_MAPS[kind] || {};
+    return map[normLead(leadKey)] || 0;
   }
 
   getHeartRate() {
@@ -751,7 +874,7 @@ class Ecg12Simulator {
 
   drawIntervalOverlays(ctx, params) {
     const on = this.intervalHighlights;
-    if (!on.PR && !on.QRSd && !on.QT) return;
+    if (!on.PR && !on.QRSd && !on.QT && !on.RR) return;
     const {
       tWindowStart,
       tWindowEnd,
@@ -770,19 +893,23 @@ class Ecg12Simulator {
     const baselineY = midY + (verticalOffset || 0);
     const padTop = 14;
     const padBottom = 10;
-    const usableH = Math.max(40, overlayBandH - padTop - padBottom);
-    const laneGap = Math.floor(usableH / 3);
+    const usableH = Math.max(56, overlayBandH - padTop - padBottom);
+    const laneCount = 4;
+    const laneGap = Math.floor(usableH / laneCount);
     const shiftedTop = overlayTopY;
     const lanes = {
-      PR: shiftedTop + padTop + laneGap * 0.3,
-      QRSd: shiftedTop + padTop + laneGap * 1.3,
-      QT: shiftedTop + padTop + laneGap * 2.3
+      RR: shiftedTop + padTop + laneGap * 0.3,
+      PR: shiftedTop + padTop + laneGap * 1.3,
+      QRSd: shiftedTop + padTop + laneGap * 2.3,
+      QT: shiftedTop + padTop + laneGap * 3.3
     };
     const style = {
-      PR: { stroke: '#2563eb', fill: 'rgba(37,99,235,0.10)', label: (ms) => `PR ${ms} ms` },
-      QRSd: { stroke: '#d33f49', fill: 'rgba(211,63,73,0.10)', label: (ms) => `QRS ${ms} ms` },
-      QT: { stroke: '#2f855a', fill: 'rgba(47,133,90,0.10)', label: (ms) => `QT ${ms} ms` }
+      RR: { stroke: '#7c3aed', fill: 'rgba(124,58,237,0.10)', fullLabel: (ms) => `RR ${ms} ms`, shortLabel: (ms) => `${ms} ms` },
+      PR: { stroke: '#2563eb', fill: 'rgba(37,99,235,0.10)', fullLabel: (ms) => `PR ${ms} ms`, shortLabel: (ms) => `${ms} ms` },
+      QRSd: { stroke: '#d33f49', fill: 'rgba(211,63,73,0.10)', fullLabel: (ms) => `QRS ${ms} ms`, shortLabel: (ms) => `${ms} ms` },
+      QT: { stroke: '#2f855a', fill: 'rgba(47,133,90,0.10)', fullLabel: (ms) => `QT ${ms} ms`, shortLabel: (ms) => `${ms} ms` }
     };
+    const firstLabelShown = { RR: false, PR: false, QRSd: false, QT: false };
 
     const waveformY = (tMs) => {
       const v = this.getLeadVoltageAtTimeMs(tMs, overlayLeadKey);
@@ -859,23 +986,36 @@ class Ecg12Simulator {
       ctx.stroke();
       ctx.font = '12px Arial';
       ctx.fillStyle = style[key].stroke;
-      ctx.fillText(style[key].label(label), xx1, y - 22);
+      const text = !firstLabelShown[key] ? style[key].fullLabel(label) : style[key].shortLabel(label);
+      ctx.fillText(text, xx1, y - 22);
+      firstLabelShown[key] = true;
       ctx.restore();
       drawGuides(key, xx1, xx2, y - 10, tStart, tEnd);
     };
 
-    for (const beat of this.beatSchedule) {
+    const beats = this.beatSchedule || [];
+    for (let i = 0; i < beats.length; i++) {
+      const beat = beats[i];
       if (!beat.hasQRS) continue;
+      const nextBeat = beats[(i + 1) % beats.length];
+      if (!nextBeat || !nextBeat.hasQRS) continue;
+
       const t0 = beat.rTime;
+      const t1 = nextBeat.rTime;
+      const baseRr = i === beats.length - 1 ? t1 + duration - t0 : t1 - t0;
+      const rrMs = Math.max(0, Math.round(baseRr));
+
       const kStart = Math.floor((tWindowStart - t0) / duration) - 1;
       const kEnd = Math.floor((tWindowEnd - t0) / duration) + 1;
       for (let k = kStart; k <= kEnd; k++) {
         const rOcc = t0 + k * duration;
+        const nextOcc = i === beats.length - 1 ? t1 + (k + 1) * duration : t1 + k * duration;
         const qrsStart = rOcc - beat.qrs / 2;
         const qrsEnd = qrsStart + beat.qrs;
         const qtEnd = qrsStart + beat.qt;
         const prStart = qrsStart - beat.pr;
 
+        if (on.RR) drawBracket('RR', rOcc, nextOcc, rrMs);
         if (on.PR && beat.hasP && beat.pr > 0) drawBracket('PR', prStart, qrsStart, Math.round(beat.pr));
         if (on.QRSd) drawBracket('QRSd', qrsStart, qrsEnd, Math.round(beat.qrs));
         if (on.QT) drawBracket('QT', qrsStart, qtEnd, Math.round(beat.qt));
@@ -891,13 +1031,8 @@ class Ecg12Simulator {
     ctx.clearRect(0, 0, w, h);
     const summary = this.getReadoutSummary();
     const iv = this.getIntervalReadout();
-    const lines = [
-      summary.hrText,
-      summary.axisText,
-      `PR ${iv.prMs} ms`,
-      `QRS ${iv.qrsMs} ms`,
-      `QT ${iv.qtMs} ms`
-    ];
+    const prLine = iv.prMs == null ? 'PR —' : `PR ${iv.prMs} ms`;
+    const lines = [summary.hrText, summary.axisText, prLine, `QRS ${iv.qrsMs} ms`, `QT ${iv.qtMs} ms`];
     const sc = this.scrollContainer || this.overlayCanvas.parentElement;
     const scrollLeft = sc ? sc.scrollLeft : 0;
     const viewW = sc ? sc.clientWidth : w;
@@ -930,7 +1065,7 @@ class Ecg12Simulator {
 
   getIntervalReadout() {
     return {
-      prMs: Math.round(this.intervals.prIntervalMs),
+      prMs: this.currentRhythm === 'afib' ? null : Math.round(this.intervals.prIntervalMs),
       qrsMs: Math.round(this.intervals.qrsDurationMs),
       qtMs: Math.round(this.intervals.qtIntervalMs)
     };
@@ -1034,6 +1169,9 @@ class Ecg12Simulator {
     const preset = this.getCurrentPreset();
     const durationMs = (this.config.displayTime || 10) * 1000;
     this.atrialSchedule = [];
+    if (this.currentRhythm === 'afib') {
+      this.initAfibNoise();
+    }
     this.beatSchedule = this.buildBeatSchedule(preset, durationMs);
     const lastBeat = this.beatSchedule[this.beatSchedule.length - 1];
     const baseRrMs = this.getCurrentRrMs();
@@ -1066,6 +1204,11 @@ class Ecg12Simulator {
       case 'avb3':
         this.generateThirdDegreeBeats(schedule, durationMs);
         break;
+      case 'stemi_inferior':
+      case 'stemi_anterior':
+      case 'stemi_lateral':
+        this.generateSinusBeats(schedule, durationMs);
+        break;
       case 'mvtach':
         console.warn('[Ecg12Simulator] Monomorphic VT is approximated for the 12-lead view.');
         this.generateVentricularTachBeats(schedule, durationMs, { polymorphic: false });
@@ -1084,6 +1227,12 @@ class Ecg12Simulator {
       this.generateSinusBeats(schedule, durationMs);
     }
     schedule.sort((a, b) => a.rTime - b.rTime);
+    if (id === 'afib') {
+      schedule.forEach((beat) => {
+        beat.hasP = false;
+        beat.pr = 0;
+      });
+    }
     return schedule;
   }
 
@@ -1195,20 +1344,23 @@ class Ecg12Simulator {
   }
 
   generateAFibBeats(schedule, durationMs) {
-    const meanRr = 60000 / Math.max(this.config.heartRate, 90);
+    const hr = Math.max(this.config.heartRate || 90, 30);
+    const meanRr = 60000 / hr;
+    const minRr = 350;
+    const maxRr = 1800;
     let t = 0;
-    let i = 0;
     while (t < durationMs) {
-      const jitter = 0.65 + 0.7 * (0.5 + 0.5 * Math.sin(i * 1.7));
-      const rr = Math.max(220, meanRr * jitter);
+      const jitter = Math.exp(0.25 * this.randn());
+      const rr = clamp(meanRr * jitter, minRr, maxRr);
       const rTime = t + this.intervals.qrsDurationMs / 2;
       this.addBeatToSchedule(schedule, {
         rTime,
         hasP: false,
-        pr: 0
+        pr: 0,
+        qrs: this.intervals.qrsDurationMs,
+        qt: this.intervals.qtIntervalMs
       });
       t += rr;
-      i++;
     }
   }
 
@@ -1261,15 +1413,81 @@ class Ecg12Simulator {
     return data;
   }
 
+
+  initAfibNoise() {
+    const comps = [];
+    const n = 8;
+    for (let i = 0; i < n; i++) {
+      const freq = 4 + this.rand() * 6;
+      const phase = this.rand() * Math.PI * 2;
+      const weight = 0.4 + this.rand() * 0.9;
+      comps.push({ freq, phase, weight });
+    }
+    this._afibNoise = comps;
+    this._afibNoiseDriftPhase = this.rand() * Math.PI * 2;
+  }
+
+  afibBaseline(tMs) {
+    const comps = this._afibNoise;
+    if (!comps || !comps.length) return 0;
+    const timeSec = tMs / 1000;
+    const baseAmpPx = 0.14 * MV_TO_PX_12;
+    const drift =
+      0.75 + 0.25 * Math.sin(2 * Math.PI * 0.25 * timeSec + (this._afibNoiseDriftPhase || 0));
+    let sum = 0;
+    let weightSum = 0;
+    for (const c of comps) {
+      sum += c.weight * Math.sin(2 * Math.PI * c.freq * timeSec + c.phase);
+      weightSum += c.weight;
+    }
+    if (weightSum > 0) sum /= weightSum;
+    const rough =
+      0.25 * Math.sin(2 * Math.PI * 16.0 * timeSec + 1.3) +
+      0.2 * Math.sin(2 * Math.PI * 22.0 * timeSec + 2.1);
+    return baseAmpPx * drift * (0.85 * sum + 0.15 * rough);
+  }
+
+  afibQrsBlanking(timeMsFromR) {
+    if (!Number.isFinite(timeMsFromR)) return 1;
+    const x = Math.abs(timeMsFromR);
+    const sigma = 25;
+    return 1 - Math.exp(-0.5 * (x / sigma) * (x / sigma));
+  }
+
+  afibTBlanking(timeMsFromT) {
+    if (!Number.isFinite(timeMsFromT)) return 1;
+    const x = Math.abs(timeMsFromT);
+    const sigma = 70;
+    const dip = Math.exp(-0.5 * (x / sigma) * (x / sigma));
+    return 1 - 0.55 * dip;
+  }
+
+  resetRandomness(extraSalt = 0) {
+    this.initRhythmSeed(extraSalt);
+  }
+
+  randomizeAfibPhases() {
+    this.initAfibNoise();
+  }
+
   computeLimbLeadValue(leadKey, sample) {
     const cfg = LIMB_LEAD_CONFIG[leadKey] || DEFAULT_LIMB_CONFIG;
+
     const pAxis = this.getWaveAxisDeg('P');
     const qrsAxis = this.getWaveAxisDeg('QRS');
     const tAxis = this.getWaveAxisDeg('T');
-    const total =
+
+    const projected =
       this.scaleLimbComponent(sample.P, leadKey, pAxis, 'P') +
       this.scaleLimbComponent(sample.QRS, leadKey, qrsAxis, 'QRS') +
       this.scaleLimbComponent(sample.T, leadKey, tAxis, 'T');
+
+    // ST is already computed per-lead in sampleWaveComponentsAtTime(t, leadKey),
+    // so just add it directly (like baseline). Do NOT project it again.
+    const st = sample.ST || 0;
+    const base = sample.baseline || 0;
+
+    const total = projected + st + base;
     return total * (cfg.gain || 1) * (cfg.polarity || 1) + (cfg.offsetPx || 0);
   }
 
@@ -1317,6 +1535,10 @@ class Ecg12Simulator {
     const ptComponent = (pPart + tPart) * (cfg.baseGain || 1);
 
     let value = qrs * (cfg.baseGain || 1) + ptComponent + (cfg.offsetPx || 0);
+
+    // Add ST (per-lead) and baseline using the same lead gain scaling.
+    value += (sample.ST || 0) * (cfg.baseGain || 1);
+    value += (sample.baseline || 0) * (cfg.baseGain || 1);
 
     if (leadKey === 'V1') value *= 0.95;
     else if (leadKey === 'V3') value *= 0.9;
@@ -1366,6 +1588,25 @@ class Ecg12Simulator {
     return Math.abs(hash);
   }
 
+  initRhythmSeed(extraSalt = 0) {
+    const rhythmKey = `${this.currentRhythm || 'sinus'}|${Math.round(this.config.heartRate || 0)}`;
+    const rhythmHash = this.hashLeadKey(rhythmKey);
+    const counter = this._seedCounter = (this._seedCounter + 1) >>> 0;
+    const newSeed = (this._seedBase + rhythmHash + counter + (extraSalt || 0)) >>> 0;
+    this.rngSeed = newSeed;
+    this._rng = mulberry32(newSeed);
+    this._gaussSpare = null;
+  }
+
+  rand() {
+    if (!this._rng) this.initRhythmSeed();
+    return this._rng();
+  }
+
+  randn() {
+    return randnBM(() => this.rand());
+  }
+
   getWaveAxisDeg(type) {
     const axis = this.axisDeg || 0;
     if (type === 'P') return degWrap(axis - 10);
@@ -1381,19 +1622,37 @@ class Ecg12Simulator {
     let tWave = 0;
     const qrsParts = { q: 0, r: 0, s: 0 };
     const skew = this.getLeadSkewMs(leadKey);
+    const isAfib = this.currentRhythm === 'afib';
+    const stemiMultiplier = this.getStemiLeadMultiplier(leadKey);
+    const hasStemi = this.isStemiRhythm() && stemiMultiplier !== 0;
+    let nearestDtFromR = Infinity;
+    let nearestDtFromT = Infinity;
+    let st = 0;
+    let nearestStDist = Infinity;
 
     for (const beat of this.beatSchedule) {
       if (!beat.hasP && !beat.hasQRS) continue;
 
-      if (beat.hasP) {
+      if (!isAfib && beat.hasP) {
         const pCenter = beat.rTime - beat.pr + 40;
         if (Math.abs(time - pCenter) <= 160) {
           p += this.drawP(time, pCenter, 80);
         }
       }
 
+      if (beat.hasQRS) {
+        const dt = time - beat.rTime;
+        if (Math.abs(dt) < Math.abs(nearestDtFromR)) nearestDtFromR = dt;
+      }
+
       if (beat.hasQRS && Math.abs(time - beat.rTime) <= beat.qrs * 2) {
-        const parts = this.drawQRSParts(time, beat.rTime, beat.qrs, skew);
+        let parts = this.drawQRSParts(time, beat.rTime, beat.qrs, skew);
+
+        // In STEMI elevation leads, blunt the S wave so the J-point transitions smoothly into the elevated ST.
+        if (hasStemi && stemiMultiplier > 0) {
+          parts = { ...parts, s: parts.s * 0.45 };
+        }
+
         qrsParts.q += parts.q;
         qrsParts.r += parts.r;
         qrsParts.s += parts.s;
@@ -1404,12 +1663,62 @@ class Ecg12Simulator {
       const tEnd = qrsStart + beat.qt;
       const tStart = Math.max(beat.rTime + beat.qrs / 2 + 60, tEnd - this.intervals.tWaveDurationMs);
       const tCenter = (tStart + tEnd) / 2;
-      if (Math.abs(time - tCenter) <= 160) {
-        tWave += this.drawT(time, tCenter, 120);
+
+      // --- T wave handling ---
+      // For STEMI elevation leads, suppress the separate T wave so ST blends into a single dome.
+      const isStElevationLead = hasStemi && stemiMultiplier > 0;
+
+      if (!isStElevationLead && Math.abs(time - tCenter) <= 160) {
+        const tScale = this.currentRhythm === 'afib' ? AFIB_T_SCALE : 1;
+        tWave += tScale * this.drawT(time, tCenter, 120);
+      }
+      const dtT = time - tCenter;
+      if (Math.abs(dtT) < Math.abs(nearestDtFromT)) nearestDtFromT = dtT;
+
+      if (hasStemi) {
+        const qrsEnd = qrsStart + beat.qrs;
+        const stStart = qrsEnd;
+        const stEnd = tEnd; // extend through repolarization for a continuous dome
+        if (stEnd > stStart && time >= stStart && time <= stEnd) {
+          const mid = (stStart + stEnd) / 2;
+          const dist = Math.abs(time - mid);
+          if (dist < nearestStDist) {
+            const u = clamp((time - stStart) / ((stEnd - stStart) || 1), 0, 1);
+
+            // Fast J-point rise (first ~8% of ST duration)
+            const jRise = smoothstep(0.0, 0.08, u);
+
+            // Remain elevated through mid ST, then smooth decay into end of QT
+            const decay = 1 - smoothstep(0.55, 1.0, u);
+
+            // Slight bulge so ST merges into a T-dome rather than staying flat
+            const bulge = 1 + 0.18 * Math.sin(Math.PI * clamp((u - 0.25) / 0.75, 0, 1));
+
+            const shape = jRise * decay * bulge;
+            const stPx = (this.stemiStMv || STEMI_CONFIG.stMv) * MV_TO_PX_12 * stemiMultiplier;
+            st = stPx * shape;
+            nearestStDist = dist;
+          }
+        }
       }
     }
 
-    return { total: p + qrs + tWave, P: p, QRS: qrs, T: tWave, qrsParts };
+    let baseline = 0;
+    if (isAfib) {
+      const blankQRS = this.afibQrsBlanking(nearestDtFromR);
+      const blankT = this.afibTBlanking(nearestDtFromT);
+      baseline = this.afibBaseline(tMs) * blankQRS * blankT;
+    }
+
+    return {
+      total: p + qrs + tWave + baseline + st,
+      ST: st,
+      baseline,
+      P: p,
+      QRS: qrs,
+      T: tWave,
+      qrsParts
+    };
   }
 
   getBaseVoltageAtTimeMs(tMs) {
@@ -1451,8 +1760,9 @@ class Ecg12Simulator {
       const dist = Math.abs(time - center);
       if (dist < window && dist < closest.dist) closest = { type, dist };
     };
+    const isAfib = this.currentRhythm === 'afib';
     for (const beat of this.beatSchedule) {
-      if (beat.hasP) consider('P', beat.rTime - beat.pr + 40, 90);
+      if (!isAfib && beat.hasP) consider('P', beat.rTime - beat.pr + 40, 90);
       consider('QRS', beat.rTime, beat.qrs);
       const qrsStart = beat.rTime - beat.qrs / 2;
       const tEnd = qrsStart + beat.qt;

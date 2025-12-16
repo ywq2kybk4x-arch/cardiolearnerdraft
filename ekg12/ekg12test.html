@@ -187,6 +187,7 @@
             <div style="height:6px"></div>
             <label><input type="checkbox" id="ecg12HighlightPR" /> PR interval</label>
             <label><input type="checkbox" id="ecg12HighlightQRSDur" /> QRS duration</label>
+            <label><input type="checkbox" id="ecg12HighlightRR" /> R–R interval</label>
             <label><input type="checkbox" id="ecg12HighlightQT" /> QT interval</label>
           </div>
         </div>
@@ -263,7 +264,8 @@
       const intervalHighlightIds = [
         ['ecg12HighlightPR', 'PR'],
         ['ecg12HighlightQRSDur', 'QRSd'],
-        ['ecg12HighlightQT', 'QT']
+        ['ecg12HighlightQT', 'QT'],
+        ['ecg12HighlightRR', 'RR']
       ];
       const playBtn = document.getElementById('ecg12Play');
       const pauseBtn = document.getElementById('ecg12Pause');
