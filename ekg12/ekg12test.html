@@ -270,15 +270,33 @@
       const resetBtn = document.getElementById('ecg12Reset');
       const expandedLabel = document.getElementById('ecg12ActiveLead');
 
+      const clampNumber = (val, min, max) => Math.min(Math.max(val, min), max);
+
       const updateExpandedLabel = () => {
         if (expandedLabel) expandedLabel.textContent = sim.getSelectedLead();
       };
 
       const commitHeartRate = () => {
-        const raw = parseInt(heartRateInput.value || '75', 10);
-        const clamped = Math.min(Math.max(Number.isNaN(raw) ? 75 : raw, 40), 180);
-        heartRateInput.value = clamped;
-        sim.setHeartRate(clamped);
+        if (!heartRateInput) return;
+        const clampRange = typeof sim.getHeartRateClamp === 'function'
+          ? sim.getHeartRateClamp()
+          : { min: 40, max: 180 };
+        const raw = parseInt(heartRateInput.value || String(sim.getHeartRate ? sim.getHeartRate() : 75), 10);
+        const fallback = Number.isNaN(raw) ? (sim.getHeartRate ? sim.getHeartRate() : clampRange.min) : raw;
+        const target = clampNumber(fallback, clampRange.min, clampRange.max);
+        const applied = sim.setHeartRate ? sim.setHeartRate(target) : target;
+        heartRateInput.value = applied;
+      };
+
+      const syncHeartRateInput = () => {
+        if (!heartRateInput) return;
+        const clampRange = typeof sim.getHeartRateClamp === 'function'
+          ? sim.getHeartRateClamp()
+          : { min: 40, max: 180 };
+        heartRateInput.min = clampRange.min;
+        heartRateInput.max = clampRange.max;
+        const hr = sim.getHeartRate ? sim.getHeartRate() : clampNumber(75, clampRange.min, clampRange.max);
+        heartRateInput.value = hr;
       };
 
       if (heartRateInput) {
@@ -333,9 +351,33 @@
       if (leadISignSelect) leadISignSelect.addEventListener('change', handleQuadrantChange);
       if (leadAVFSignSelect) leadAVFSignSelect.addEventListener('change', handleQuadrantChange);
 
-      if (rhythmSelect) {
-        rhythmSelect.addEventListener('change', () => sim.setRhythm(rhythmSelect.value));
-      }
+      const handleRhythmChange = () => {
+        if (!rhythmSelect) return;
+        const desired = rhythmSelect.value;
+        if (typeof sim.setRhythm === 'function') {
+          sim.setRhythm(desired);
+          const current = sim.getCurrentRhythm ? sim.getCurrentRhythm() : desired;
+          rhythmSelect.value = current;
+          syncHeartRateInput();
+        }
+      };
+
+      const populateRhythmOptions = () => {
+        if (!rhythmSelect || typeof sim.getRhythmList !== 'function') return;
+        const rhythms = sim.getRhythmList();
+        if (rhythms && rhythms.length) {
+          rhythmSelect.innerHTML = '';
+          rhythms.forEach(({ id, label }) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = label;
+            rhythmSelect.appendChild(option);
+          });
+        }
+        const current = sim.getCurrentRhythm ? sim.getCurrentRhythm() : null;
+        if (current) rhythmSelect.value = current;
+        rhythmSelect.addEventListener('change', handleRhythmChange);
+      };
 
       const updateHighlights = () => {
         const highlightState = {};
@@ -378,6 +420,8 @@
 
       const initialAxisMode = (typeof sim.getAxisMode === 'function') ? sim.getAxisMode() : 'normal';
       applyAxisMode(initialAxisMode);
+      populateRhythmOptions();
+      syncHeartRateInput();
 
       sim.setHoverLead(null);
       updateHighlights();

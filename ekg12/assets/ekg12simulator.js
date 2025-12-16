@@ -75,6 +75,14 @@ const AMP_PX = {
   T: 0.4 * MV_TO_PX_12
 };
 
+const BASE_INTERVALS = {
+  prIntervalMs: 160,
+  qrsDurationMs: 90,
+  qtIntervalMs: 400,
+  pWaveDurationMs: 90,
+  tWaveDurationMs: 180
+};
+
 const degWrap = (deg) => {
   let d = ((deg + 180) % 360 + 360) % 360;
   if (d > 180) d -= 360;
@@ -95,6 +103,68 @@ const safeNonZero = (g, minAbs = 0.18) => {
 const lerp = (a, b, t) => a + (b - a) * t;
 const TILE_BASELINE_SHIFT_PX = 16;
 const GRID_TOP_PADDING_PX = 28;
+const DEFAULT_HR_CLAMP = { min: 40, max: 180 };
+
+const RHYTHM_PRESETS = {
+  sinus: {
+    id: 'sinus',
+    label: 'Sinus Rhythm',
+    defaultHR: 75,
+    hrClamp: { min: 40, max: 180 },
+    intervals: { prIntervalMs: 160, qrsDurationMs: 90, qtIntervalMs: 400, pWaveDurationMs: 90, tWaveDurationMs: 180 }
+  },
+  afib: {
+    id: 'afib',
+    label: 'Atrial Fibrillation',
+    defaultHR: 110,
+    hrClamp: { min: 90, max: 160 },
+    intervals: { prIntervalMs: 0, qrsDurationMs: 90, qtIntervalMs: 380, pWaveDurationMs: 0, tWaveDurationMs: 180 }
+  },
+  avb1: {
+    id: 'avb1',
+    label: '1° AV Block',
+    defaultHR: 70,
+    hrClamp: { min: 40, max: 140 },
+    intervals: { prIntervalMs: 260, qrsDurationMs: 90, qtIntervalMs: 410 }
+  },
+  avb2_mobitz1: {
+    id: 'avb2_mobitz1',
+    label: '2° AV Block (Mobitz I)',
+    defaultHR: 65,
+    hrClamp: { min: 40, max: 140 },
+    intervals: { prIntervalMs: 200, qrsDurationMs: 90, qtIntervalMs: 410 }
+  },
+  avb2_mobitz2: {
+    id: 'avb2_mobitz2',
+    label: '2° AV Block (Mobitz II)',
+    defaultHR: 60,
+    hrClamp: { min: 35, max: 120 },
+    intervals: { prIntervalMs: 190, qrsDurationMs: 110, qtIntervalMs: 420 }
+  },
+  avb3: {
+    id: 'avb3',
+    label: '3° AV Block',
+    defaultHR: 35,
+    hrClamp: { min: 30, max: 50 },
+    intervals: { prIntervalMs: 0, qrsDurationMs: 160, qtIntervalMs: 420 }
+  },
+  mvtach: {
+    id: 'mvtach',
+    label: 'Monomorphic Ventricular Tachycardia',
+    defaultHR: 180,
+    hrClamp: { min: 150, max: 220 },
+    intervals: { prIntervalMs: 0, qrsDurationMs: 160, qtIntervalMs: 440 }
+  },
+  pvtach: {
+    id: 'pvtach',
+    label: 'Polymorphic Ventricular Tachycardia',
+    defaultHR: 210,
+    hrClamp: { min: 170, max: 240 },
+    intervals: { prIntervalMs: 0, qrsDurationMs: 190, qtIntervalMs: 460 }
+  }
+};
+
+const RHYTHM_IDS_IN_ORDER = Object.keys(RHYTHM_PRESETS);
 
 class Ecg12Simulator {
   constructor(
@@ -132,7 +202,7 @@ class Ecg12Simulator {
       heartRate: config.heartRate || 75,
       speed: 25
     };
-    this.currentRhythm = 'sinus';
+    this.currentRhythm = this.normalizeRhythmId(config.rhythm || 'sinus');
     this.debugLeadModel = false;
     this.debugLeadModelOverlay = false;
 
@@ -154,16 +224,16 @@ class Ecg12Simulator {
     this.lastFrameTime = 0;
     this.sweepStartTime = 0;
 
-    this.intervals = {
-      prIntervalMs: 160,
-      qrsDurationMs: 90,
-      qtIntervalMs: 400,
-      pWaveDurationMs: 90,
-      tWaveDurationMs: 180
-    };
+    this.intervals = { ...BASE_INTERVALS };
+    const initialPreset = this.getPresetForId(this.currentRhythm);
+    if (initialPreset) {
+      this.config.heartRate = this.clampHeartRate(initialPreset.defaultHR ?? this.config.heartRate, initialPreset);
+      this.applyPresetIntervals(initialPreset);
+    }
     this.topReadoutHeight = 36;
 
     this.beatSchedule = [];
+    this.atrialSchedule = [];
     this.rhythmDurationMs = 10000;
     this.viewports = [];
     this._leadConfigChecked = false;
@@ -182,14 +252,31 @@ class Ecg12Simulator {
   }
 
   setHeartRate(bpm) {
-    this.config.heartRate = bpm;
+    const preset = this.getCurrentPreset();
+    const clampedValue = this.clampHeartRate(bpm, preset);
+    this.config.heartRate = clampedValue;
     this.regenerateRhythm();
     this.sweepStartTime = this.simulatedTimeMs;
+    return clampedValue;
   }
 
   setRhythm(rhythm) {
-    this.currentRhythm = rhythm || 'sinus';
+    const normalized = this.normalizeRhythmId(rhythm);
+    const preset = this.getPresetForId(normalized);
+    if (!preset) {
+      console.warn(`[Ecg12Simulator] Unknown rhythm "${rhythm}", defaulting to sinus.`);
+    }
+    this.currentRhythm = preset ? preset.id : 'sinus';
+    const targetPreset = preset || this.getPresetForId('sinus');
+    if (targetPreset) {
+      this.config.heartRate = this.clampHeartRate(
+        targetPreset.defaultHR ?? this.config.heartRate,
+        targetPreset
+      );
+      this.applyPresetIntervals(targetPreset);
+    }
     this.regenerateRhythm();
+    this.sweepStartTime = this.simulatedTimeMs;
   }
 
   setHighlights(cfg) {
@@ -256,6 +343,64 @@ class Ecg12Simulator {
     if (d < 0 && d >= -90) return 'lad';
     if (d > 90 && d <= 180) return 'rad';
     return 'extreme';
+  }
+
+  normalizeRhythmId(id) {
+    const key = String(id || '').toLowerCase();
+    return RHYTHM_PRESETS[key] ? key : 'sinus';
+  }
+
+  getPresetForId(id) {
+    const key = this.normalizeRhythmId(id);
+    return RHYTHM_PRESETS[key];
+  }
+
+  getCurrentPreset() {
+    return this.getPresetForId(this.currentRhythm);
+  }
+
+  getRhythmList() {
+    return RHYTHM_IDS_IN_ORDER.map((id) => ({
+      id,
+      label: RHYTHM_PRESETS[id]?.label || id
+    }));
+  }
+
+  getCurrentRhythm() {
+    return this.currentRhythm;
+  }
+
+  getHeartRate() {
+    return Math.round(this.config.heartRate);
+  }
+
+  getHeartRateClamp() {
+    const preset = this.getCurrentPreset();
+    return preset?.hrClamp || DEFAULT_HR_CLAMP;
+  }
+
+  clampHeartRate(value, preset = this.getCurrentPreset()) {
+    const clampRange = preset?.hrClamp || DEFAULT_HR_CLAMP;
+    const numeric = Number(value);
+    const fallback = this.config.heartRate || clampRange.min;
+    const target = Number.isFinite(numeric) ? numeric : fallback;
+    return clamp(target, clampRange.min, clampRange.max);
+  }
+
+  getCurrentRrMs() {
+    return 60000 / Math.max(10, this.config.heartRate || 60);
+  }
+
+  applyPresetIntervals(preset) {
+    if (!preset) return;
+    const intervals = preset.intervals || {};
+    this.intervals = {
+      prIntervalMs: intervals.prIntervalMs ?? BASE_INTERVALS.prIntervalMs,
+      qrsDurationMs: intervals.qrsDurationMs ?? BASE_INTERVALS.qrsDurationMs,
+      qtIntervalMs: intervals.qtIntervalMs ?? BASE_INTERVALS.qtIntervalMs,
+      pWaveDurationMs: intervals.pWaveDurationMs ?? BASE_INTERVALS.pWaveDurationMs,
+      tWaveDurationMs: intervals.tWaveDurationMs ?? BASE_INTERVALS.tWaveDurationMs
+    };
   }
 
   setSelectedLead(leadId) {
@@ -886,26 +1031,208 @@ class Ecg12Simulator {
   }
 
   regenerateRhythm() {
-    this.beatSchedule = [];
+    const preset = this.getCurrentPreset();
     const durationMs = (this.config.displayTime || 10) * 1000;
-    const baseRrMs = 60000 / this.config.heartRate;
-    let t = 0;
-    while (t < durationMs) {
-      this.beatSchedule.push({
-        rTime: t + this.intervals.prIntervalMs + this.intervals.qrsDurationMs / 2,
-        hasP: true,
-        hasQRS: true,
-        pr: this.intervals.prIntervalMs,
-        qrs: this.intervals.qrsDurationMs,
-        qt: this.intervals.qtIntervalMs
-      });
-      t += baseRrMs;
-    }
-    this.rhythmDurationMs = durationMs;
-    this._sampleCache = new Map();
+    this.atrialSchedule = [];
+    this.beatSchedule = this.buildBeatSchedule(preset, durationMs);
+    const lastBeat = this.beatSchedule[this.beatSchedule.length - 1];
+    const baseRrMs = this.getCurrentRrMs();
+    this.rhythmDurationMs = lastBeat
+      ? Math.max(durationMs, lastBeat.rTime + baseRrMs)
+      : durationMs;
+    this._sampleCache.clear();
     this.drawTrace();
     this.drawExpandedTrace();
     this.ensureLeadSanityChecked();
+  }
+
+  buildBeatSchedule(preset, durationMs) {
+    const schedule = [];
+    const activePreset = preset || this.getPresetForId('sinus');
+    const id = activePreset?.id || 'sinus';
+    switch (id) {
+      case 'afib':
+        this.generateAFibBeats(schedule, durationMs);
+        break;
+      case 'avb1':
+        this.generateFirstDegreeBeats(schedule, durationMs);
+        break;
+      case 'avb2_mobitz1':
+        this.generateMobitzIBeats(schedule, durationMs);
+        break;
+      case 'avb2_mobitz2':
+        this.generateMobitzIIBeats(schedule, durationMs);
+        break;
+      case 'avb3':
+        this.generateThirdDegreeBeats(schedule, durationMs);
+        break;
+      case 'mvtach':
+        console.warn('[Ecg12Simulator] Monomorphic VT is approximated for the 12-lead view.');
+        this.generateVentricularTachBeats(schedule, durationMs, { polymorphic: false });
+        break;
+      case 'pvtach':
+        console.warn('[Ecg12Simulator] Polymorphic VT is approximated for the 12-lead view.');
+        this.generateVentricularTachBeats(schedule, durationMs, { polymorphic: true });
+        break;
+      case 'sinus':
+      default:
+        this.generateSinusBeats(schedule, durationMs);
+        break;
+    }
+    if (!schedule.length) {
+      console.warn('[Ecg12Simulator] Rhythm schedule was empty; falling back to sinus.');
+      this.generateSinusBeats(schedule, durationMs);
+    }
+    schedule.sort((a, b) => a.rTime - b.rTime);
+    return schedule;
+  }
+
+  addBeatToSchedule(schedule, beat) {
+    if (!beat || typeof beat.rTime !== 'number') return;
+    const base = this.intervals;
+    schedule.push({
+      rTime: beat.rTime,
+      hasP: beat.hasP !== undefined ? beat.hasP : true,
+      hasQRS: beat.hasQRS !== undefined ? beat.hasQRS : true,
+      hasT: beat.hasT !== undefined ? beat.hasT : true,
+      pr: beat.pr != null ? beat.pr : base.prIntervalMs,
+      qrs: beat.qrs != null ? beat.qrs : base.qrsDurationMs,
+      qt: beat.qt != null ? beat.qt : base.qtIntervalMs,
+      qrsScale: beat.qrsScale || 1,
+      polarity: beat.polarity || 1
+    });
+  }
+
+  generateSinusBeats(schedule, durationMs) {
+    const baseRrMs = this.getCurrentRrMs();
+    let cycleStart = 0;
+    while (cycleStart < durationMs) {
+      const rTime = cycleStart + this.intervals.prIntervalMs + this.intervals.qrsDurationMs / 2;
+      this.addBeatToSchedule(schedule, { rTime });
+      cycleStart += baseRrMs;
+    }
+  }
+
+  generateFirstDegreeBeats(schedule, durationMs) {
+    const baseRrMs = this.getCurrentRrMs();
+    const longPr = Math.max(this.intervals.prIntervalMs, 240);
+    let cycleStart = 0;
+    while (cycleStart < durationMs) {
+      const rTime = cycleStart + longPr + this.intervals.qrsDurationMs / 2;
+      this.addBeatToSchedule(schedule, { rTime, pr: longPr });
+      cycleStart += baseRrMs;
+    }
+  }
+
+  generateMobitzIBeats(schedule, durationMs) {
+    const baseRrMs = this.getCurrentRrMs();
+    const pattern = [
+      { pr: 200, conducted: true },
+      { pr: 260, conducted: true },
+      { pr: 320, conducted: true },
+      { pr: 320, conducted: false }
+    ];
+    let cycleStart = 0;
+    let idx = 0;
+    while (cycleStart < durationMs) {
+      const step = pattern[idx % pattern.length];
+      const rTime = cycleStart + step.pr + this.intervals.qrsDurationMs / 2;
+      this.addBeatToSchedule(schedule, {
+        rTime,
+        pr: step.pr,
+        hasQRS: step.conducted
+      });
+      cycleStart += baseRrMs;
+      idx++;
+    }
+  }
+
+  generateMobitzIIBeats(schedule, durationMs) {
+    const baseRrMs = this.getCurrentRrMs();
+    let cycleStart = 0;
+    let idx = 0;
+    const fixedPr = Math.max(this.intervals.prIntervalMs, 180);
+    while (cycleStart < durationMs) {
+      const conducted = idx % 2 === 0;
+      const rTime = cycleStart + fixedPr + this.intervals.qrsDurationMs / 2;
+      this.addBeatToSchedule(schedule, {
+        rTime,
+        pr: fixedPr,
+        hasQRS: conducted
+      });
+      cycleStart += baseRrMs;
+      idx++;
+    }
+  }
+
+  generateThirdDegreeBeats(schedule, durationMs) {
+    const ventRate = clamp(this.config.heartRate, 30, 50);
+    const ventRr = 60000 / ventRate;
+    let ventTime = 0;
+    while (ventTime < durationMs) {
+      this.addBeatToSchedule(schedule, {
+        rTime: ventTime,
+        hasP: false,
+        pr: 0,
+        qrs: Math.max(this.intervals.qrsDurationMs, 160),
+        qt: Math.max(this.intervals.qtIntervalMs, 420)
+      });
+      ventTime += ventRr;
+    }
+    const atrialRr = 60000 / 80;
+    let atrialTime = 0;
+    while (atrialTime < durationMs) {
+      this.addBeatToSchedule(schedule, {
+        rTime: atrialTime,
+        hasP: true,
+        hasQRS: false,
+        pr: 140,
+        qrs: this.intervals.qrsDurationMs,
+        qt: this.intervals.qtIntervalMs
+      });
+      atrialTime += atrialRr;
+    }
+  }
+
+  generateAFibBeats(schedule, durationMs) {
+    const meanRr = 60000 / Math.max(this.config.heartRate, 90);
+    let t = 0;
+    let i = 0;
+    while (t < durationMs) {
+      const jitter = 0.65 + 0.7 * (0.5 + 0.5 * Math.sin(i * 1.7));
+      const rr = Math.max(220, meanRr * jitter);
+      const rTime = t + this.intervals.qrsDurationMs / 2;
+      this.addBeatToSchedule(schedule, {
+        rTime,
+        hasP: false,
+        pr: 0
+      });
+      t += rr;
+      i++;
+    }
+  }
+
+  generateVentricularTachBeats(schedule, durationMs, options = {}) {
+    const { polymorphic } = options;
+    const rr = 60000 / Math.max(this.config.heartRate, polymorphic ? 190 : 170);
+    let t = 0;
+    let i = 0;
+    while (t < durationMs) {
+      const rTime = t;
+      const polarity = polymorphic ? (i % 2 === 0 ? 1 : -1) : 1;
+      const qrsWidth = polymorphic ? 190 : 160;
+      this.addBeatToSchedule(schedule, {
+        rTime,
+        hasP: false,
+        pr: 0,
+        qrs: qrsWidth,
+        qt: Math.max(this.intervals.qtIntervalMs, 440),
+        polarity,
+        hasT: true
+      });
+      t += rr;
+      i++;
+    }
   }
 
   getLeadVoltageAtTimeMs(tMs, leadId) {
