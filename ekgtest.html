@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EKG Test Harness</title>
+
+  <style>
+    /* --- ECG simulator styles (scoped to ecg-* classes to avoid collisions) --- */
+    .ecg-shell {
+      background: #f9fafb;
+      border-top: 2px solid #e5e7eb;
+      padding: 20px 24px 28px;
+      font-family: Arial, sans-serif;
+    }
+
+    .ecg-shell h2 { margin-bottom: 10px; color: #1f2933; }
+    .ecg-shell p { color: #4b5563; margin-bottom: 18px; }
+
+    .ecg-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .ecg-controls {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .ecg-control label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 6px;
+    }
+
+    .ecg-control small { color: #6b7280; font-weight: 500; }
+
+    .ecg-control input[type="number"],
+    .ecg-control select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .ecg-control input[type="range"] { width: 100%; }
+
+    .ecg-checks {
+      display: grid;
+      gap: 6px;
+      color: #374151;
+      font-weight: 600;
+    }
+
+    /* Fix checkbox label spacing inside Highlights */
+    .ecg-checks label {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .ecg-checks input[type="checkbox"] {
+      margin: 0;
+    }
+
+    .ecg-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .ecg-buttons button {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .ecg-display {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .ecg-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 320px;
+      border-radius: 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+    }
+
+    #ecgBackground, #ecgTrace, #ecgOverlay {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      display: block;
+    }
+
+    #ecgOverlay {
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .ecg-legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      color: #374151;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .ecg-swatch {
+      display: inline-block;
+      width: 14px;
+      height: 10px;
+      border-radius: 3px;
+      margin-right: 6px;
+      vertical-align: middle;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+
+    @media (max-width: 900px) {
+      .ecg-grid { grid-template-columns: 1fr; }
+      .ecg-canvas-wrap { height: 260px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="ecg-shell">
+    <h2>ECG Rhythm Simulator (Test)</h2>
+    <p>Isolated harness for editing the ECG without touching index.html.</p>
+
+    <div class="ecg-grid">
+      <div class="ecg-controls">
+        <div class="ecg-control">
+          <label for="rhythmPreset">Rhythm preset</label>
+          <select id="rhythmPreset">
+            <option value="sinus" selected>Sinus Rhythm</option>
+            <option value="afib">Atrial Fibrillation</option>
+            <option value="mvtach">Monomorphic Ventricular Tachycardia</option>
+            <option value="pvtach">Polymorphic Ventricular Tachycardia</option>
+            <option value="avb1">1° AV Block</option>
+            <option value="avb2_mobitz1">2° AV Block (Mobitz I)</option>
+            <option value="avb2_mobitz2">2° AV Block (Mobitz II)</option>
+            <option value="avb3">3° AV Block</option>
+          </select>
+        </div>
+
+        <div class="ecg-control">
+          <label for="ecgHeartRate">Heart rate <small>(bpm)</small></label>
+          <input id="ecgHeartRate" type="number" min="40" max="180" value="75" />
+        </div>
+
+        <div class="ecg-control">
+          <label>Highlights</label>
+          <div class="ecg-checks">
+            <label><input type="checkbox" id="ecgHighlightP" /> P wave</label>
+            <label><input type="checkbox" id="ecgHighlightQRS" /> QRS</label>
+            <label><input type="checkbox" id="ecgHighlightT" /> T wave</label>
+
+            <div style="height:6px"></div>
+
+            <label><input type="checkbox" id="ecgHighlightPR" /> PR interval</label>
+            <label><input type="checkbox" id="ecgHighlightQRSDur" /> QRS duration</label>
+            <label><input type="checkbox" id="ecgHighlightQT" /> QT interval</label>
+          </div>
+        </div>
+
+        <div class="ecg-buttons">
+          <button class="ecg-play" id="ecgPlay">Play</button>
+          <button class="ecg-pause" id="ecgPause">Pause</button>
+          <button class="ecg-reset" id="ecgReset">Reset</button>
+        </div>
+      </div>
+
+      <div class="ecg-display">
+        <div class="ecg-canvas-wrap">
+          <canvas id="ecgBackground"></canvas>
+          <canvas id="ecgTrace"></canvas>
+          <canvas id="ecgOverlay"></canvas>
+        </div>
+
+        <div class="ecg-legend">
+          <span><span class="ecg-swatch" style="background:#1f2937;"></span>Default</span>
+          <span><span class="ecg-swatch" style="background:#2563eb;"></span>P (highlight)</span>
+          <span><span class="ecg-swatch" style="background:#d33f49;"></span>QRS (highlight)</span>
+          <span><span class="ecg-swatch" style="background:#2f855a;"></span>T (highlight)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Must load BEFORE wiring: ekgsimulatorcopy.js defines window.EcgSimulator -->
+<script src="./assets/ekgsimulatorcopy.js"></script>
+
+  <script>
+    // Standalone init based on your index.html initEcgSimulator() wiring  [oai_citation:5‡index.html](file-service://file-2dxrxGBr6qVBpVq5MCeZBE)
+    function initEcgSimulator() {
+      const bgCanvas = document.getElementById('ecgBackground');
+      const traceCanvas = document.getElementById('ecgTrace');
+      if (!bgCanvas || !traceCanvas || typeof EcgSimulator === 'undefined') return;
+
+      if (window.ecgSimInstance) return;
+
+      const overlayCanvas = document.getElementById('ecgOverlay');
+      const ecgSim = new EcgSimulator(bgCanvas, traceCanvas, overlayCanvas, { displayTime: 10, heartRate: 75, speed: 25 });
+      window.ecgSimInstance = ecgSim;
+      const wrap = document.querySelector('.ecg-canvas-wrap');
+      if (wrap) {
+        wrap.addEventListener('scroll', () => ecgSim.drawReadoutOverlay());
+      }
+
+      const heartRateInput = document.getElementById('ecgHeartRate');
+      const highlightP = document.getElementById('ecgHighlightP');
+      const highlightQRS = document.getElementById('ecgHighlightQRS');
+      const highlightT = document.getElementById('ecgHighlightT');
+      const highlightPR = document.getElementById('ecgHighlightPR');
+      const highlightQRSDur = document.getElementById('ecgHighlightQRSDur');
+      const highlightQT = document.getElementById('ecgHighlightQT');
+      const playBtn = document.getElementById('ecgPlay');
+      const pauseBtn = document.getElementById('ecgPause');
+      const resetBtn = document.getElementById('ecgReset');
+      const rhythmSelect = document.getElementById('rhythmPreset');
+
+      const ecgState = { heartRate: 75 };
+
+      const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
+
+      const applyStateToSim = () => {
+        ecgSim.setHeartRate(ecgState.heartRate);
+      };
+
+      // Initial paint + sizing (your index does this after the tab becomes visible)  [oai_citation:6‡index.html](file-service://file-2dxrxGBr6qVBpVq5MCeZBE)
+      requestAnimationFrame(() => {
+        ecgSim.handleResize();
+        ecgSim.reset();
+        ecgSim.play();
+      });
+
+      heartRateInput.addEventListener('input', () => {
+        const raw = heartRateInput.value;
+        if (raw === '' || raw === '-') return;
+        const n = parseInt(raw, 10);
+        if (Number.isNaN(n)) return;
+        ecgState.heartRate = n;
+      });
+
+      const commitHeartRate = () => {
+        const n = parseInt(heartRateInput.value || '75', 10);
+        const clamped = clamp(Number.isNaN(n) ? 75 : n, 40, 180);
+        ecgState.heartRate = clamped;
+        heartRateInput.value = clamped;
+        applyStateToSim();
+      };
+
+      heartRateInput.addEventListener('change', commitHeartRate);
+      heartRateInput.addEventListener('blur', commitHeartRate);
+
+      const updateHighlights = () => {
+        ecgSim.setHighlights({
+          P: !!highlightP.checked,
+          QRS: !!highlightQRS.checked,
+          T: !!highlightT.checked
+        });
+        ecgSim.setIntervalHighlights({
+          PR: !!highlightPR.checked,
+          QRSd: !!highlightQRSDur.checked,
+          QT: !!highlightQT.checked
+        });
+      };
+
+      highlightP.addEventListener('change', updateHighlights);
+      highlightQRS.addEventListener('change', updateHighlights);
+      highlightT.addEventListener('change', updateHighlights);
+      highlightPR.addEventListener('change', updateHighlights);
+      highlightQRSDur.addEventListener('change', updateHighlights);
+      highlightQT.addEventListener('change', updateHighlights);
+
+      rhythmSelect.addEventListener('change', () => {
+        ecgSim.setRhythm(rhythmSelect.value);
+        // If you want PR to disappear for rhythms like afib/mvtach/pvtach, you can add that logic here.
+      });
+
+      playBtn.addEventListener('click', () => ecgSim.play());
+      pauseBtn.addEventListener('click', () => ecgSim.pause());
+      resetBtn.addEventListener('click', () => { ecgSim.reset(); ecgSim.play(); });
+
+      applyStateToSim();
+      updateHighlights();
+    }
+
+    document.addEventListener('DOMContentLoaded', initEcgSimulator);
+  </script>
+</body>
+</html>
