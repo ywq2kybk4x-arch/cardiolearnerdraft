@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>12-Lead ECG Test Harness</title>
+  <style>
+    .ecg-shell {
+      background: #f9fafb;
+      border-top: 2px solid #e5e7eb;
+      padding: 20px 24px 28px;
+      font-family: Arial, sans-serif;
+    }
+    .ecg-shell h2 { margin-bottom: 10px; color: #1f2933; }
+    .ecg-shell p { color: #4b5563; margin-bottom: 18px; }
+
+    .ecg-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .ecg-controls {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .ecg-control label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 6px;
+    }
+
+    .ecg-control small { color: #6b7280; font-weight: 500; }
+
+    .ecg-control input[type="number"],
+    .ecg-control select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .ecg-checks {
+      display: grid;
+      gap: 6px;
+      color: #374151;
+      font-weight: 600;
+    }
+
+    .ecg-checks label {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+
+    .ecg-checks input[type="checkbox"] {
+      margin: 0;
+    }
+
+    .ecg-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .ecg-buttons button {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .ecg-display {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .ecg-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 320px;
+      border-radius: 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+    }
+
+    .ecg-expanded-wrap {
+      height: 220px;
+    }
+
+    #ecg12Background, #ecg12Trace, #ecg12Overlay,
+    #ecg12BigBackground, #ecg12BigTrace, #ecg12BigOverlay {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      display: block;
+    }
+
+    #ecg12Overlay, #ecg12BigOverlay {
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .ecg-expanded-header {
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 6px;
+    }
+
+    @media (max-width: 900px) {
+      .ecg-grid { grid-template-columns: 1fr; }
+      .ecg-canvas-wrap { height: 280px; }
+      .ecg-expanded-wrap { height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ecg-shell">
+    <h2>12-Lead ECG Prototype (Sinus)</h2>
+    <p>MVP harness for a 12-lead layout using the existing single-lead engine.</p>
+
+    <div class="ecg-grid">
+      <div class="ecg-controls">
+        <div class="ecg-control">
+          <label for="ecg12RhythmPreset">Rhythm preset</label>
+          <select id="ecg12RhythmPreset">
+            <option value="sinus" selected>Sinus Rhythm</option>
+          </select>
+        </div>
+
+        <div class="ecg-control">
+          <label for="ecg12HeartRate">Heart rate <small>(bpm)</small></label>
+          <input id="ecg12HeartRate" type="number" min="40" max="180" value="75" />
+        </div>
+
+        <div class="ecg-control">
+          <label for="ecg12AxisMode">Axis mode</label>
+          <select id="ecg12AxisMode">
+            <option value="normal" selected>Normal Axis (0° to +90°)</option>
+            <option value="lad">Left Axis Deviation (0° to −90°)</option>
+            <option value="rad">Right Axis Deviation (+90° to +180°)</option>
+            <option value="extreme">Extreme Axis (−90° to −180°)</option>
+          </select>
+          <div style="margin-top:10px; display:grid; gap:6px;">
+            <div style="display:flex; gap:8px;">
+              <select id="ecg12LeadISign" style="flex:1;">
+                <option value="pos" selected>Lead I: Positive</option>
+                <option value="neg">Lead I: Negative</option>
+              </select>
+              <select id="ecg12LeadAVFSign" style="flex:1;">
+                <option value="pos" selected>aVF: Positive</option>
+                <option value="neg">aVF: Negative</option>
+              </select>
+            </div>
+            <small style="color:#6b7280;">Quadrant method: choose Lead I and aVF polarity; simulator picks axis category.</small>
+          </div>
+        </div>
+
+        <div class="ecg-control">
+          <label>Highlights</label>
+          <div class="ecg-checks">
+            <label><input type="checkbox" id="ecg12HighlightP" /> P wave</label>
+            <label><input type="checkbox" id="ecg12HighlightQRS" /> QRS</label>
+            <label><input type="checkbox" id="ecg12HighlightT" /> T wave</label>
+            <div style="height:6px"></div>
+            <label><input type="checkbox" id="ecg12HighlightPR" /> PR interval</label>
+            <label><input type="checkbox" id="ecg12HighlightQRSDur" /> QRS duration</label>
+            <label><input type="checkbox" id="ecg12HighlightQT" /> QT interval</label>
+          </div>
+        </div>
+
+        <div class="ecg-buttons">
+          <button id="ecg12Play">Play</button>
+          <button id="ecg12Pause">Pause</button>
+          <button id="ecg12Reset">Reset</button>
+        </div>
+      </div>
+
+      <div class="ecg-display">
+        <div class="ecg-canvas-wrap" id="ecg12GridWrap">
+          <canvas id="ecg12Background"></canvas>
+          <canvas id="ecg12Trace"></canvas>
+          <canvas id="ecg12Overlay"></canvas>
+        </div>
+
+        <div>
+          <div class="ecg-expanded-header">
+            Expanded Lead: <span id="ecg12ActiveLead">Lead II</span>
+          </div>
+          <div class="ecg-canvas-wrap ecg-expanded-wrap">
+            <canvas id="ecg12BigBackground"></canvas>
+            <canvas id="ecg12BigTrace"></canvas>
+            <canvas id="ecg12BigOverlay"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/ekg12simulator.js"></script>
+  <script>
+    function initEcg12Simulator() {
+      const bg = document.getElementById('ecg12Background');
+      const trace = document.getElementById('ecg12Trace');
+      const overlay = document.getElementById('ecg12Overlay');
+      const bigBg = document.getElementById('ecg12BigBackground');
+      const bigTrace = document.getElementById('ecg12BigTrace');
+      const bigOverlay = document.getElementById('ecg12BigOverlay');
+
+      if (!bg || !trace || !overlay || typeof Ecg12Simulator === 'undefined') return;
+      if (window.ecg12SimInstance) return;
+
+      const sim = new Ecg12Simulator(
+        {
+          backgroundCanvas: bg,
+          traceCanvas: trace,
+          overlayCanvas: overlay,
+          bigBackgroundCanvas: bigBg,
+          bigTraceCanvas: bigTrace,
+          bigOverlayCanvas: bigOverlay
+        },
+        { displayTime: 10, heartRate: 75 }
+      );
+      window.ecg12SimInstance = sim;
+
+      const gridWrap = document.getElementById('ecg12GridWrap');
+      if (gridWrap) {
+        gridWrap.addEventListener('scroll', () => sim.drawReadoutOverlay());
+      }
+
+      const heartRateInput = document.getElementById('ecg12HeartRate');
+      const axisModeSelect = document.getElementById('ecg12AxisMode');
+      const leadISignSelect = document.getElementById('ecg12LeadISign');
+      const leadAVFSignSelect = document.getElementById('ecg12LeadAVFSign');
+      const rhythmSelect = document.getElementById('ecg12RhythmPreset');
+      const highlightIds = [
+        ['ecg12HighlightP', 'P'],
+        ['ecg12HighlightQRS', 'QRS'],
+        ['ecg12HighlightT', 'T']
+      ];
+      const intervalHighlightIds = [
+        ['ecg12HighlightPR', 'PR'],
+        ['ecg12HighlightQRSDur', 'QRSd'],
+        ['ecg12HighlightQT', 'QT']
+      ];
+      const playBtn = document.getElementById('ecg12Play');
+      const pauseBtn = document.getElementById('ecg12Pause');
+      const resetBtn = document.getElementById('ecg12Reset');
+      const expandedLabel = document.getElementById('ecg12ActiveLead');
+
+      const updateExpandedLabel = () => {
+        if (expandedLabel) expandedLabel.textContent = sim.getSelectedLead();
+      };
+
+      const commitHeartRate = () => {
+        const raw = parseInt(heartRateInput.value || '75', 10);
+        const clamped = Math.min(Math.max(Number.isNaN(raw) ? 75 : raw, 40), 180);
+        heartRateInput.value = clamped;
+        sim.setHeartRate(clamped);
+      };
+
+      if (heartRateInput) {
+        heartRateInput.addEventListener('change', commitHeartRate);
+        heartRateInput.addEventListener('blur', commitHeartRate);
+      }
+
+      const axisModeToQuadrant = {
+        normal: { leadI: 'pos', avf: 'pos' },
+        lad: { leadI: 'pos', avf: 'neg' },
+        rad: { leadI: 'neg', avf: 'pos' },
+        extreme: { leadI: 'neg', avf: 'neg' }
+      };
+
+      const quadrantToAxisMode = (leadISign, avfSign) => {
+        if (leadISign === 'pos' && avfSign === 'pos') return 'normal';
+        if (leadISign === 'pos' && avfSign === 'neg') return 'lad';
+        if (leadISign === 'neg' && avfSign === 'pos') return 'rad';
+        return 'extreme';
+      };
+
+      let syncingAxisControls = false;
+
+      const syncQuadrantFromMode = (mode) => {
+        const mapping = axisModeToQuadrant[mode] || axisModeToQuadrant.normal;
+        syncingAxisControls = true;
+        if (leadISignSelect) leadISignSelect.value = mapping.leadI;
+        if (leadAVFSignSelect) leadAVFSignSelect.value = mapping.avf;
+        syncingAxisControls = false;
+      };
+
+      const applyAxisMode = (mode) => {
+        const normalized = axisModeToQuadrant[mode] ? mode : 'normal';
+        if (axisModeSelect) axisModeSelect.value = normalized;
+        sim.setAxisMode(normalized);
+        syncQuadrantFromMode(normalized);
+      };
+
+      if (axisModeSelect) {
+        axisModeSelect.addEventListener('change', () => applyAxisMode(axisModeSelect.value));
+      }
+
+      const handleQuadrantChange = () => {
+        if (syncingAxisControls) return;
+        const leadISign = leadISignSelect ? leadISignSelect.value : 'pos';
+        const avfSign = leadAVFSignSelect ? leadAVFSignSelect.value : 'pos';
+        const mode = quadrantToAxisMode(leadISign, avfSign);
+        if (axisModeSelect) axisModeSelect.value = mode;
+        sim.setAxisMode(mode);
+      };
+
+      if (leadISignSelect) leadISignSelect.addEventListener('change', handleQuadrantChange);
+      if (leadAVFSignSelect) leadAVFSignSelect.addEventListener('change', handleQuadrantChange);
+
+      if (rhythmSelect) {
+        rhythmSelect.addEventListener('change', () => sim.setRhythm(rhythmSelect.value));
+      }
+
+      const updateHighlights = () => {
+        const highlightState = {};
+        highlightIds.forEach(([id, key]) => {
+          const el = document.getElementById(id);
+          highlightState[key] = !!(el && el.checked);
+        });
+        sim.setHighlights(highlightState);
+
+        const intervalState = {};
+        intervalHighlightIds.forEach(([id, key]) => {
+          const el = document.getElementById(id);
+          intervalState[key] = !!(el && el.checked);
+        });
+        sim.setIntervalHighlights(intervalState);
+      };
+
+      [...highlightIds, ...intervalHighlightIds].forEach(([id]) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', updateHighlights);
+      });
+
+      if (playBtn) playBtn.addEventListener('click', () => sim.play());
+      if (pauseBtn) pauseBtn.addEventListener('click', () => sim.pause());
+      if (resetBtn) resetBtn.addEventListener('click', () => sim.reset());
+
+      trace.addEventListener('click', (event) => {
+        const lead = sim.getLeadAtEvent(event);
+        if (lead) {
+          sim.setSelectedLead(lead);
+          updateExpandedLabel();
+        }
+      });
+
+      if (gridWrap) {
+        gridWrap.addEventListener('mousemove', (event) => {
+          sim.setHoverLead(sim.getLeadAtEvent(event));
+        });
+      }
+
+      const initialAxisMode = (typeof sim.getAxisMode === 'function') ? sim.getAxisMode() : 'normal';
+      applyAxisMode(initialAxisMode);
+
+      sim.setHoverLead(null);
+      updateHighlights();
+      updateExpandedLabel();
+      sim.play();
+    }
+
+    document.addEventListener('DOMContentLoaded', initEcg12Simulator);
+  </script>
+</body>
+</html>
