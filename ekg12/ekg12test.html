@@ -24,10 +24,26 @@
     .ecg-controls {
       background: #fff;
       border: 1px solid #e5e7eb;
-      border-radius: 12px;
+      border-radius: 16px;
       padding: 16px;
       display: grid;
       gap: 12px;
+    }
+
+    .ecg-section {
+      border: 1px solid #eef2f7;
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 10px;
+    }
+
+    .ecg-section-title {
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #64748b;
     }
 
     .ecg-control label {
@@ -61,23 +77,38 @@
       margin: 0;
     }
 
-    .ecg-checks {
+    .ecg-field {
       display: grid;
       gap: 6px;
-      color: #374151;
-      font-weight: 600;
     }
 
-    .ecg-checks label {
+    .ecg-row {
       display: flex;
-      justify-content: flex-start;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    .ecg-row-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .ecg-row-left input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
       margin: 0;
     }
 
-    .ecg-checks input[type="checkbox"] {
-      margin: 0;
+    .ecg-hint {
+      font-size: 12px;
+      color: #6b7280;
+      white-space: nowrap;
+      text-align: right;
     }
 
     .ecg-buttons {
@@ -89,11 +120,36 @@
     .ecg-buttons button {
       flex: 1;
       padding: 10px 12px;
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid #e5e7eb;
       background: #fff;
       font-weight: 700;
       cursor: pointer;
+      height: 40px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .ecg-buttons button:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
+
+    .ecg-measure-hint {
+      font-size: 12px;
+      color: #4b5563;
+      margin-top: 6px;
+      display: none;
+      line-height: 1.25;
+    }
+
+    .ecg-measure-hint.active {
+      display: block;
+    }
+
+    .ecg-help {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.25;
     }
 
     .ecg-ref {
@@ -162,27 +218,32 @@
 
     <div class="ecg-grid">
       <div class="ecg-controls">
-        <div class="ecg-control">
-          <label for="ecg12RhythmPreset">Rhythm preset</label>
-          <select id="ecg12RhythmPreset">
-            <option value="sinus" selected>Sinus Rhythm</option>
-          </select>
+        <div class="ecg-section">
+          <div class="ecg-section-title">Rhythm</div>
+          <div class="ecg-field">
+            <label for="ecg12RhythmPreset">Rhythm preset</label>
+            <select id="ecg12RhythmPreset">
+              <option value="sinus" selected>Sinus Rhythm</option>
+            </select>
+          </div>
+          <div class="ecg-field">
+            <label for="ecg12HeartRate">Heart rate <small>(bpm)</small></label>
+            <input id="ecg12HeartRate" type="number" min="40" max="180" value="75" />
+          </div>
         </div>
 
-        <div class="ecg-control">
-          <label for="ecg12HeartRate">Heart rate <small>(bpm)</small></label>
-          <input id="ecg12HeartRate" type="number" min="40" max="180" value="75" />
-        </div>
-
-        <div class="ecg-control">
-          <label for="ecg12AxisMode">Axis mode</label>
-          <select id="ecg12AxisMode">
-            <option value="normal" selected>Normal Axis (0° to +90°)</option>
-            <option value="lad">Left Axis Deviation (0° to −90°)</option>
-            <option value="rad">Right Axis Deviation (+90° to +180°)</option>
-            <option value="extreme">Extreme Axis (−90° to −180°)</option>
-          </select>
-          <div style="margin-top:10px; display:grid; gap:6px;">
+        <div class="ecg-section">
+          <div class="ecg-section-title">Axis</div>
+          <div class="ecg-field">
+            <label for="ecg12AxisMode">Axis mode</label>
+            <select id="ecg12AxisMode">
+              <option value="normal" selected>Normal Axis (0° to +90°)</option>
+              <option value="lad">Left Axis Deviation (0° to −90°)</option>
+              <option value="rad">Right Axis Deviation (+90° to +180°)</option>
+              <option value="extreme">Extreme Axis (−90° to −180°)</option>
+            </select>
+          </div>
+          <div class="ecg-field" style="gap:8px;">
             <div style="display:flex; gap:8px;">
               <select id="ecg12LeadISign" style="flex:1;">
                 <option value="pos" selected>Lead I: Positive</option>
@@ -193,21 +254,77 @@
                 <option value="neg">aVF: Negative</option>
               </select>
             </div>
-            <small style="color:#6b7280;">Quadrant method: choose Lead I and aVF polarity; simulator picks axis category.</small>
+            <div class="ecg-help">Quadrant method: choose Lead I and aVF polarity; simulator picks axis category.</div>
           </div>
         </div>
 
-        <div class="ecg-control">
-          <label>Highlights</label>
-          <div class="ecg-checks">
-            <label><input type="checkbox" id="ecg12HighlightP" /> P wave</label>
-            <label><input type="checkbox" id="ecg12HighlightQRS" /> QRS</label>
-            <label><input type="checkbox" id="ecg12HighlightT" /> T wave</label>
-            <div style="height:6px"></div>
-            <label><input type="checkbox" id="ecg12HighlightPR" /> PR interval <span class="ecg-ref">Normal: 120–200 ms</span></label>
-            <label><input type="checkbox" id="ecg12HighlightQRSDur" /> QRS duration <span class="ecg-ref">Normal: &lt;120 ms</span></label>
-            <label><input type="checkbox" id="ecg12HighlightRR" /> R–R interval <span class="ecg-ref">Normal: 600–1000 ms (HR 60–100)</span></label>
-            <label><input type="checkbox" id="ecg12HighlightQT" /> QT interval <span class="ecg-ref">Normal: ~350–440 ms (rate dependent)</span></label>
+        <div class="ecg-section">
+          <div class="ecg-section-title">Wave highlights</div>
+          <div class="ecg-row">
+            <div class="ecg-row-left">
+              <input type="checkbox" id="ecg12HighlightP" />
+              <span>P wave</span>
+            </div>
+            <div class="ecg-hint"></div>
+          </div>
+          <div class="ecg-row">
+            <div class="ecg-row-left">
+              <input type="checkbox" id="ecg12HighlightQRS" />
+              <span>QRS</span>
+            </div>
+            <div class="ecg-hint"></div>
+          </div>
+          <div class="ecg-row">
+            <div class="ecg-row-left">
+              <input type="checkbox" id="ecg12HighlightT" />
+              <span>T wave</span>
+            </div>
+            <div class="ecg-hint"></div>
+          </div>
+        </div>
+
+        <div class="ecg-section">
+          <div class="ecg-section-title">Intervals &amp; tools</div>
+          <div class="ecg-row">
+            <div class="ecg-row-left">
+              <input type="checkbox" id="ecg12HighlightPR" />
+              <span>PR interval</span>
+            </div>
+            <div class="ecg-hint">Normal: 120–200 ms</div>
+          </div>
+          <div class="ecg-row">
+            <div class="ecg-row-left">
+              <input type="checkbox" id="ecg12HighlightQRSDur" />
+              <span>QRS duration</span>
+            </div>
+            <div class="ecg-hint">Normal: &lt;120 ms</div>
+          </div>
+          <div class="ecg-row">
+            <div class="ecg-row-left">
+              <input type="checkbox" id="ecg12HighlightRR" />
+              <span>R–R interval</span>
+            </div>
+            <div class="ecg-hint">Normal: 600–1000 ms</div>
+          </div>
+          <div class="ecg-row">
+            <div class="ecg-row-left">
+              <input type="checkbox" id="ecg12HighlightQT" />
+              <span>QT interval</span>
+            </div>
+            <div class="ecg-hint">Normal: ~350–440 ms</div>
+          </div>
+          <div class="ecg-row" style="padding-bottom:0;">
+            <div class="ecg-row-left">
+              <input type="checkbox" id="ecg12MeasureTool" />
+              <span>Click &amp; Measure</span>
+            </div>
+            <div class="ecg-hint"></div>
+          </div>
+          <div id="ecg12MeasureHint" class="ecg-measure-hint">
+            Click to set start/end.<br />
+            Drag to measure.<br />
+            Hold Shift to keep previous measurements.<br />
+            Double-click a measurement to remove it.
           </div>
         </div>
 
@@ -286,6 +403,8 @@
         ['ecg12HighlightQT', 'QT'],
         ['ecg12HighlightRR', 'RR']
       ];
+      const measureToggle = document.getElementById('ecg12MeasureTool');
+      const measureHint = document.getElementById('ecg12MeasureHint');
       const playBtn = document.getElementById('ecg12Play');
       const pauseBtn = document.getElementById('ecg12Pause');
       const resetBtn = document.getElementById('ecg12Reset');
@@ -414,12 +533,23 @@
           intervalState[key] = !!(el && el.checked);
         });
         sim.setIntervalHighlights(intervalState);
+
+        if (measureToggle) {
+          const enabled = !!measureToggle.checked;
+          if (measureHint) {
+            measureHint.classList.toggle('active', enabled);
+          }
+          if (typeof sim.setMeasureToolEnabled === 'function') {
+            sim.setMeasureToolEnabled(enabled);
+          }
+        }
       };
 
       [...highlightIds, ...intervalHighlightIds].forEach(([id]) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', updateHighlights);
       });
+      if (measureToggle) measureToggle.addEventListener('change', updateHighlights);
 
       if (playBtn) playBtn.addEventListener('click', () => sim.play());
       if (pauseBtn) pauseBtn.addEventListener('click', () => sim.pause());

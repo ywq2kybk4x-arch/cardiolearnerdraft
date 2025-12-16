@@ -302,6 +302,11 @@ class Ecg12Simulator {
 
     this.highlights = { P: false, QRS: false, T: false };
     this.intervalHighlights = { PR: false, QRSd: false, QT: false, RR: false };
+    this.measureToolEnabled = false;
+    this.measurements = [];
+    this.pendingMeasure = null;
+    this._bigMouse = { x: 0, y: 0, inside: false };
+    this._lastBigMsPerPixel = null;
     this.axisMode = this.normalizeAxisMode(config.axisMode || 'normal');
     this.axisDeg = this.axisDegFromMode(this.axisMode);
     if (typeof config.axisDeg === 'number') {
@@ -335,6 +340,10 @@ class Ecg12Simulator {
 
     this.handleResize = this.handleResize.bind(this);
     this.tick = this.tick.bind(this);
+    this.handleBigMouseMove = this.handleBigMouseMove.bind(this);
+    this.handleBigMouseLeave = this.handleBigMouseLeave.bind(this);
+    this.handleBigClick = this.handleBigClick.bind(this);
+    this.handleBigDoubleClick = this.handleBigDoubleClick.bind(this);
 
     this.handleResize();
     window.addEventListener('resize', this.handleResize);
@@ -343,6 +352,13 @@ class Ecg12Simulator {
     this.drawGrid();
     this.drawBigGrid();
     this.reset();
+
+    if (this.bigTraceCanvas) {
+      this.bigTraceCanvas.addEventListener('mousemove', this.handleBigMouseMove);
+      this.bigTraceCanvas.addEventListener('mouseleave', this.handleBigMouseLeave);
+      this.bigTraceCanvas.addEventListener('click', this.handleBigClick);
+      this.bigTraceCanvas.addEventListener('dblclick', this.handleBigDoubleClick);
+    }
   }
 
   setHeartRate(bpm) {
@@ -542,6 +558,146 @@ class Ecg12Simulator {
     this.hoverLead = leadId;
   }
 
+  setMeasureToolEnabled(on) {
+    const enabled = !!on;
+    if (this.measureToolEnabled === enabled) return;
+    this.measureToolEnabled = enabled;
+    if (!enabled) {
+      this.clearMeasurements(false);
+    }
+    this.drawExpandedTrace();
+  }
+
+  clearMeasurements(redraw = true) {
+    this.measurements = [];
+    this.pendingMeasure = null;
+    if (redraw) this.drawExpandedTrace();
+  }
+
+  getBigCanvasPoint(event) {
+    const canvas = this.bigTraceCanvas;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const width = canvas.clientWidth || rect.width;
+    const height = canvas.clientHeight || rect.height;
+    if (!rect.width || !rect.height) return null;
+    const x = ((event.clientX - rect.left) / rect.width) * width;
+    const y = ((event.clientY - rect.top) / rect.height) * height;
+    return { x, y };
+  }
+
+  handleBigMouseMove(event) {
+    if (!this.measureToolEnabled) return;
+    const point = this.getBigCanvasPoint(event);
+    if (!point) return;
+    this._bigMouse = { ...point, inside: true };
+    if (this.pendingMeasure) {
+      this.pendingMeasure.bx = point.x;
+      this.pendingMeasure.by = point.y;
+    }
+    this.drawExpandedTrace();
+  }
+
+  handleBigMouseLeave() {
+    this._bigMouse = { x: 0, y: 0, inside: false };
+  }
+
+  handleBigClick(event) {
+    if (!this.measureToolEnabled) return;
+    const point = this.getBigCanvasPoint(event);
+    if (!point) return;
+    const hitIndex = this.findMeasurementAtPoint(point);
+    if (hitIndex !== -1) {
+      return;
+    }
+
+    if (!this.pendingMeasure) {
+      if (!event.shiftKey) {
+        this.clearMeasurements(false);
+      }
+      this.pendingMeasure = {
+        ax: point.x,
+        ay: point.y,
+        bx: point.x,
+        by: point.y,
+        live: true
+      };
+    } else {
+      this.measurements.push({
+        ax: this.pendingMeasure.ax,
+        ay: this.pendingMeasure.ay,
+        bx: point.x,
+        by: point.y
+      });
+      this.pendingMeasure = null;
+    }
+    this.drawExpandedTrace();
+  }
+
+  handleBigDoubleClick(event) {
+    if (!this.measureToolEnabled) return;
+    const point = this.getBigCanvasPoint(event);
+    if (!point) return;
+    const hitIndex = this.findMeasurementAtPoint(point);
+    if (hitIndex !== -1) {
+      this.measurements.splice(hitIndex, 1);
+      this.drawExpandedTrace();
+      event.preventDefault();
+    }
+  }
+
+  findMeasurementAtPoint(point, tolerance = 8) {
+    if (!Array.isArray(this.measurements) || !this.measurements.length) return -1;
+    for (let i = this.measurements.length - 1; i >= 0; i--) {
+      const m = this.measurements[i];
+      if (this.measurementContainsPoint(m, point, tolerance)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  measurementContainsPoint(measurement, point, tolerance = 8) {
+    if (!measurement) return false;
+    const bounds = measurement.labelBounds;
+    if (bounds) {
+      if (
+        point.x >= bounds.x &&
+        point.x <= bounds.x + bounds.width &&
+        point.y >= bounds.y &&
+        point.y <= bounds.y + bounds.height
+      ) {
+        return true;
+      }
+    }
+    const dist = this.pointToSegmentDistance(
+      measurement.ax,
+      measurement.ay,
+      measurement.bx,
+      measurement.by,
+      point.x,
+      point.y
+    );
+    return dist <= tolerance;
+  }
+
+  pointToSegmentDistance(ax, ay, bx, by, px, py) {
+    const dx = bx - ax;
+    const dy = by - ay;
+    if (dx === 0 && dy === 0) {
+      const ddx = px - ax;
+      const ddy = py - ay;
+      return Math.sqrt(ddx * ddx + ddy * ddy);
+    }
+    const t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
+    const clamped = Math.max(0, Math.min(1, t));
+    const cx = ax + clamped * dx;
+    const cy = ay + clamped * dy;
+    const ddx = px - cx;
+    const ddy = py - cy;
+    return Math.sqrt(ddx * ddx + ddy * ddy);
+  }
+
   play() {
     if (this.isPlaying) return;
     this.isPlaying = true;
@@ -698,6 +854,7 @@ class Ecg12Simulator {
 
     const pxPerMm = this.pixelPerMm;
     const msPerPixel = 1000 / (this.config.speed * pxPerMm);
+    this._lastBigMsPerPixel = msPerPixel;
     const windowMs = w * msPerPixel;
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
     if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
@@ -869,6 +1026,7 @@ class Ecg12Simulator {
         plotBottomY: overlayTopY,
         leadKey
       });
+      this.drawMeasureToolOverlay(this.bigOverlayCtx, { width: w, height: h });
     }
   }
 
@@ -1021,6 +1179,95 @@ class Ecg12Simulator {
         if (on.QT) drawBracket('QT', qrsStart, qtEnd, Math.round(beat.qt));
       }
     }
+  }
+
+  drawMeasureToolOverlay(ctx, { width, height }) {
+    if (!this.measureToolEnabled || !ctx) return;
+    const msPerPixel = this._lastBigMsPerPixel || 0;
+    const entries = [];
+    if (this.measurements?.length) {
+      this.measurements.forEach((m, idx) => entries.push({ data: m, live: false, index: idx }));
+    }
+    if (this.pendingMeasure) {
+      entries.push({ data: this.pendingMeasure, live: true, index: this.measurements.length });
+    }
+    if (!entries.length) return;
+
+    const latestFinalIndex = this.measurements.length - 1;
+
+    const clampCoord = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    ctx.save();
+    ctx.font = '11px "SFMono-Regular", Consolas, monospace';
+    entries.forEach((entry) => {
+      const { data, live, index } = entry;
+      const ax = data.ax;
+      const ay = data.ay;
+      const bx = data.bx;
+      const by = data.by;
+      const isLatestFinal = !live && index === latestFinalIndex;
+      const alpha = live ? 0.9 : isLatestFinal ? 1 : 0.75;
+      const lineColor = `rgba(15,23,42,${0.55 * alpha})`;
+      const dotColor = `rgba(15,23,42,${alpha})`;
+
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 1.5;
+      if (live) ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+      if (live) ctx.setLineDash([]);
+
+      const drawHandle = (x, y) => {
+        ctx.fillStyle = dotColor;
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      };
+      drawHandle(ax, ay);
+      drawHandle(bx, by);
+
+      const dx = bx - ax;
+      const dy = by - ay;
+      const dtMs = Math.round(Math.abs(dx) * msPerPixel);
+      const dvMv = -(dy / MV_TO_PX_12);
+
+      const line1 = `Δt ${dtMs} ms`;
+      const line2 = `ΔV ${dvMv.toFixed(2)} mV`;
+      const textPadX = 5;
+      const textPadY = 6;
+      const lineHeight = 12;
+
+      ctx.font = '11px "SFMono-Regular", Consolas, monospace';
+      const textWidth = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
+      const labelW = textWidth + textPadX * 2;
+      const labelH = lineHeight * 2 + textPadY * 2;
+
+      let labelX = (ax + bx) / 2 - labelW / 2;
+      let labelY = (ay + by) / 2 - labelH - 6;
+      labelX = clampCoord(labelX, 6, Math.max(6, width - labelW - 6));
+      labelY = clampCoord(labelY, 6, Math.max(6, height - labelH - 6));
+
+      if (!live) {
+        data.labelBounds = { x: labelX, y: labelY, width: labelW, height: labelH };
+      } else if (data.labelBounds) {
+        delete data.labelBounds;
+      }
+
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.strokeStyle = 'rgba(15,23,42,0.18)';
+      ctx.lineWidth = 1;
+      this.roundedRectPath(ctx, labelX, labelY, labelW, labelH, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(15,23,42,0.9)';
+      ctx.textBaseline = 'top';
+      ctx.fillText(line1, labelX + textPadX, labelY + textPadY);
+      ctx.fillText(line2, labelX + textPadX, labelY + textPadY + lineHeight);
+    });
+    ctx.restore();
   }
 
   drawReadoutOverlay() {
