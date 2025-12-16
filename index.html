@@ -195,6 +195,21 @@
             font-size: 0.95em;
             line-height: 1.4;
         }
+
+        .hfref-toggle-btn{
+            padding:4px 10px;
+            border-radius:999px;
+            border:1px solid #fecaca;
+            background:#ffffff;
+            font-size:0.82rem;
+            font-weight:700;
+            color:#b91c1c;
+            cursor:pointer;
+        }
+        .hfref-toggle-btn.active{
+            background:#fee2e2;
+            border-color:#fca5a5;
+        }
         
         .control-group label {
             display: block;
@@ -1168,15 +1183,7 @@
                         <strong>Model Limitations:</strong> This simulator uses simplified hemodynamic equations for education. At extremes (very low preload or very high afterload), outputs may be nonphysiologic (e.g., negative volumes). Treat them as markers of severe decompensation, not literal values. Always interpret in clinical context.
                     </div>
 
-                    <div id="pathology-banner" class="info-section" style="display: block; background: linear-gradient(135deg, rgb(212, 237, 218) 0%, rgb(195, 230, 203) 100%); border: 2px solid rgb(40, 167, 69); margin-top: 16px; animation: 1s ease 0s 1 normal none running highlightChange;">
-                        <div id="pathology-banner-content">
-                        <h3>Key Concepts: Normal Cardiac Physiology</h3>
-                        <p><strong>Preload (EDV):</strong> End-diastolic volume - the initial stretching of cardiac myocytes. Clinically affected by venous return, blood volume, and atrial contraction. ↑ Preload = ↑ Stroke Volume (to a point).</p>
-                        <p><strong>Afterload:</strong> The resistance the left ventricle must overcome to eject blood. Approximated by systemic vascular resistance (SVR). ↑ Afterload = ↓ Stroke Volume.</p>
-                        <p><strong>Contractility (Inotropy):</strong> The intrinsic strength of cardiac muscle contraction, independent of preload/afterload. Enhanced by sympathetic stimulation and positive inotropes (dobutamine, digoxin).</p>
-                        <p><strong>The PV Loop:</strong> Shows the relationship between LV pressure and volume throughout one cardiac cycle. Width = stroke volume. Height = pressure generated. Area ≈ stroke work.</p>
-                    </div>
-                    </div>
+                    <!-- pathology banner moved next to the PV loop -->
                 </div>
                 
                 <div>
@@ -1239,10 +1246,44 @@
                 </div>
             </div>
 
-                            
+            <!-- HFrEF PV Loop Compare Controls (Cardiac Pathologies section ONLY) -->
+            <div id="hfrefCompareBox"
+                 style="display:none; background: linear-gradient(135deg,#fef2f2,#fee2e2);
+                        border-radius:10px; padding:12px 16px; margin-bottom:15px;">
+              <div style="font-weight:800; color:#991b1b; font-size:14px; text-align:center; margin-bottom:8px;">
+                HFrEF PV Loop (Acute vs Chronic)
+              </div>
 
+              <div style="display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap;">
+                <div class="hfref-toggle" style="display:flex; gap:6px;">
+                  <button type="button" class="hfref-toggle-btn active" data-variant="acute">Acute HFrEF</button>
+                  <button type="button" class="hfref-toggle-btn" data-variant="chronic">Chronic HFrEF</button>
+                </div>
+
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:#374151; user-select:none;">
+                  <input id="hfrefCompareCheckbox" type="checkbox" />
+                  Compare with Chronic
+                </label>
+              </div>
+
+              <div style="margin-top:8px; color:#374151; font-size:12px; line-height:1.6;">
+                Acute is selected by default. Turn on “Compare with Chronic” to overlay both loops.
+              </div>
+            </div>
+
+
+                           
 
                             <canvas id="pvLoopChart" class="pv-loop-canvas"></canvas>
+                            <div id="pathology-banner" class="info-section" style="display: block; background: linear-gradient(135deg, rgb(212, 237, 218) 0%, rgb(195, 230, 203) 100%); border: 2px solid rgb(40, 167, 69); margin-top: 16px; animation: 1s ease 0s 1 normal none running highlightChange;">
+                                <div id="pathology-banner-content">
+                                    <h3>Key Concepts: Normal Cardiac Physiology</h3>
+                                    <p><strong>Preload (EDV):</strong> End-diastolic volume - the initial stretching of cardiac myocytes. Clinically affected by venous return, blood volume, and atrial contraction. ↑ Preload = ↑ Stroke Volume (to a point).</p>
+                                    <p><strong>Afterload:</strong> The resistance the left ventricle must overcome to eject blood. Approximated by systemic vascular resistance (SVR). ↑ Afterload = ↓ Stroke Volume.</p>
+                                    <p><strong>Contractility (Inotropy):</strong> The intrinsic strength of cardiac muscle contraction, independent of preload/afterload. Enhanced by sympathetic stimulation and positive inotropes (dobutamine, digoxin).</p>
+                                    <p><strong>The PV Loop:</strong> Shows the relationship between LV pressure and volume throughout one cardiac cycle. Width = stroke volume. Height = pressure generated. Area ≈ stroke work.</p>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="chart-container" style="grid-column: span 2;" id="wiggersContainer">
@@ -1308,7 +1349,7 @@
                         </div>
                     </div>
                     
-                    <div class="info-section" id="info-section" style=""><h3>Normal Cardiac Physiology</h3><p>Adjust the sliders to explore how changes in preload, afterload, contractility, and heart rate affect cardiac function.</p></div>
+                    <!-- placeholder removed; key concepts now render below the PV loop -->
                 </div>
             </div>
         </div>
@@ -1762,7 +1803,8 @@
                             <select id="rhythmPreset">
                                 <option value="sinus">Normal Sinus Rhythm</option>
                                 <option value="afib">Atrial Fibrillation</option>
-                                <option value="vtach">Ventricular Tachycardia</option>
+                                <option value="mvtach">Monomorphic Ventricular Tachycardia</option>
+<option value="pvtach">Polymorphic Ventricular Tachycardia</option>
                                 <option value="avb1">1° AV Block</option>
                                 <option value="avb2_mobitz1">2° AV Block (Mobitz I)</option>
                                 <option value="avb2_mobitz2">2° AV Block (Mobitz II, 2:1)</option>
@@ -2308,6 +2350,36 @@
                 description: 'Distributive shock with low SVR'
             }
         };
+
+        let currentHfrefVariant = 'acute';
+        let hfrefCompareEnabled = false;
+
+        const hfrefVariants = {
+            acute: {
+                preload: 130,
+                afterload: 1400,
+                contractility: 0.5,
+                heartRate: 95,
+                name: 'Heart Failure (HFrEF)',
+                description: 'Acute HFrEF: reduced contractility with modest dilation.'
+            },
+            chronic: {
+                preload: 200,
+                afterload: 1400,
+                contractility: 0.4,
+                heartRate: 90,
+                name: 'Heart Failure (HFrEF)',
+                description: 'Chronic HFrEF: dilated LV with very high EDV/ESV and severe systolic dysfunction.'
+            }
+        };
+
+        function getHfrefPrimaryPreset() {
+            return hfrefVariants[currentHfrefVariant] || hfrefVariants.acute;
+        }
+
+        function getOtherHfrefVariantKey() {
+            return currentHfrefVariant === 'acute' ? 'chronic' : 'acute';
+        }
         
         // Wiggers diagram change descriptions for each pathology
         const wiggersDescriptions = {
@@ -2507,7 +2579,13 @@
         
         // Load pathology preset
         function loadPathology(pathologyKey) {
-            const preset = pathologyPresets[pathologyKey];
+            let preset = pathologyPresets[pathologyKey];
+            if (pathologyKey === 'hfref') {
+                if (!currentHfrefVariant) {
+                    currentHfrefVariant = 'acute';
+                }
+                preset = getHfrefPrimaryPreset();
+            }
             if (!preset) return;
             
             // Update current pathology and loaded pathology
@@ -2548,12 +2626,22 @@
             const arBox = document.getElementById('arExplanationBox');
             if (arBox) {
                 arBox.style.display = pathologyKey === 'aorticRegurg' ? 'block' : 'none';
+            }
 
-        // Show/hide AS explanation box
-        const asBox = document.getElementById('asExplanationBox');
-        if (asBox) {
-            asBox.style.display = pathologyKey === 'aorticStenosis' ? 'block' : 'none';
-        }
+            // Show/hide AS explanation box
+            const asBox = document.getElementById('asExplanationBox');
+            if (asBox) {
+                asBox.style.display = pathologyKey === 'aorticStenosis' ? 'block' : 'none';
+            }
+
+            // Show/hide HFrEF compare controls
+            const hfrefBox = document.getElementById('hfrefCompareBox');
+            if (hfrefBox) {
+                const showHfrefControls = pathologyKey === 'hfref';
+                hfrefBox.style.display = showHfrefControls ? 'block' : 'none';
+                if (showHfrefControls) {
+                    updateHfrefToggleActiveState();
+                }
             }
 
             // Show/hide AR Practice Questions button
@@ -2581,6 +2669,11 @@
 
             // Show notification
             showNotification('Loaded: ' + preset.name);
+            if (pathologyKey !== 'normal') {
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                });
+            }
         }
         
         // Function to update Wiggers diagram description
@@ -2662,7 +2755,6 @@
         });
         
         function updatePathologyInfo(pathologyKey) {
-            const infoSection = document.getElementById('info-section');
             const pathologyBanner = document.getElementById('pathology-banner');
             const pathologyBannerContent = document.getElementById('pathology-banner-content');
             const homeButton = document.getElementById('homeButton');
@@ -2804,8 +2896,6 @@
                 document.getElementById('reloadPathologyBtn').style.display = 'block';
                 // Hide function curves for pathologies
                 document.getElementById('functionCurvesContainer').style.display = 'none';
-                // Scroll the banner into view smoothly
-                pathologyBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
                 homeButton.style.display = 'none';
                 document.getElementById('reloadPathologyBtn').style.display = 'none';
@@ -2822,13 +2912,6 @@
                 pathologyBanner.style.border = '2px solid #ffc107';
             }
             
-            infoSection.innerHTML = infoHTML;
-            
-            // Add a subtle animation to highlight the change
-            infoSection.style.animation = 'highlightChange 1s ease';
-            setTimeout(() => {
-                infoSection.style.animation = '';
-            }, 1000);
         }
         
         // Add notification function
@@ -3326,6 +3409,13 @@
                 }
             });
         }
+
+        function updateHfrefToggleActiveState() {
+            document.querySelectorAll('.hfref-toggle-btn').forEach(btn => {
+                if (!btn.dataset.variant) return;
+                btn.classList.toggle('active', btn.dataset.variant === currentHfrefVariant);
+            });
+        }
         
         function attachEventListeners() {
             document.getElementById('preload').addEventListener('input', handleSliderChange);
@@ -3352,6 +3442,32 @@
                     updateCalculations();
                 });
             });
+
+            document.querySelectorAll('.hfref-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const variant = btn.dataset.variant;
+                    if (!variant) return;
+                    currentHfrefVariant = variant;
+                    updateHfrefToggleActiveState();
+                    if (currentPathology === 'hfref') {
+                        loadPathology('hfref');
+                    }
+                });
+            });
+
+            const hfrefCompareCheckbox = document.getElementById('hfrefCompareCheckbox');
+            if (hfrefCompareCheckbox) {
+                hfrefCompareCheckbox.checked = hfrefCompareEnabled;
+                hfrefCompareCheckbox.addEventListener('change', () => {
+                    hfrefCompareEnabled = hfrefCompareCheckbox.checked;
+                    if (currentPathology === 'hfref') {
+                        loadPathology('hfref');
+                    } else {
+                        updateHfrefCompareDataset();
+                    }
+                });
+            }
+            updateHfrefToggleActiveState();
         }
 
         // Quiz helpers
@@ -3695,51 +3811,7 @@
             
             // More accurate stroke volume calculation
             // Base calculation using Frank-Starling mechanism
-            let strokeVolume;
-            
-            // Step 1: Preload effect (Frank-Starling) - creates the basic curve
-            // Using square root for physiological plateau at high preloads
-            const baseStrokeVolume = 70; // Normal SV at normal preload (EDV=120)
-            const preloadFactor = Math.sqrt(preload / 120);  // Changed from 100 to 120
-            
-            // Step 2: Afterload effect - high afterload reduces SV
-            // More realistic inverse relationship
-            const normalAfterload = 1200;
-            const afterloadFactor = Math.exp(-(afterload - normalAfterload) / 600);
-            
-            // Step 3: Contractility effect - direct multiplier
-            // Contractility affects the slope and height of the Frank-Starling curve
-            
-            // Combined equation with more realistic interactions
-            strokeVolume = baseStrokeVolume * preloadFactor * afterloadFactor * contractility;
-            
-            // Special adjustments for specific pathologies
-            if (currentPathology === 'aorticStenosis') {
-                // In AS, increased preload can partially compensate
-                // But severe afterload limits maximum achievable SV
-                const compensationFactor = 1 + (preload - 120) * 0.002;
-                strokeVolume = strokeVolume * compensationFactor;
-            } else if (currentPathology === 'aorticRegurg') {
-                // In AR, total SV is high (includes regurgitant volume)
-                // Large stroke volume due to volume overload
-                strokeVolume = strokeVolume * 1.4; // Significant increase for regurgitant + forward flow
-            } else if (currentPathology === 'mitralStenosis') {
-                // In MS, filling is restricted despite normal contractility
-                // SV is limited by inability to fill the LV adequately
-                strokeVolume = strokeVolume * 0.7; // Reduced due to impaired filling
-            } else if (currentPathology === 'mitralRegurg') {
-                // Total SV is high but forward SV is reduced
-                // This represents total SV (forward + backward)
-                strokeVolume = strokeVolume * 1.2; // Account for regurgitant flow
-            } else if (currentPathology === 'hfpef') {
-                // Diastolic dysfunction limits filling
-                // SV is more sensitive to preload changes
-                const fillingLimitation = 0.8 + (preload / 120) * 0.2;
-                strokeVolume = strokeVolume * fillingLimitation;
-            }
-            
-            // Apply physiological limits - increased upper limit for volume overload states
-            strokeVolume = Math.min(Math.max(strokeVolume, 10), 180);
+            const strokeVolume = calculateStrokeVolume(preload, afterload, contractility, currentPathology);
             
             // Calculate other parameters
             const cardiacOutput = (strokeVolume * heartRate) / 1000; // L/min
@@ -3756,6 +3828,7 @@
             // Update charts and overlay
             const peakPressure = updatePVLoop(preload, strokeVolume, afterload, contractility);
             updatePVOverlay(strokeVolume, peakPressure);
+            updateHfrefCompareDataset();
         }
 
         function updateFloatingStats(preload, afterload, contractility, heartRate, sv, co, ef) {
@@ -4167,6 +4240,21 @@
                 { x: esv, y: valvePoints.mvOpen.y, dragKey: 'esv', label: 'MV Opens' }
             ];
             lastValvePoints = { ...valvePoints };
+
+            if (pvLoopChart.data.datasets.length < 5) {
+                pvLoopChart.data.datasets.push({
+                    label: 'HFrEF compare',
+                    data: [],
+                    borderColor: '#16a34a',
+                    backgroundColor: 'transparent',
+                    borderWidth: 3,
+                    borderDash: [6, 4],
+                    pointRadius: 0,
+                    tension: 0.3,
+                    fill: false,
+                    hidden: true
+                });
+            }
             
             // Dynamic scale adjustment based on pathology
             let xMin = 0, xMax = 180, yMin = 0, yMax = 150;
@@ -4247,6 +4335,101 @@
 
             pvLoopChart.update('none');
             return Math.max(...allY); // return peak systolic pressure for overlay
+        }
+
+        function updateHfrefCompareDataset() {
+            if (!pvLoopChart || pvLoopChart.data.datasets.length < 5) return;
+            const compareDataset = pvLoopChart.data.datasets[4];
+            if (!compareDataset) return;
+
+            if (currentPathology !== 'hfref' || !hfrefCompareEnabled) {
+                compareDataset.data = [];
+                compareDataset.hidden = true;
+                pvLoopChart.update('none');
+                return;
+            }
+
+            const otherKey = getOtherHfrefVariantKey();
+            const otherVariant = hfrefVariants[otherKey];
+            if (!otherVariant) {
+                compareDataset.data = [];
+                compareDataset.hidden = true;
+                pvLoopChart.update('none');
+                return;
+            }
+
+            const strokeVolume = calculateStrokeVolume(otherVariant.preload, otherVariant.afterload, otherVariant.contractility, 'hfref');
+            compareDataset.data = buildGenericPVLoopPoints(otherVariant.preload, strokeVolume, otherVariant.afterload, otherVariant.contractility);
+            compareDataset.hidden = false;
+            pvLoopChart.update('none');
+        }
+
+        function calculateStrokeVolume(preload, afterload, contractility, pathologyKey = currentPathology) {
+            const baseStrokeVolume = 70;
+            const preloadFactor = Math.sqrt(preload / 120);
+            const normalAfterload = 1200;
+            const afterloadFactor = Math.exp(-(afterload - normalAfterload) / 600);
+            let strokeVolume = baseStrokeVolume * preloadFactor * afterloadFactor * contractility;
+
+            if (pathologyKey === 'aorticStenosis') {
+                const compensationFactor = 1 + (preload - 120) * 0.002;
+                strokeVolume *= compensationFactor;
+            } else if (pathologyKey === 'aorticRegurg') {
+                strokeVolume *= 1.4;
+            } else if (pathologyKey === 'mitralStenosis') {
+                strokeVolume *= 0.7;
+            } else if (pathologyKey === 'mitralRegurg') {
+                strokeVolume *= 1.2;
+            } else if (pathologyKey === 'hfpef') {
+                const fillingLimitation = 0.8 + (preload / 120) * 0.2;
+                strokeVolume *= fillingLimitation;
+            }
+
+            return Math.min(Math.max(strokeVolume, 10), 180);
+        }
+
+        function buildGenericPVLoopPoints(edv, sv, afterload, contractility) {
+            sv = Math.min(sv, edv - 10);
+            const esv = Math.max(10, edv - sv);
+            const data = [];
+
+            for (let i = 0; i <= 30; i++) {
+                const v = esv + (edv - esv) * (i / 30);
+                const fillProgress = i / 30;
+                const p = 5 + 12 * Math.pow(fillProgress, 2.5);
+                data.push({x: v, y: p});
+            }
+
+            const aorticOpeningPressure = 80;
+            const aorticClosingPressure = 100;
+            for (let p = 17; p <= aorticOpeningPressure; p += 10) {
+                data.push({x: edv, y: p});
+            }
+            data.push({x: edv, y: aorticOpeningPressure});
+
+            const systolicPressure = 100 + (afterload - 1200) * 0.05 + contractility * 25;
+            for (let i = 0; i <= 30; i++) {
+                const progress = i / 30;
+                const v = edv - (edv - esv) * progress;
+                let p;
+                if (progress < 0.7) {
+                    const riseProgress = progress / 0.7;
+                    p = aorticOpeningPressure + (systolicPressure - aorticOpeningPressure) * Math.sin(riseProgress * Math.PI / 2);
+                } else {
+                    const fallProgress = (progress - 0.7) / 0.3;
+                    p = aorticClosingPressure + (systolicPressure - aorticClosingPressure) * Math.cos(fallProgress * Math.PI / 2);
+                }
+                data.push({x: v, y: p});
+            }
+
+            data.push({x: esv, y: aorticClosingPressure});
+            for (let p = aorticClosingPressure - 20; p >= 5; p -= 20) {
+                data.push({x: esv, y: p});
+            }
+            data.push({x: esv, y: 5});
+            data.push(data[0]);
+
+            return data;
         }
 
         // Approximate inverse of the stroke volume calculation to update sliders from dragged PV points
