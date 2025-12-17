@@ -4,6 +4,9 @@
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Cardiac Physiology Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="./assets/chart.js"></script>
     <script src="./assets/chartjs-plugin-annotation.js"></script>
     <script src="./assets/ecg-simulator.js"></script>
@@ -17,220 +20,558 @@
     }
     </script>
     <style>
+        :root {
+            --bg: #f5f6fb;
+            --surface: #ffffff;
+            --surface-2: #f4f6fb;
+            --surface-3: #eceff7;
+            --border: #e1e5ed;
+            --text: #0f172a;
+            --muted: #5f6573;
+            --muted-2: #8f95a3;
+            --primary: #2563eb;
+            --primary-50: #eef4ff;
+            --primary-600: #1d4ed8;
+            --danger: #dc2626;
+            --success: #059669;
+            --warning: #d97706;
+            --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.08);
+            --shadow-md: 0 18px 35px rgba(15, 23, 42, 0.12);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --s1: 8px;
+            --s2: 12px;
+            --s3: 16px;
+            --s4: 24px;
+            --s5: 32px;
+            --ring: 0 0 0 2px rgba(37, 99, 235, 0.35);
+            --container-max: 1260px;
+            --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            color-scheme: light;
+            transition: background-color 0.35s ease, color 0.35s ease;
+            transition: color 0.35s ease, background-color 0.35s ease;
+        }
+
+:root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f5f6fb;
+    --surface: #ffffff;
+    --surface-2: #f4f6fb;
+    --surface-3: #eceff7;
+    --border: #e1e5ed;
+    --text: #0f172a;
+    --muted: #5f6573;
+    --muted-2: #8f95a3;
+    --primary: #2563eb;
+    --primary-50: #eef4ff;
+    --primary-600: #1d4ed8;
+    --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 18px 35px rgba(15, 23, 42, 0.12);
+    --ring: 0 0 0 2px rgba(37, 99, 235, 0.35);
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0b0f19;
+    --surface: #131a26;
+    --surface-2: #192232;
+    --surface-3: #222c3f;
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #f2f5fb;
+    --muted: #9ca4b8;
+    --muted-2: #7b8399;
+    --primary: #82aaff;
+    --primary-50: rgba(130, 170, 255, 0.12);
+    --primary-600: #aec8ff;
+    --shadow-sm: 0 10px 25px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.55);
+    --ring: 0 0 0 2px rgba(130, 170, 255, 0.45);
+}
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                color-scheme: dark;
+                --bg: #0b0f19;
+                --surface: #131a26;
+                --surface-2: #192232;
+                --surface-3: #222c3f;
+                --border: rgba(255, 255, 255, 0.08);
+                --text: #f2f5fb;
+                --muted: #9ca4b8;
+                --muted-2: #7b8399;
+                --primary: #82aaff;
+                --primary-50: rgba(130, 170, 255, 0.12);
+                --primary-600: #aec8ff;
+                --shadow-sm: 0 10px 25px rgba(0, 0, 0, 0.4);
+                --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.55);
+                --ring: 0 0 0 2px rgba(130, 170, 255, 0.45);
+            }
+        }
+
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Inter', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
-            background: #f4f6f9;
-            min-height: 100vh;
-            padding: 20px;
-            color: #1f2933;
+            margin: 0;
+            font-family: var(--font-sans);
+            font-size: 15px;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.55;
+            padding: 32px 24px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            transition: background-color 0.35s ease, color 0.35s ease;
         }
-        
+
+        h1, h2, h3, h4 {
+            font-weight: 600;
+            margin: 0;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 2.1rem + 1.2vw, 3rem);
+            font-weight: 700;
+            line-height: 1.08;
+            letter-spacing: -0.02em;
+        }
+        h2 { font-size: 1.6rem; font-weight: 650; }
+        h3 { font-size: 1.3rem; font-weight: 600; }
+        h4 { font-size: 1.05rem; font-weight: 600; }
+
+        p { margin: 0; color: var(--muted); }
+
+        a { color: var(--primary); }
+
+        .muted-text {
+            font-size: 0.88rem;
+            color: var(--muted-2);
+        }
+
+        :focus-visible {
+            outline: none;
+            box-shadow: var(--ring);
+        }
+
         .container {
-            max-width: 1400px;
+            max-width: var(--container-max);
             margin: 0 auto;
-            background: white;
-            border-radius: 18px;
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
+            padding: 0 var(--s3) var(--s5);
+            transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
         }
-        
-        .header {
-            background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
-            color: white;
-            padding: 28px;
-            text-align: center;
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
         }
-        
-        .header h1 {
-            font-size: 2.3em;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
         }
-        
-        .header p {
-            font-size: 1em;
-            opacity: 0.9;
+
+        .card-header {
+            padding: var(--s4);
+            border-bottom: 1px solid var(--border);
         }
-        
+
+        .card-title { margin-bottom: 4px; }
+        .card-subtitle { font-size: 0.95rem; color: var(--muted); }
+
+        .card-body { padding: var(--s4); }
+
+        .btn {
+            border-radius: 999px;
+            border: 1px solid transparent;
+            padding: 10px 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover { background: var(--primary-600); }
+
+        .btn-ghost {
+            border-color: var(--border);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
+        }
+
+        .btn-compact {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+
         .tabs {
             display: flex;
-            background: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 0 var(--s5) var(--s1);
+            border-bottom: 1px solid var(--border);
+            background: transparent;
+            margin-top: var(--s1);
+            margin-bottom: 0;
+            transition: border-color 0.35s ease;
         }
-        
+
         .tab-button {
-            flex: 1;
-            padding: 15px 20px;
-            background: none;
-            border: none;
-            font-size: 1.1em;
+            padding: 6px 12px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
             font-weight: 600;
-            color: #4b5563;
+            font-size: 0.92rem;
+            color: var(--muted);
             cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
+            transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
         }
-        
+
         .tab-button:hover {
-            background: rgba(0,0,0,0.03);
+            color: var(--primary);
+            border-color: var(--border);
+            background: rgba(37, 99, 235, 0.08);
         }
-        
+
         .tab-button.active {
-            color: #1d4ed8;
-            background: white;
+            color: var(--primary-600);
+            border-color: var(--primary);
+            background: var(--primary-50);
         }
-        
-        .tab-button.active::after {
+
+        .tab-button:focus-visible {
+            outline: none;
+            box-shadow: var(--ring);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block !important; }
+
+        .input, .select, .textarea, input[type="number"], select {
+            width: 100%;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            background: var(--surface-2);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .input:focus, .select:focus, .textarea:focus,
+        input[type="number"]:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: var(--ring);
+            outline: none;
+        }
+
+        input[type="checkbox"],
+        input[type="radio"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: #fff;
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+        }
+
+        input[type="radio"] {
+            border-radius: 999px;
+        }
+
+        input[type="checkbox"]:focus-visible,
+        input[type="radio"]:focus-visible {
+            box-shadow: var(--ring);
+        }
+
+        input[type="checkbox"]:checked,
+        input[type="radio"]:checked {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        input[type="checkbox"]:checked::after {
             content: '';
             position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #1d4ed8;
+            width: 6px;
+            height: 10px;
+            border: 2px solid #fff;
+            border-top: 0;
+            border-left: 0;
+            transform: rotate(45deg);
+            top: 1px;
+            left: 4px;
         }
-        
-        .tab-content {
-            display: none;
+
+        input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #fff;
+            top: 4px;
+            left: 4px;
         }
-        
-        .tab-content.active {
-            display: block !important;
+
+        .badge {
+            border-radius: 999px;
+            background: var(--primary-50);
+            color: var(--primary);
+            padding: 4px 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
         }
-        
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: var(--s4) 0;
+        }
+
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: calc(var(--s3) - 4px) var(--s5);
+            text-align: left;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--s2);
+            transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+        }
+
+        .header h1 {
+            font-size: 1.85rem;
+            margin-bottom: 2px;
+        }
+
+        .header-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .header p {
+            color: var(--muted-2);
+            font-size: 0.88rem;
+        }
+
+        .header-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--s1);
+            margin-left: auto;
+        }
+
         .main-content {
             display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 30px;
-            padding: 30px;
+            grid-template-columns: 340px 1fr;
+            gap: var(--s4);
+            padding: 0 var(--s5);
+            margin-top: var(--s2);
+            align-items: flex-start;
         }
-        
-        .controls-panel {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 25px;
-            height: fit-content;
+
+        .two-col {
+            display: grid;
+            grid-template-columns: minmax(260px, 0.34fr) minmax(0, 0.66fr);
+            gap: var(--s4);
+            align-items: flex-start;
         }
-        
+
+        .controls-panel,
+        .chart-container,
+        .quiz-card,
+        .info-section,
+        .question-container,
+        .explanation-box,
+        .shock-info {
+            border-radius: var(--radius-lg);
+            padding: var(--s3);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        }
+
+        .controls-panel:hover,
+        .chart-container:hover,
+        .quiz-card:hover,
+        .info-section:hover,
+        .question-container:hover,
+        .explanation-box:hover,
+        .shock-info:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .section-heading {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: var(--s3);
+            color: var(--text);
+        }
+
         .control-group {
-            margin-bottom: 25px;
+            margin: 0;
+            padding: var(--s2) 0;
+            border-top: 1px solid var(--border);
         }
+
+        .controls-panel .control-group {
+            padding: var(--s2) 0 !important;
+            border-top: 1px solid var(--border) !important;
+        }
+
+        .controls-panel .control-group:first-of-type {
+            border-top: none !important;
+            padding-top: 0 !important;
+        }
+
+        .control-group-divider {
+            margin-top: var(--s3);
+        }
+
         .pv-controls {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 18px;
-            margin-top: 16px;
+            margin-top: var(--s3);
+            padding: var(--s3);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
         }
-        .pv-controls .control-group {
-            margin-bottom: 20px;
-        }
+
         .control-label-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: var(--s1);
         }
+
         .slider-label {
             font-size: 0.85em;
             font-weight: 600;
-            color: #1d4ed8;
+            color: var(--primary-600);
         }
+
         .slider-ticks {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             font-size: 0.8em;
-            color: #6b7280;
-            margin-top: 8px;
+            color: var(--muted);
+            margin-top: var(--s1);
             gap: 4px;
         }
-        .slider-ticks span {
-            text-align: center;
-        }
-        .pv-controls .slider {
-            width: 100%;
-        }
-        #showAnswerButton {
-            background: #059669;
-            border: none;
-            color: white;
+
+        .slider-ticks span { text-align: center; }
+
+        .pv-controls .slider { width: 100%; }
+
+        .hfref-toggle-btn {
+            padding: 4px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-size: 0.82rem;
             font-weight: 600;
-            border-radius: 8px;
-            padding: 12px;
-            width: 100%;
-            margin-top: 10px;
+            color: var(--muted);
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        #showAnswerButton:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 12px rgba(5, 150, 105, 0.4);
-        }
-        .answer-panel {
-            display: none;
-            margin-top: 16px;
-            background: #ffffff;
-            border-radius: 14px;
-            border: 1px solid #d1d5db;
-            padding: 16px 18px;
-            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.1);
-        }
-        .answer-panel.visible {
-            display: block;
-        }
-        .answer-panel h4 {
-            margin-bottom: 8px;
-            font-size: 1em;
-            color: #0f5132;
-        }
-        .answer-panel p {
-            margin: 4px 0;
-            color: #1f2933;
-            font-size: 0.95em;
-            line-height: 1.4;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
 
-        .hfref-toggle-btn{
-            padding:4px 10px;
-            border-radius:999px;
-            border:1px solid #fecaca;
-            background:#ffffff;
-            font-size:0.82rem;
-            font-weight:700;
-            color:#b91c1c;
-            cursor:pointer;
+        .hfref-toggle-btn.active {
+            background: var(--primary-50);
+            border-color: var(--primary);
+            color: var(--primary-600);
         }
-        .hfref-toggle-btn.active{
-            background:#fee2e2;
-            border-color:#fca5a5;
+
+        .hfref-panel {
+            display: flex;
+            flex-direction: column;
+            gap: var(--s2);
         }
-        
+
+        .hfref-toggle {
+            display: flex;
+            gap: 6px;
+        }
+
+        .hfref-panel-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--s1);
+        }
+
+        .hfref-panel-note {
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        .hfref-compare {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--text);
+            user-select: none;
+        }
+
         .control-group label {
-            display: block;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 8px;
-            font-size: 0.95em;
+            color: var(--text);
+            margin-bottom: var(--s1);
+            font-size: 0.9em;
         }
-        
+
         .slider-container {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: var(--s2);
         }
         
         .slider {
             flex: 1;
             -webkit-appearance: none;
-            height: 8px;
-            border-radius: 5px;
-            background: #ddd;
+            height: 5px;
+            border-radius: 999px;
+            background: var(--surface-3);
             outline: none;
             transition: background 0.3s;
         }
@@ -238,91 +579,484 @@
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 13px;
+            height: 13px;
             border-radius: 50%;
-            background: #e74c3c;
+            background: var(--primary);
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
         }
         
         .slider::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
+            transform: scale(1.15);
         }
         
         .slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
+            width: 13px;
+            height: 13px;
             border-radius: 50%;
-            background: #e74c3c;
+            background: var(--primary);
             cursor: pointer;
         }
         
         .value-display {
-            min-width: 50px;
+            min-width: 80px;
             text-align: right;
             font-weight: 600;
-            color: #e74c3c;
-            font-size: 1.1em;
+            color: var(--primary-600);
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            padding: 3px 8px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-variant-numeric: tabular-nums;
         }
         
         .unit {
-            color: #7f8c8d;
+            color: var(--muted);
             font-size: 0.9em;
-            margin-left: 3px;
+            margin-left: 0;
         }
         
         .help-text {
-            font-size: 0.85em;
-            color: #7f8c8d;
-            margin-top: 5px;
+            font-size: 0.78em;
+            color: var(--muted-2);
+            margin-top: 4px;
             line-height: 1.4;
         }
-        
+
         .visualizations {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: var(--s4);
+        }
+
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: var(--s4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--s3);
+            transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.2s ease;
+        }
+
+        .chart-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .pv-loop-card {
+            grid-column: span 2;
+        }
+
+        .chart-header {
+            display: flex;
+            flex-direction: column;
+            gap: var(--s2);
+        }
+
+        .chart-title-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--s2);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .chart-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--s1);
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .chart-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 10px;
+        }
+
+        .chart-body {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--s3);
+            position: relative;
+        }
+
+        .chart-secondary {
+            border-top: 1px solid var(--border);
+            padding-top: var(--s3);
+            display: flex;
+            flex-direction: column;
+            gap: var(--s2);
+        }
+
+        .info-card {
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            padding: var(--s3);
+            box-shadow: none;
+            transition: background-color 0.35s ease, border-color 0.35s ease;
+        }
+
+        .info-card h4 {
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .info-card p {
+            margin: 6px 0;
+            color: var(--text);
+        }
+
+        .info-card-callout {
+            background: var(--surface-2);
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--s2);
+            margin: var(--s2) 0;
+            font-size: 0.9rem;
+        }
+
+        .info-card--success {
+            border-color: rgba(16, 185, 129, 0.35);
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .info-card--warning {
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .info-card--danger {
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .pharm-grid {
+            display: flex;
+            flex-direction: column;
+            gap: var(--s1);
+            margin-top: var(--s2);
+        }
+
+        .pharm-option {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface);
+            color: var(--text);
+            font-weight: 500;
+            text-align: left;
+            width: 100%;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .pharm-option:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* QBank builder */
+        .qbank-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+            gap: var(--s4);
+        }
+
+        .qbank-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--s4);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: var(--s3);
+        }
+
+        .qbank-section-title {
+            font-size: 0.96rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: var(--s1);
+        }
+
+        .qbank-segment {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .qbank-seg-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .qbank-seg-btn.active {
+            background: var(--primary-50);
+            border-color: var(--primary);
+            color: var(--primary-600);
+        }
+
+        .qbank-source-list,
+        .qbank-topic-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--s1);
+        }
+
+        .qbank-source,
+        .qbank-topic {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface-2);
+            color: var(--text);
+            font-weight: 500;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .qbank-source input,
+        .qbank-topic input {
+            flex: 0 0 auto;
+        }
+
+        .qbank-count-badge {
+            margin-left: auto;
+            border-radius: 999px;
+            padding: 2px 8px;
+            background: var(--surface-3);
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .qbank-source:hover,
+        .qbank-topic:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .qbank-system {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--s1);
+        }
+
+        .qbank-system-toggle {
+            width: 100%;
+            border: none;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .qbank-system-children {
+            padding: 0 12px 12px;
+            border-top: 1px solid var(--border);
+            display: grid;
+            gap: 6px;
+        }
+
+        .qbank-system-child {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .qbank-summary-card {
+            display: flex;
+            flex-direction: column;
+            gap: var(--s2);
+        }
+
+        .qbank-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .qbank-count-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .qbank-count-btn {
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .qbank-count-btn.active {
+            background: var(--primary-50);
+            border-color: var(--primary);
+            color: var(--primary-600);
+        }
+
+        .qbank-custom-input {
+            width: 110px;
+            padding: 8px 10px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .qbank-session-card {
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--surface-2);
+            padding: var(--s4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--s2);
+        }
+
+        .qbank-session-actions {
+            display: flex;
+            gap: var(--s2);
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 1100px) {
+            .qbank-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #showAnswerButton {
+            background: var(--success);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            padding: var(--s3);
+            width: 100%;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #showAnswerButton:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .answer-panel {
+            display: none;
+            margin-top: var(--s3);
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            padding: var(--s3);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .answer-panel.visible { display: block; }
+
+        .answer-panel h4 {
+            margin-bottom: var(--s1);
+            font-size: 1em;
+            color: var(--success);
+        }
+
+        .answer-panel p {
+            margin: 4px 0;
+            color: var(--text);
+            font-size: 0.95em;
+            line-height: 1.4;
         }
 
         /* Keep key numbers visible near the PV loop */
         .floating-stats {
             position: sticky;
-            top: 15px;
+            top: 12px;
             z-index: 5;
             display: flex;
-            gap: 12px 16px;
+            gap: 6px 10px;
             flex-wrap: wrap;
-            justify-content: center;
-            margin-bottom: 10px;
+            justify-content: flex-start;
+            margin: var(--s1) 0 var(--s2);
+            width: 100%;
         }
         .floating-stats .chip {
-            background: #f6f7fb;
-            border: 1px solid #e5e7eb;
-            color: #1f2937;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 0.9em;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            background: linear-gradient(180deg, #ffffff 0%, #f7f9ff 100%);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            color: var(--muted);
+            padding: 4px 9px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85em;
+            box-shadow: none;
+            transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.15s ease, transform 0.15s ease;
+            min-width: 108px;
+            font-variant-numeric: tabular-nums;
+        }
+        .floating-stats .chip:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
         }
         .floating-stats .chip strong {
-            color: #1f2937;
+            color: var(--text);
+            font-weight: 600;
         }
         .floating-stats .chip.chip-normal {
-            background: #e8f5e9;
-            border-color: #b7e4c7;
-            color: #0f5132;
-        }
-        .floating-stats .chip.chip-normal strong {
-            color: #0f5132;
+            background: rgba(5, 150, 105, 0.06);
+            border-color: rgba(5, 150, 105, 0.16);
+            color: var(--success);
         }
         .floating-stats .chip.chip-alert {
-            background: #fdecea;
-            border-color: #f5c2c7;
-            color: #842029;
+            background: rgba(220, 38, 38, 0.06);
+            border-color: rgba(220, 38, 38, 0.18);
+            color: var(--danger);
         }
-        .floating-stats .chip.chip-alert strong {
-            color: #842029;
+        .pv-loop-container .floating-stats {
+            position: static;
+            padding-top: 0;
         }
         .quiz-stats {
             position: static;
@@ -348,6 +1082,7 @@
             line-height: 1.4;
             opacity: 0;
             transition: opacity 0.25s ease, transform 0.25s ease;
+            font-variant-numeric: tabular-nums;
         }
         .pv-overlay.show {
             opacity: 1;
@@ -376,6 +1111,7 @@
             transition: opacity 0.12s ease;
             max-width: 220px;
             z-index: 20;
+            font-variant-numeric: tabular-nums;
         }
         .pv-phase-tooltip strong {
             display: block;
@@ -416,58 +1152,96 @@
         /* Quiz tab */
         .quiz-grid {
             display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 30px;
-            padding: 30px;
+            grid-template-columns: minmax(280px, 0.32fr) minmax(0, 0.68fr);
+            gap: var(--s4);
+            padding: var(--s5);
             align-items: start;
         }
         .quiz-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: var(--s4);
         }
         .quiz-feedback {
             margin-top: 12px;
             padding: 12px;
-            border-radius: 10px;
-            background: #eef6ff;
-            border: 1px solid #cfe2ff;
-            color: #1b4f72;
+            border-radius: var(--radius-md);
+            background: var(--primary-50);
+            border: 1px solid rgba(37,99,235,0.25);
+            color: var(--primary-600);
         }
         
         .chart-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: var(--s2);
+        }
+
+        .chart-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--s2);
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: var(--s1);
+        }
+
+        .chart-body {
+            position: relative;
+        }
+
+        .chart-secondary {
+            border-top: 1px solid var(--border);
+            padding-top: var(--s2);
+            font-size: 0.9rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .pv-loop-container canvas {
+            margin-top: var(--s1);
         }
         .chart-toolbar {
             display: flex;
             justify-content: flex-end;
             align-items: center;
             gap: 10px;
+            margin-top: var(--s1);
             margin-bottom: 8px;
             font-size: 0.9em;
-            color: #2c3e50;
+            color: var(--muted);
         }
         .pharm-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-            gap: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--s1);
+            margin-top: var(--s2);
         }
         .pharm-grid label {
-            white-space: normal;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start !important;
+            gap: 6px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface);
+            color: var(--text) !important;
+            font-weight: 500;
+            text-align: left !important;
+            width: 100%;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .pharm-grid label:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-sm);
         }
         
         .chart-title {
-            font-size: 1.1em;
+            font-size: 1.05em;
             font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 15px;
-            text-align: center;
+            color: var(--text);
+            margin-bottom: var(--s1);
+            text-align: left;
         }
         
         .metrics-grid {
@@ -478,83 +1252,90 @@
         }
         
         .metric-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-            padding: 15px;
+            background: var(--surface-2);
+            color: var(--text);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            padding: var(--s3);
             text-align: center;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
         }
         
         .metric-label {
             font-size: 0.85em;
             opacity: 0.9;
             margin-bottom: 5px;
+            color: var(--muted);
         }
-        
+
         .metric-value {
             font-size: 1.8em;
             font-weight: 700;
+            font-variant-numeric: tabular-nums;
         }
         
         .metric-unit {
             font-size: 0.8em;
             opacity: 0.8;
+            color: var(--muted);
         }
         
         .reset-button {
             width: 100%;
-            padding: 12px;
-            background: #3498db;
-            color: white;
+            padding: var(--s3);
+            background: var(--primary);
+            color: #fff;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             font-size: 1em;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: var(--s3);
         }
         
         .reset-button:hover {
-            background: #2980b9;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+            box-shadow: var(--shadow-sm);
+        }
+
+        #reloadPathologyBtn,
+        #homeButton {
+            background: var(--surface) !important;
+            color: var(--text);
+            border: 1px solid var(--border);
         }
         
         .info-section {
             grid-column: 1 / -1;
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 10px;
+            margin-top: var(--s2);
         }
         
         .info-section h3 {
-            color: #856404;
-            margin-bottom: 10px;
+            color: var(--text);
+            margin-bottom: var(--s1);
         }
         
         .info-section p {
-            color: #856404;
+            color: var(--muted);
             line-height: 1.6;
-            margin-bottom: 8px;
+            margin-bottom: var(--s1);
         }
         
         .disclaimer {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            border-left: 4px solid #17a2b8;
-            border-radius: 5px;
-            padding: 12px 15px;
-            margin-bottom: 20px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: var(--radius-sm);
+            padding: var(--s3);
+            margin-bottom: var(--s4);
             font-size: 0.9em;
-            color: #0c5460;
+            color: var(--muted);
             line-height: 1.5;
         }
         
         .disclaimer strong {
-            color: #004085;
+            color: var(--primary);
         }
 
         canvas {
@@ -725,98 +1506,86 @@
         .pathology-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            padding: 30px;
+            gap: var(--s4);
+            padding: var(--s4);
         }
         
         .pathology-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: none;
             overflow: hidden;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: border-color 0.2s ease, transform 0.2s ease;
             cursor: pointer;
         }
         
         .pathology-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+            border-color: var(--primary);
         }
         
         .pathology-card.selected {
-            border: 3px solid #e74c3c;
-            transform: scale(1.02);
+            border: 2px solid var(--primary);
         }
         
         .pathology-header {
-            padding: 15px;
+            padding: var(--s2) var(--s3);
             font-weight: 600;
-            font-size: 1.2em;
-            color: white;
-            text-align: center;
-        }
-        
-        .pathology-header.stenosis {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-        }
-        
-        .pathology-header.regurgitation {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        }
-        
-        .pathology-header.cardiomyopathy {
-            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-        }
-        
-        .pathology-header.other {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            font-size: 1rem;
+            color: var(--text);
+            text-align: left;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border);
         }
         
         .pathology-content {
-            padding: 20px;
+            padding: var(--s3);
         }
         
         .parameter-changes {
-            margin-bottom: 15px;
+            margin-bottom: var(--s2);
         }
         
         .parameter-item {
             display: flex;
             align-items: center;
-            margin: 8px 0;
-            font-size: 0.95em;
+            margin: 4px 0;
+            font-size: 0.92em;
+            color: var(--muted);
         }
         
         .parameter-arrow {
-            width: 30px;
-            font-weight: bold;
-            margin-right: 8px;
+            width: 26px;
+            font-weight: 700;
+            margin-right: 6px;
+            font-size: 1.05em;
         }
         
         .arrow-up {
-            color: #e74c3c;
+            color: var(--danger);
         }
         
         .arrow-down {
-            color: #3498db;
+            color: var(--primary-600);
         }
         
         .arrow-variable {
-            color: #f39c12;
+            color: var(--warning);
         }
         
         .pathology-description {
             font-size: 0.9em;
-            color: #7f8c8d;
+            color: var(--muted);
             line-height: 1.5;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #ecf0f1;
+            margin-top: var(--s2);
+            padding-top: var(--s2);
+            border-top: 1px solid var(--border);
         }
 
         /* Shock simulator styles */
         .shock-container {
-            padding: 30px;
+            padding: var(--s5);
             max-width: 1200px;
             margin: 0 auto;
         }
@@ -825,68 +1594,67 @@
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin: 30px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-radius: 15px;
+            margin: var(--s3) 0;
+            border-radius: var(--radius-lg);
             overflow: hidden;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-variant-numeric: tabular-nums;
         }
 
         .shock-table th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
+            background: var(--surface-2);
+            color: var(--muted);
+            padding: var(--s2) var(--s3);
             text-align: center;
             font-weight: 600;
-            font-size: 0.95em;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
         }
 
         .shock-table th:first-child {
             text-align: left;
-            padding-left: 25px;
+            padding-left: var(--s3);
         }
 
         .shock-table td {
-            padding: 20px;
+            padding: var(--s2) var(--s3);
             text-align: center;
-            background: white;
-            border-bottom: 1px solid #ecf0f1;
-            font-size: 2em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            font-size: 1.35rem;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background 0.2s ease, color 0.2s ease;
         }
 
         .shock-table td:first-child {
             text-align: left;
-            font-size: 1.1em;
+            font-size: 0.95rem;
             font-weight: 600;
-            padding-left: 25px;
-            background: #f8f9fa;
-            color: #2c3e50;
+            padding-left: var(--s3);
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        .shock-table tbody tr:nth-child(even) td {
+            background: rgba(15,23,42,0.02);
         }
 
         .shock-table tbody tr:hover td {
-            background: #f8f9fa;
+            background: rgba(37,99,235,0.06);
         }
 
         .shock-table tbody tr:hover td:first-child {
-            background: #e9ecef;
+            background: rgba(37,99,235,0.08);
         }
 
         .shock-table tbody tr.normal-row td {
-            background: #e8f5e9;
+            background: rgba(5, 150, 105, 0.05);
             font-weight: 600;
         }
 
-        .shock-table tbody tr.normal-row:hover td {
-            background: #c8e6c9;
-        }
-
         .shock-table tbody tr.normal-row td:first-child {
-            background: #a5d6a7;
-        }
-
-        .shock-table tbody tr.normal-row:hover td:first-child {
-            background: #81c784;
+            background: rgba(5, 150, 105, 0.08);
         }
 
         .arrow-cell {
@@ -894,60 +1662,157 @@
         }
 
         .arrow-cell.highlighted {
-            background: #ffe8a1 !important;
-            animation: pulse 1.5s ease-in-out;
+            background: rgba(234, 179, 8, 0.18) !important;
         }
 
         @keyframes pulse {
-            0%, 100% { background: #ffe8a1; }
-            50% { background: #ffd700; }
+            0%, 100% { background: rgba(234, 179, 8, 0.18); }
+            50% { background: rgba(234, 179, 8, 0.28); }
         }
 
         .arrow-up-shock {
-            color: #e74c3c;
+            color: var(--danger);
         }
 
         .arrow-down-shock {
-            color: #3498db;
+            color: var(--primary-600);
         }
 
         .explanation-box {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-top: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: var(--s3);
+            margin-top: var(--s3);
+            border: 1px solid var(--border);
             min-height: 150px;
         }
 
         .explanation-box h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.3em;
+            color: var(--text);
+            margin-bottom: var(--s2);
+            font-size: 1.15em;
         }
 
         .explanation-box p {
-            color: #555;
-            line-height: 1.8;
-            margin-bottom: 10px;
+            color: var(--muted);
+            line-height: 1.7;
+            margin-bottom: var(--s2);
         }
 
         .shock-info {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--s3);
+            margin-bottom: var(--s3);
         }
 
         .shock-info h3 {
-            color: #856404;
-            margin-bottom: 10px;
+            color: var(--text);
+            margin-bottom: var(--s1);
         }
 
         .shock-info p {
-            color: #856404;
+            color: var(--muted);
             line-height: 1.6;
+        }
+
+        /* Pathology + quiz helpers */
+        #pathology-banner {
+            margin-top: var(--s2);
+        }
+
+        #pathology-banner h3 {
+            margin-bottom: var(--s2);
+        }
+
+        #arExplanationBox,
+        #asExplanationBox,
+        #hfrefCompareBox {
+            margin-bottom: var(--s3);
+        }
+
+        .question-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--s4) !important;
+            margin-bottom: var(--s4) !important;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .question-text {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: var(--s3) !important;
+        }
+
+        .answer-options {
+            margin-left: 0 !important;
+            display: grid;
+            gap: var(--s2);
+        }
+
+        .answer-label {
+            display: flex !important;
+            align-items: center;
+            gap: var(--s2);
+            padding: var(--s2) var(--s3) !important;
+            margin: 0 !important;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border) !important;
+            background: var(--surface-2);
+            transition: border-color 0.2s ease, background 0.2s ease;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .answer-label input {
+            accent-color: var(--primary);
+        }
+
+        .answer-label:hover {
+            border-color: var(--primary);
+            background: var(--primary-50);
+        }
+
+        .answer-feedback {
+            background: var(--primary-50) !important;
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(37,99,235,0.3) !important;
+            color: var(--primary-600) !important;
+        }
+
+        .reset-btn {
+            background: transparent !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text) !important;
+            border-radius: var(--radius-md) !important;
+            padding: var(--s2) var(--s3) !important;
+        }
+
+        .reset-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        #toggle-ar-questions-btn,
+        #toggle-as-questions-btn {
+            background: var(--primary) !important;
+            border: none !important;
+            color: #fff !important;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            padding: var(--s3);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        #toggle-ar-questions-btn:hover,
+        #toggle-as-questions-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         /* ECG simulator styles (scoped to ecg-* classes to avoid collisions) */
@@ -1098,13 +1963,35 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        @media (max-width: 980px) {
+            .tabs {
+                overflow-x: auto;
+                padding-bottom: 6px;
+            }
+            .tabs::-webkit-scrollbar {
+                display: none;
+            }
+            .main-content,
+            .two-col,
+            .quiz-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Interactive Cardiac Physiology Simulator</h1>
-            <p>Explore cardiac hemodynamics and pathophysiology</p>
+            <div class="header-text">
+                <h1>Interactive Cardiac Physiology Simulator</h1>
+                <p>Explore cardiac hemodynamics and pathophysiology</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" id="themeToggle" class="btn btn-ghost btn-compact" aria-label="Toggle theme">
+                    Theme: System
+                </button>
+            </div>
         </div>
         
         <div class="tabs">
@@ -1113,12 +2000,13 @@
             <button class="tab-button" id="shock-tab-btn">Shock Simulator</button>
             <button class="tab-button" id="quiz-tab-btn">PV Loop Quiz</button>
             <button class="tab-button" id="conduction-tab-btn">Dyanamic EKG Viewer</button>
+            <button class="tab-button" id="qbank-tab-btn">QBank</button>
         </div>
         
         <div id="simulator-content" class="tab-content active">
             <div class="main-content">
                 <div class="controls-panel">
-                    <h2 style="color: #2c3e50; margin-bottom: 20px;">Cardiac Parameters</h2>
+                    <h2 class="section-heading">Cardiac Parameters</h2>
                     
                     <div class="control-group">
                         <label for="preload">Preload (End-Diastolic Volume)</label>
@@ -1156,20 +2044,20 @@
                         <div class="help-text">↑ HR = ↑ Cardiac Output (to a point)</div>
                     </div>
 
-                    <div class="control-group" style="border-top: 1px solid #e5e7eb; padding-top: 18px;">
+                    <div class="control-group control-group-divider">
                         <label>Pharmacology Quick Effects</label>
-                        <div class="help-text" style="margin-bottom: 8px;">Toggle common drugs to see immediate hemodynamic changes.</div>
+                        <div class="help-text">Toggle common drugs to see immediate hemodynamic changes.</div>
                         <div class="pharm-grid">
-                            <label style="display:flex; align-items:center; gap:8px; font-weight:600; color:#2c3e50;">
+                            <label class="pharm-option">
                                 <input type="checkbox" id="pharm-vasodilator"> Vasodilator (↓ afterload)
                             </label>
-                            <label style="display:flex; align-items:center; gap:8px; font-weight:600; color:#2c3e50;">
+                            <label class="pharm-option">
                                 <input type="checkbox" id="pharm-inotrope"> Inotrope (↑ contractility)
                             </label>
-                            <label style="display:flex; align-items:center; gap:8px; font-weight:600; color:#2c3e50;">
+                            <label class="pharm-option">
                                 <input type="checkbox" id="pharm-beta"> Beta-blocker (↓ HR, ↓ contractility)
                             </label>
-                            <label style="display:flex; align-items:center; gap:8px; font-weight:600; color:#2c3e50;">
+                            <label class="pharm-option">
                                 <input type="checkbox" id="pharm-diuretic"> Diuretic (↓ preload)
                             </label>
                         </div>
@@ -1194,94 +2082,77 @@
                         <span id="ejectionFraction">58</span>
                     </div>
                     <div class="visualizations">
-                        <div class="chart-container pv-loop-container" style="grid-column: span 2;">
-                            <div class="chart-title">Pressure-Volume Loop</div>
-                            <div class="chart-toolbar"></div>
-                            <div class="floating-stats">
-                                <div class="chip" id="chip-preload">Preload: <strong><span id="floatingPreload">120</span> mL</strong></div>
-                                <div class="chip" id="chip-afterload">Afterload: <strong><span id="floatingAfterload">1200</span> dyn·s/cm⁵</strong></div>
-                                <div class="chip" id="chip-contractility">Contractility: <strong><span id="floatingContractility">1.0</span>x</strong></div>
-                                <div class="chip" id="chip-hr">HR: <strong><span id="floatingHR">70</span> bpm</strong></div>
-                                <div class="chip" id="chip-sv">SV: <strong><span id="floatingSV">70</span> mL</strong></div>
-                                <div class="chip" id="chip-co">CO: <strong><span id="floatingCO">4.9</span> L/min</strong></div>
-                                <div class="chip" id="chip-ef">EF: <strong><span id="floatingEF">58</span>%</strong></div>
-                        </div>
-                        <div id="arExplanationBox" style="display: none; background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border: 2px solid #28a745; border-radius: 10px; padding: 15px 20px; margin-bottom: 15px;">
-                            <div style="font-weight: 700; color: #155724; font-size: 15px; margin-bottom: 10px; text-align: center;">Aortic Regurgitation: Total vs Forward Stroke Volume</div>
-                            <div style="color: #2c3e50; font-size: 13px; line-height: 1.8;">
-                                <p style="margin: 8px 0;"><strong>Key Concept:</strong> In AR, the PV loop shows <strong>TOTAL stroke volume</strong> (forward + regurgitant flow).</p>
-                                <p style="margin: 8px 0;"><strong>Total SV = Forward SV + Regurgitant Volume</strong></p>
-                                    <div style="background: white; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                                        <strong>Example:</strong> If total SV = 150 mL with 50% regurgitant fraction:<br>
-                                        • Total SV (PV loop width) = 150 mL<br>
-                                        • Forward SV (effective CO) = 75 mL<br>
-                                        • Regurgitant volume = 75 mL (flows backward into LV during diastole)
-                                    </div>
-                                    <p style="margin: 8px 0;"><strong>Clinical Implication:</strong> Cardiac output depends only on <strong>forward SV</strong>, not total. Despite large PV loop, patients may have reduced effective CO.</p>
-                                    <p style="margin: 8px 0;"><strong>Regurgitant Fraction:</strong> In severe AR, &gt;50% of blood returns to LV, creating massive volume overload and eccentric hypertrophy.</p>
+                        <div class="chart-card pv-loop-card pv-loop-container">
+                            <div class="chart-header">
+                                <div class="chart-title-row">
+                                    <div class="chart-title">Pressure-Volume Loop</div>
+                                    <div class="chart-toolbar"></div>
+                                </div>
+                                <div class="chart-meta floating-stats">
+                                    <div class="chip" id="chip-preload">Preload: <strong><span id="floatingPreload">120</span> mL</strong></div>
+                                    <div class="chip" id="chip-afterload">Afterload: <strong><span id="floatingAfterload">1200</span> dyn·s/cm⁵</strong></div>
+                                    <div class="chip" id="chip-contractility">Contractility: <strong><span id="floatingContractility">1.0</span>x</strong></div>
+                                    <div class="chip" id="chip-hr">HR: <strong><span id="floatingHR">70</span> bpm</strong></div>
+                                    <div class="chip" id="chip-sv">SV: <strong><span id="floatingSV">70</span> mL</strong></div>
+                                    <div class="chip" id="chip-co">CO: <strong><span id="floatingCO">4.9</span> L/min</strong></div>
+                                    <div class="chip" id="chip-ef">EF: <strong><span id="floatingEF">58</span>%</strong></div>
                                 </div>
                             </div>
+                            <div class="chart-body">
+                                <canvas id="pvLoopChart" class="pv-loop-canvas"></canvas>
+                            </div>
+                            <div class="chart-secondary">
+                                <div id="arExplanationBox" class="info-card info-card--success" style="display:none;">
+                                    <h4>Aortic Regurgitation: Total vs Forward Stroke Volume</h4>
+                                    <p><strong>Key concept:</strong> PV loops display <strong>total stroke volume</strong> (forward + regurgitant flow). Only forward SV contributes to effective cardiac output.</p>
+                                    <p><strong>Relationship:</strong> Total SV = Forward SV + Regurgitant Volume</p>
+                                    <div class="info-card-callout">
+                                        <strong>Example:</strong> Total SV 150 mL with 50% regurgitant fraction → Forward SV 75 mL + Regurgitant 75 mL (returns to LV during diastole).
+                                    </div>
+                                    <p><strong>Clinical takeaway:</strong> A large PV loop does not guarantee high cardiac output—forward SV may be markedly reduced despite wide loops.</p>
+                                    <p><strong>Chronic overload:</strong> Severe AR (>50% regurgitant fraction) causes eccentric hypertrophy and progressive LV dilation.</p>
+                                </div>
 
-<!-- AS Explanation Box -->
-            <div id="asExplanationBox" style="display: none; background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); border: 2px solid #ffc107; border-radius: 10px; padding: 15px 20px; margin-bottom: 15px;">
-                <div style="font-weight: 700; color: #856404; font-size: 15px; margin-bottom: 10px; text-align: center;">AORTIC STENOSIS: Pressure Overload Physiology</div>
-                <div style="color: #2c3e50; font-size: 13px; line-height: 1.8;">
-                    <p style="margin: 8px 0;"><strong>Key Concept:</strong> In AS, the LV faces <strong>increased afterload</strong> (pressure overload) due to the stenotic valve, requiring higher systolic pressures to eject blood.</p>
+                                <div id="asExplanationBox" class="info-card info-card--warning" style="display:none;">
+                                    <h4>Aortic Stenosis: Pressure Overload Physiology</h4>
+                                    <p><strong>Key concept:</strong> The LV faces increased afterload from a stenotic valve, requiring higher systolic pressures to eject blood.</p>
+                                    <p><strong>EDV:</strong> Typically preserved in compensated AS.</p>
+                                    <p><strong>ESV:</strong> Increases as the ventricle cannot fully empty, narrowing the PV loop.</p>
+                                    <div class="info-card-callout">
+                                        <strong>Loop changes:</strong><br>
+                                        • Taller, narrower loop<br>
+                                        • Peak LV pressure rises<br>
+                                        • Stroke volume declines<br>
+                                        • EDV ~same, ESV ↑
+                                    </div>
+                                    <p><strong>Compensation:</strong> Concentric hypertrophy normalizes wall stress but eventually fails, causing symptoms (angina, syncope, dyspnea).</p>
+                                </div>
 
-                    <p style="margin: 8px 0;"><strong>EDV (End-Diastolic Volume):</strong> Remains <strong>relatively preserved</strong> in compensated AS. The loop starts at the same point as normal.</p>
+                                <div id="hfrefCompareBox" class="info-card info-card--danger hfref-panel" style="display:none;">
+                                    <h4>HFrEF PV Loop (Acute vs Chronic)</h4>
+                                    <div class="hfref-panel-actions">
+                                        <div class="hfref-toggle">
+                                            <button type="button" class="hfref-toggle-btn active" data-variant="acute">Acute HFrEF</button>
+                                            <button type="button" class="hfref-toggle-btn" data-variant="chronic">Chronic HFrEF</button>
+                                        </div>
+                                        <label class="hfref-compare">
+                                            <input id="hfrefCompareCheckbox" type="checkbox">
+                                            Compare with Chronic
+                                        </label>
+                                    </div>
+                                    <div class="hfref-panel-note">
+                                        Acute is selected by default. Turn on “Compare with Chronic” to overlay both loops.
+                                    </div>
+                                </div>
 
-                    <p style="margin: 8px 0;"><strong>ESV (End-Systolic Volume):</strong> <strong>Increases</strong> as the ventricle cannot fully empty against high resistance, making the loop narrower.</p>
-
-                    <div style="background: white; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <strong>PV Loop Changes:</strong><br>
-                        • Loop becomes <strong>taller and narrower</strong><br>
-                        • <strong>Higher peak pressure</strong> (increased LV systolic pressure)<br>
-                        • <strong>Reduced stroke volume</strong> (narrower width = EDV - ESV ↓)<br>
-                        • EDV stays similar, but ESV increases
-                    </div>
-
-                    <p style="margin: 8px 0;"><strong>Compensatory Mechanism:</strong> Concentric LV hypertrophy develops to normalize wall stress (↑ wall thickness, normal chamber size).</p>
-
-                    <p style="margin: 8px 0;"><strong>Clinical Implication:</strong> As stenosis worsens, stroke volume progressively decreases. Symptoms (angina, syncope, dyspnea) emerge when compensation fails.</p>
-                </div>
-            </div>
-
-            <!-- HFrEF PV Loop Compare Controls (Cardiac Pathologies section ONLY) -->
-            <div id="hfrefCompareBox"
-                 style="display:none; background: linear-gradient(135deg,#fef2f2,#fee2e2);
-                        border-radius:10px; padding:12px 16px; margin-bottom:15px;">
-              <div style="font-weight:800; color:#991b1b; font-size:14px; text-align:center; margin-bottom:8px;">
-                HFrEF PV Loop (Acute vs Chronic)
-              </div>
-
-              <div style="display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap;">
-                <div class="hfref-toggle" style="display:flex; gap:6px;">
-                  <button type="button" class="hfref-toggle-btn active" data-variant="acute">Acute HFrEF</button>
-                  <button type="button" class="hfref-toggle-btn" data-variant="chronic">Chronic HFrEF</button>
-                </div>
-
-                <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:#374151; user-select:none;">
-                  <input id="hfrefCompareCheckbox" type="checkbox" />
-                  Compare with Chronic
-                </label>
-              </div>
-
-              <div style="margin-top:8px; color:#374151; font-size:12px; line-height:1.6;">
-                Acute is selected by default. Turn on “Compare with Chronic” to overlay both loops.
-              </div>
-            </div>
-
-
-                           
-
-                            <canvas id="pvLoopChart" class="pv-loop-canvas"></canvas>
-                            <div id="pathology-banner" class="info-section" style="display: block; background: linear-gradient(135deg, rgb(212, 237, 218) 0%, rgb(195, 230, 203) 100%); border: 2px solid rgb(40, 167, 69); margin-top: 16px; animation: 1s ease 0s 1 normal none running highlightChange;">
-                                <div id="pathology-banner-content">
-                                    <h3>Key Concepts: Normal Cardiac Physiology</h3>
-                                    <p><strong>Preload (EDV):</strong> End-diastolic volume - the initial stretching of cardiac myocytes. Clinically affected by venous return, blood volume, and atrial contraction. ↑ Preload = ↑ Stroke Volume (to a point).</p>
-                                    <p><strong>Afterload:</strong> The resistance the left ventricle must overcome to eject blood. Approximated by systemic vascular resistance (SVR). ↑ Afterload = ↓ Stroke Volume.</p>
-                                    <p><strong>Contractility (Inotropy):</strong> The intrinsic strength of cardiac muscle contraction, independent of preload/afterload. Enhanced by sympathetic stimulation and positive inotropes (dobutamine, digoxin).</p>
-                                    <p><strong>The PV Loop:</strong> Shows the relationship between LV pressure and volume throughout one cardiac cycle. Width = stroke volume. Height = pressure generated. Area ≈ stroke work.</p>
+                                <div id="pathology-banner" class="info-card" style="display:block;">
+                                    <div id="pathology-banner-content">
+                                        <h3>Key Concepts: Normal Cardiac Physiology</h3>
+                                        <p><strong>Preload (EDV):</strong> Ventricular filling prior to contraction; increased by venous return and atrial kick.</p>
+                                        <p><strong>Afterload:</strong> Resistance the LV must overcome (approx. SVR); elevated levels reduce stroke volume.</p>
+                                        <p><strong>Contractility:</strong> Intrinsic inotropic state independent of preload/afterload; enhanced by sympathetic tone and positive inotropes.</p>
+                                        <p><strong>PV loop:</strong> Width = stroke volume, height = generated pressure, area ≈ stroke work.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1870,6 +2741,10 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div id="qbank-content" class="tab-content">
+            <div id="qbank-root"></div>
         </div>
 
         <!-- SHOCK SIMULATOR TAB -->
@@ -2519,6 +3394,354 @@
             inotropySlider: 'inotropyLabel'
         };
 
+        const QBANK_PLACEHOLDER = [];
+        const QBANK_SOURCE_OPTIONS = {
+            unused: { label: 'Unused', count: 420 },
+            incorrect: { label: 'Incorrect', count: 210 },
+            marked: { label: 'Marked', count: 150 },
+            omitted: { label: 'Omitted', count: 95 },
+            correct: { label: 'Correct', count: 310 }
+        };
+
+        const QBANK_TOPIC_TEMPLATE = {
+            'ECG Interpretation': 120,
+            'Arrhythmias': 180,
+            'Ischemia & MI': 140,
+            'Heart Failure': 110,
+            'Valvular Disease': 95,
+            'Shock & Hemodynamics': 80,
+            'Congenital Heart Disease': 60,
+            'Pharm (Cardio)': 90,
+            'Cardiac Anatomy': 70,
+            'Cardio Physiology': 130
+        };
+
+        const QBANK_SYSTEMS_TEMPLATE = [
+            {
+                name: 'Cardiology',
+                count: 965,
+                open: true,
+                children: [
+                    { name: 'Arrhythmias', count: 180 },
+                    { name: 'Ischemia/ACS', count: 140 },
+                    { name: 'Valves', count: 95 },
+                    { name: 'Heart Failure', count: 110 },
+                    { name: 'Hemodynamics', count: 80 },
+                    { name: 'Congenital', count: 60 },
+                    { name: 'Pericardial', count: 40 },
+                    { name: 'Endocarditis', count: 30 }
+                ]
+            }
+        ];
+
+        const qbankRoot = document.getElementById('qbank-root');
+
+        function createQbankTopics() {
+            const topics = {};
+            Object.entries(QBANK_TOPIC_TEMPLATE).forEach(([name, count]) => {
+                topics[name] = { selected: false, count };
+            });
+            return topics;
+        }
+
+        function createQbankSystems() {
+            return QBANK_SYSTEMS_TEMPLATE.map(node => ({
+                name: node.name,
+                count: node.count,
+                open: node.open,
+                children: node.children.map(child => ({ ...child }))
+            }));
+        }
+
+        function createInitialQbankState() {
+            return {
+                mode: 'tutor',
+                timing: 'untimed',
+                sources: {
+                    unused: true,
+                    incorrect: false,
+                    marked: false,
+                    omitted: false,
+                    correct: false
+                },
+                topics: createQbankTopics(),
+                systemsTree: createQbankSystems(),
+                questionPreset: 20,
+                customCount: 20,
+                sessionActive: false
+            };
+        }
+
+        let qbankState = createInitialQbankState();
+
+        function getSelectedQuestionCount() {
+            return qbankState.questionPreset === 'custom'
+                ? Math.max(5, Math.min(120, qbankState.customCount || 10))
+                : qbankState.questionPreset;
+        }
+
+        function getSelectedSources() {
+            return Object.entries(qbankState.sources)
+                .filter(([, val]) => val)
+                .map(([key]) => QBANK_SOURCE_OPTIONS[key].label);
+        }
+
+        function getSelectedTopics() {
+            return Object.entries(qbankState.topics)
+                .filter(([, val]) => val.selected)
+                .map(([key]) => key);
+        }
+
+        function renderQbank() {
+            if (!qbankRoot) return;
+            qbankRoot.innerHTML = qbankState.sessionActive
+                ? renderQbankSessionView()
+                : renderQbankBuilderView();
+            if (qbankState.sessionActive) {
+                attachQbankSessionEvents();
+            } else {
+                attachQbankBuilderEvents();
+            }
+        }
+
+        function renderQbankBuilderView() {
+            const modeButtons = ['tutor', 'test']
+                .map(mode => `<button class="qbank-seg-btn ${qbankState.mode === mode ? 'active' : ''}" data-qbank-mode="${mode}">${mode === 'tutor' ? 'Tutor Mode' : 'Test Mode'}</button>`)
+                .join('');
+            const timingButtons = ['untimed', 'timed']
+                .map(mode => `<button class="qbank-seg-btn ${qbankState.timing === mode ? 'active' : ''}" data-qbank-timing="${mode}">${mode === 'untimed' ? 'Untimed' : 'Timed'}</button>`)
+                .join('');
+            const sourceList = Object.entries(QBANK_SOURCE_OPTIONS)
+                .map(([key, meta]) => `
+                    <label class="qbank-source">
+                        <input type="checkbox" data-qbank-source="${key}" ${qbankState.sources[key] ? 'checked' : ''}>
+                        <span>${meta.label}</span>
+                        <span class="qbank-count-badge">${meta.count}</span>
+                    </label>
+                `).join('');
+            const topicList = Object.entries(qbankState.topics)
+                .map(([key, meta]) => `
+                    <label class="qbank-topic">
+                        <input type="checkbox" data-qbank-topic="${key}" ${meta.selected ? 'checked' : ''}>
+                        <span>${key}</span>
+                        <span class="qbank-count-badge">${meta.count}</span>
+                    </label>
+                `).join('');
+            const systems = qbankState.systemsTree.map((node, idx) => `
+                <div class="qbank-system">
+                    <button class="qbank-system-toggle" data-system-index="${idx}">
+                        <span>${node.name}</span>
+                        <span class="qbank-count-badge">${node.count}</span>
+                        <span>${node.open ? '−' : '+'}</span>
+                    </button>
+                    ${node.open ? `<div class="qbank-system-children">
+                        ${node.children.map(child => `
+                            <div class="qbank-system-child">
+                                <span>${child.name}</span>
+                                <span class="qbank-count-badge">${child.count}</span>
+                            </div>
+                        `).join('')}
+                    </div>` : ''}
+                </div>
+            `).join('');
+            const countPresets = [10, 20, 40, 'custom'];
+            const countButtons = countPresets.map(preset => `
+                <button class="qbank-count-btn ${qbankState.questionPreset === preset ? 'active' : ''}" data-qbank-count="${preset}">
+                    ${preset === 'custom' ? 'Custom' : preset}
+                </button>
+            `).join('');
+            const customInput = qbankState.questionPreset === 'custom'
+                ? `<input type="number" min="5" max="120" id="qbank-custom-count" class="qbank-custom-input" value="${qbankState.customCount}">`
+                : '';
+            const selectedSources = getSelectedSources();
+            const selectedTopics = getSelectedTopics();
+            const questionCount = getSelectedQuestionCount();
+            const timeEstimate = qbankState.timing === 'timed'
+                ? `~${Math.max(10, Math.round(questionCount * 1.2))} min`
+                : 'Untimed';
+            return `
+                <div class="qbank-grid">
+                    <div class="qbank-panel">
+                        <div>
+                            <div class="qbank-section-title">Question Mode</div>
+                            <div class="qbank-segment">${modeButtons}</div>
+                        </div>
+                        <div>
+                            <div class="qbank-section-title">Timing</div>
+                            <div class="qbank-segment">${timingButtons}</div>
+                        </div>
+                        <div>
+                            <div class="qbank-section-title">Question Source</div>
+                            <div class="qbank-source-list">${sourceList}</div>
+                        </div>
+                        <div>
+                            <div class="qbank-section-title">Topics</div>
+                            <div class="qbank-topic-list">${topicList}</div>
+                        </div>
+                        <div>
+                            <div class="qbank-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span>Systems</span>
+                                <button type="button" class="btn btn-ghost btn-compact" id="qbank-expand-all">Expand All</button>
+                            </div>
+                            ${systems}
+                        </div>
+                    </div>
+                    <div class="qbank-panel">
+                        <div class="qbank-summary-card">
+                            <div>
+                                <div class="qbank-section-title">Session Summary</div>
+                                <div>
+                                    <span class="qbank-chip">${qbankState.mode === 'tutor' ? 'Tutor Mode' : 'Test Mode'}</span>
+                                    <span class="qbank-chip">${qbankState.timing === 'timed' ? 'Timed' : 'Untimed'}</span>
+                                    ${selectedSources.length ? selectedSources.map(src => `<span class="qbank-chip">${src}</span>`).join('') : '<span class="qbank-chip">No source selected</span>'}
+                                </div>
+                                <div style="margin-top:6px;">
+                                    ${selectedTopics.length ? selectedTopics.map(topic => `<span class="qbank-chip">${topic}</span>`).join('') : '<span class="qbank-chip">No topics selected</span>'}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="qbank-section-title">Question Count</div>
+                                <div class="qbank-count-options">
+                                    ${countButtons}
+                                    ${customInput}
+                                </div>
+                                <div class="muted-text" style="margin-top:6px;">Estimated time: ${timeEstimate}</div>
+                            </div>
+                            <div class="qbank-session-actions">
+                                <button id="qbank-start-btn" class="btn btn-primary">Start Session (${questionCount} Qs)</button>
+                                <button id="qbank-reset-btn" class="btn btn-ghost">Reset Filters</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQbankSessionView() {
+            const summary = [
+                qbankState.mode === 'tutor' ? 'Tutor Mode' : 'Test Mode',
+                qbankState.timing === 'timed' ? 'Timed' : 'Untimed',
+                `${getSelectedQuestionCount()} questions`
+            ];
+            const sources = getSelectedSources();
+            const topics = getSelectedTopics();
+            return `
+                <div class="qbank-session-card">
+                    <div>
+                        <h3 style="margin-top:0;">Session Placeholder</h3>
+                        <p>This is where questions will appear once the QBank engine is connected.</p>
+                    </div>
+                    <div>
+                        <div class="qbank-section-title">Selected Settings</div>
+                        <div>
+                            ${summary.map(item => `<span class="qbank-chip">${item}</span>`).join('')}
+                        </div>
+                        <div style="margin-top:8px;">
+                            <strong>Sources:</strong> ${sources.length ? sources.join(', ') : 'None'}
+                        </div>
+                        <div style="margin-top:4px;">
+                            <strong>Topics:</strong> ${topics.length ? topics.join(', ') : 'None'}
+                        </div>
+                    </div>
+                    <div class="qbank-session-actions">
+                        <button class="btn btn-primary" id="qbank-begin-btn" disabled>Begin (Coming Soon)</button>
+                        <button class="btn btn-ghost" id="qbank-edit-btn">Edit Settings</button>
+                        <button class="btn btn-danger" id="qbank-end-btn">End Session</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function attachQbankBuilderEvents() {
+            qbankRoot.querySelectorAll('[data-qbank-mode]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    qbankState.mode = btn.dataset.qbankMode;
+                    renderQbank();
+                });
+            });
+            qbankRoot.querySelectorAll('[data-qbank-timing]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    qbankState.timing = btn.dataset.qbankTiming;
+                    renderQbank();
+                });
+            });
+            qbankRoot.querySelectorAll('[data-qbank-source]').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const key = e.target.dataset.qbankSource;
+                    qbankState.sources[key] = e.target.checked;
+                    renderQbank();
+                });
+            });
+            qbankRoot.querySelectorAll('[data-qbank-topic]').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const key = e.target.dataset.qbankTopic;
+                    qbankState.topics[key].selected = e.target.checked;
+                    renderQbank();
+                });
+            });
+            qbankRoot.querySelectorAll('[data-system-index]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = Number(btn.dataset.systemIndex);
+                    qbankState.systemsTree[idx].open = !qbankState.systemsTree[idx].open;
+                    renderQbank();
+                });
+            });
+            const expandAll = qbankRoot.querySelector('#qbank-expand-all');
+            if (expandAll) {
+                expandAll.addEventListener('click', () => {
+                    qbankState.systemsTree.forEach(node => node.open = true);
+                    renderQbank();
+                });
+            }
+            qbankRoot.querySelectorAll('[data-qbank-count]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const val = btn.dataset.qbankCount;
+                    qbankState.questionPreset = val === 'custom' ? 'custom' : Number(val);
+                    renderQbank();
+                });
+            });
+            const customInput = qbankRoot.querySelector('#qbank-custom-count');
+            if (customInput) {
+                customInput.addEventListener('input', (e) => {
+                    qbankState.customCount = Number(e.target.value || 0);
+                });
+                customInput.addEventListener('change', () => renderQbank());
+            }
+            const startBtn = qbankRoot.querySelector('#qbank-start-btn');
+            if (startBtn) {
+                startBtn.addEventListener('click', () => {
+                    qbankState.sessionActive = true;
+                    renderQbank();
+                });
+            }
+            const resetBtn = qbankRoot.querySelector('#qbank-reset-btn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    qbankState = createInitialQbankState();
+                    renderQbank();
+                });
+            }
+        }
+
+        function attachQbankSessionEvents() {
+            const endBtn = qbankRoot.querySelector('#qbank-end-btn');
+            if (endBtn) {
+                endBtn.addEventListener('click', () => {
+                    qbankState = createInitialQbankState();
+                    renderQbank();
+                });
+            }
+            const editBtn = qbankRoot.querySelector('#qbank-edit-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    qbankState.sessionActive = false;
+                    renderQbank();
+                });
+            }
+        }
+
+        renderQbank();
+
         let pvQuizChart;
         let answerOverlayVisible = false;
         
@@ -2528,7 +3751,8 @@
             pathologies: { btn: 'pathologies-tab-btn', panel: 'pathologies-content' },
             shock: { btn: 'shock-tab-btn', panel: 'shock-content' },
             quiz: { btn: 'quiz-tab-btn', panel: 'quiz-content' },
-            conduction: { btn: 'conduction-tab-btn', panel: 'conduction-content' }
+            conduction: { btn: 'conduction-tab-btn', panel: 'conduction-content' },
+            qbank: { btn: 'qbank-tab-btn', panel: 'qbank-content' }
         };
 
         let ecgInitialized = false;
@@ -5967,4 +7191,72 @@ function resetASQuestion(qName) {
             </div>
         </div>
     </div>
-</body></html>
+</body>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'theme';
+  const root = document.documentElement;
+  const btn = document.getElementById('themeToggle');
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+  const modes = ['system', 'light', 'dark'];
+
+  function sanitize(value) {
+    return modes.includes(value) ? value : 'system';
+  }
+
+  function applyTheme(value) {
+    if (value === 'system') {
+      delete root.dataset.theme;
+    } else {
+      root.dataset.theme = value;
+    }
+  }
+
+  function labelFor(value) {
+    return 'Theme: ' + value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  function updateLabel(value) {
+    if (!btn) return;
+    if (value === 'system') {
+      btn.textContent = labelFor(value);
+    } else {
+      btn.textContent = labelFor(value);
+    }
+  }
+
+  function getCurrent() {
+    return sanitize(localStorage.getItem(STORAGE_KEY) || 'system');
+  }
+
+  function setTheme(value) {
+    localStorage.setItem(STORAGE_KEY, value);
+    applyTheme(value);
+    updateLabel(value);
+  }
+
+  function cycleTheme() {
+    const current = getCurrent();
+    const idx = modes.indexOf(current);
+    const next = modes[(idx + 1) % modes.length];
+    setTheme(next);
+  }
+
+  const initial = getCurrent();
+  applyTheme(initial);
+  updateLabel(initial);
+
+  if (btn) {
+    btn.addEventListener('click', cycleTheme);
+  }
+
+  media.addEventListener('change', () => {
+    if (getCurrent() === 'system') {
+      applyTheme('system');
+      updateLabel('system');
+    }
+  });
+})();
+</script>
+</html>
