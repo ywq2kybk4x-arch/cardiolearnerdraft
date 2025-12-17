@@ -158,14 +158,15 @@ loader.load(
     // -----------------------------
     // RESIZE HANDLING
     // -----------------------------
-    window.addEventListener('resize', () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-      labelRenderer.setSize(w, h);
-    });
-  </script>
+  window.addEventListener('resize', () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    labelRenderer.setSize(w, h);
+  });
+</script>
+<script src="./assets/ai-tutor-tab.js"></script>
 </body>
 </html>

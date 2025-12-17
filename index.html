@@ -274,6 +274,26 @@
         .tab-content { display: none; }
         .tab-content.active { display: block !important; }
 
+        .ai-tab-panel {
+            background: var(--surface, #fff);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 18px;
+            padding: 24px;
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .ai-tab-panel iframe {
+            flex: 1;
+            border: none;
+            border-radius: 12px;
+            width: 100%;
+            min-height: 60vh;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+        }
+
         .input, .select, .textarea, input[type="number"], select {
             width: 100%;
             border-radius: var(--radius-md);
@@ -2013,6 +2033,7 @@
             <button class="tab-button" id="quiz-tab-btn">PV Loop Quiz</button>
             <button class="tab-button" id="conduction-tab-btn">Dyanamic EKG Viewer</button>
             <button class="tab-button" id="qbank-tab-btn">QBank</button>
+            <button class="tab-button" id="ai-tab-btn">AI Tutor</button>
         </div>
         
         <div id="simulator-content" class="tab-content active">
@@ -2876,6 +2897,20 @@
         <div id="qbank-content" class="tab-content">
             <div id="qbank-root"></div>
             <div id="qbank-alert" class="qbank-alert"></div>
+        </div>
+
+        <div id="ai-content" class="tab-content">
+            <div class="ai-tab-panel">
+                <div>
+                    <h2 style="margin-bottom:8px;">AI Tutor Workspace</h2>
+                    <p class="muted-text" style="margin:0;">Chat with the embedded Playlab tutor, ask cardiology questions, or get walkthroughs without leaving the page.</p>
+                </div>
+                <iframe
+                    src="https://www.playlab.ai/embedded/cmja4zdbb13e0oh0ufrywx9hw"
+                    title="AI Tutor"
+                    allow="clipboard-write">
+                </iframe>
+            </div>
         </div>
 
         <!-- SHOCK SIMULATOR TAB -->
@@ -4946,7 +4981,8 @@ const coronaryMap = {
             shock: { btn: 'shock-tab-btn', panel: 'shock-content' },
             quiz: { btn: 'quiz-tab-btn', panel: 'quiz-content' },
             conduction: { btn: 'conduction-tab-btn', panel: 'conduction-content' },
-            qbank: { btn: 'qbank-tab-btn', panel: 'qbank-content' }
+            qbank: { btn: 'qbank-tab-btn', panel: 'qbank-content' },
+            ai: { btn: 'ai-tab-btn', panel: 'ai-content' }
         };
 
         function activateTab(key) {
@@ -8260,4 +8296,5 @@ function resetASQuestion(qName) {
   });
 })();
 </script>
+<script src="./assets/ai-tutor-tab.js"></script>
 </html>
