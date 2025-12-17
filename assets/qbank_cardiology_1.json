@@ -1,0 +1,979 @@
+[
+  {
+    "id": 1,
+    "category": "Mitral Stenosis",
+    "stem": "A 45-year-old woman with a history of rheumatic fever presents with exertional dyspnea. She has an opening snap followed by a diastolic rumbling murmur at the apex. Which pressure is most likely increased?",
+    "choices": {
+      "A": "Left ventricular end-diastolic pressure",
+      "B": "Left atrial pressure",
+      "C": "Pulmonary capillary wedge pressure",
+      "D": "Right atrial pressure"
+    },
+    "answer": "B",
+    "explanation": "Mitral stenosis obstructs flow from LA to LV \u2192 blood backs up into LA \u2192 increased LA pressure.",
+    "tags": [
+      "valvular",
+      "mitral stenosis"
+    ]
+  },
+  {
+    "id": 2,
+    "category": "Mitral Stenosis",
+    "stem": "Mitral stenosis primarily impairs which phase of the cardiac cycle?",
+    "choices": {
+      "A": "Isovolumetric contraction",
+      "B": "Isovolumetric relaxation",
+      "C": "Ventricular systolic ejection",
+      "D": "Ventricular diastolic filling"
+    },
+    "answer": "D",
+    "explanation": "The narrowed mitral valve restricts LV filling during diastole.",
+    "tags": [
+      "valvular",
+      "diastole"
+    ]
+  },
+  {
+    "id": 3,
+    "category": "Mitral Stenosis",
+    "stem": "A patient with mitral stenosis develops shortness of breath. Which mechanism best explains this symptom?",
+    "choices": {
+      "A": "Increased preload to the LV",
+      "B": "Backflow from LV to LA",
+      "C": "Elevated LA pressure transmitted to pulmonary circulation",
+      "D": "Increased cardiac output"
+    },
+    "answer": "C",
+    "explanation": "Elevated LA pressure is transmitted to pulmonary veins \u2192 congestion \u2192 dyspnea.",
+    "tags": [
+      "pulmonary edema",
+      "mitral stenosis"
+    ]
+  },
+  {
+    "id": 4,
+    "category": "Mitral Stenosis",
+    "stem": "Which best describes LV end-diastolic volume in isolated mitral stenosis?",
+    "choices": {
+      "A": "Increased",
+      "B": "Normal to decreased",
+      "C": "Unchanged",
+      "D": "Markedly increased"
+    },
+    "answer": "B",
+    "explanation": "Less blood crosses the stenotic valve \u2192 normal or decreased LVEDV.",
+    "tags": [
+      "pv loop",
+      "mitral stenosis"
+    ]
+  },
+  {
+    "id": 5,
+    "category": "Mitral Stenosis",
+    "stem": "Mitral stenosis is most commonly caused worldwide by which condition?",
+    "choices": {
+      "A": "Bacterial endocarditis",
+      "B": "Congenital malformation",
+      "C": "Rheumatic heart disease",
+      "D": "Age-related calcification"
+    },
+    "answer": "C",
+    "explanation": "Rheumatic heart disease remains the most common global cause.",
+    "tags": [
+      "rheumatic"
+    ]
+  },
+  {
+    "id": 6,
+    "category": "Mitral Stenosis",
+    "stem": "Which change is expected in long-standing mitral stenosis?",
+    "choices": {
+      "A": "LV hypertrophy",
+      "B": "Concentric LV remodeling",
+      "C": "Left atrial enlargement",
+      "D": "Right ventricular atrophy"
+    },
+    "answer": "C",
+    "explanation": "Chronic pressure overload leads to LA enlargement.",
+    "tags": [
+      "atrial enlargement"
+    ]
+  },
+  {
+    "id": 7,
+    "category": "Mitral Stenosis",
+    "stem": "Why does pregnancy worsen symptoms in mitral stenosis?",
+    "choices": {
+      "A": "Reduced blood volume",
+      "B": "Increased LA compliance",
+      "C": "Increased HR reduces diastolic filling time",
+      "D": "Decreased CO"
+    },
+    "answer": "C",
+    "explanation": "Higher HR shortens diastole \u2192 less time for blood to cross stenotic valve.",
+    "tags": [
+      "pregnancy",
+      "mitral stenosis"
+    ]
+  },
+  {
+    "id": 8,
+    "category": "Mitral Stenosis",
+    "stem": "Mitral stenosis predisposes to atrial fibrillation primarily due to:",
+    "choices": {
+      "A": "SA node damage",
+      "B": "AV node fibrosis",
+      "C": "LA stretching and dilation",
+      "D": "Increased sympathetic tone"
+    },
+    "answer": "C",
+    "explanation": "Dilated LA predisposes to AF.",
+    "tags": [
+      "atrial fibrillation"
+    ]
+  },
+  {
+    "id": 9,
+    "category": "Mitral Stenosis",
+    "stem": "Which maneuver increases the intensity of the diastolic murmur in mitral stenosis?",
+    "choices": {
+      "A": "Tachycardia",
+      "B": "Deep inspiration",
+      "C": "Standing",
+      "D": "Valsalva"
+    },
+    "answer": "A",
+    "explanation": "Tachycardia increases turbulent flow across the stenotic valve.",
+    "tags": [
+      "murmurs"
+    ]
+  },
+  {
+    "id": 10,
+    "category": "Mitral Stenosis",
+    "stem": "Severity of mitral stenosis correlates best with which exam finding?",
+    "choices": {
+      "A": "Louder S1",
+      "B": "Duration of diastolic murmur",
+      "C": "Timing of opening snap",
+      "D": "Holosystolic murmur"
+    },
+    "answer": "C",
+    "explanation": "Earlier opening snap (closer to S2) indicates more severe stenosis.",
+    "tags": [
+      "heart sounds"
+    ]
+  },
+  {
+    "id": 11,
+    "category": "Mitral Regurgitation",
+    "stem": "A patient with chronic MR has increased LV EDV. Which PV loop change explains this?",
+    "choices": {
+      "A": "Increased afterload",
+      "B": "Loss of isovolumetric contraction",
+      "C": "Increased aortic pressure",
+      "D": "Increased ESV",
+      "E": "Earlier aortic valve opening"
+    },
+    "answer": "B",
+    "explanation": "Blood leaks into LA at onset of systole \u2192 no isovolumetric contraction.",
+    "tags": [
+      "pv loop",
+      "mitral regurgitation"
+    ]
+  },
+  {
+    "id": 12,
+    "category": "Mitral Regurgitation",
+    "stem": "In acute MR, which PV loop change occurs?",
+    "choices": {
+      "A": "EDV decreases, ESV increases",
+      "B": "Loop shifts left with decreased ESV",
+      "C": "Rightward shift with increased afterload",
+      "D": "Steeper relaxation",
+      "E": "Higher systolic pressure"
+    },
+    "answer": "B",
+    "explanation": "Low afterload allows greater LV emptying \u2192 decreased ESV.",
+    "tags": [
+      "acute MR",
+      "pv loop"
+    ]
+  },
+  {
+    "id": 13,
+    "category": "Mitral Regurgitation",
+    "stem": "A widened PV loop in MR represents:",
+    "choices": {
+      "A": "Increased afterload",
+      "B": "Increased stroke volume",
+      "C": "Increased ESV",
+      "D": "Decreased preload",
+      "E": "Increased diastolic pressure"
+    },
+    "answer": "B",
+    "explanation": "Total stroke volume (forward + regurgitant) increases.",
+    "tags": [
+      "stroke volume"
+    ]
+  },
+  {
+    "id": 14,
+    "category": "Mitral Regurgitation",
+    "stem": "Why is isovolumetric contraction absent in MR?",
+    "choices": {
+      "A": "Early aortic ejection",
+      "B": "Backward ejection into LA at systole onset",
+      "C": "LA pressure collapse",
+      "D": "Late mitral closure",
+      "E": "Early aortic opening"
+    },
+    "answer": "B",
+    "explanation": "Blood regurgitates into LA immediately when systole begins.",
+    "tags": [
+      "pv loop"
+    ]
+  },
+  {
+    "id": 15,
+    "category": "Mitral Regurgitation",
+    "stem": "In chronic MR, increased EDV is mainly due to:",
+    "choices": {
+      "A": "Increased contractility",
+      "B": "Decreased afterload",
+      "C": "Increased preload from LA volume overload",
+      "D": "Decreased compliance",
+      "E": "Increased aortic pressure"
+    },
+    "answer": "C",
+    "explanation": "Regurgitant volume returns to LV during diastole \u2192 preload rises.",
+    "tags": [
+      "chronic MR"
+    ]
+  },
+  {
+    "id": 16,
+    "category": "Mitral Regurgitation",
+    "stem": "MR patients often have decreased ESV due to:",
+    "choices": {
+      "A": "Decreased compliance",
+      "B": "Decreased contractility",
+      "C": "Afterload reduction",
+      "D": "Increased afterload",
+      "E": "High aortic pressure"
+    },
+    "answer": "C",
+    "explanation": "LV ejects into low-pressure LA \u2192 reduced afterload.",
+    "tags": [
+      "afterload"
+    ]
+  },
+  {
+    "id": 17,
+    "category": "Mitral Regurgitation",
+    "stem": "Effect of MR on afterload is best described as:",
+    "choices": {
+      "A": "Increased",
+      "B": "Decreased",
+      "C": "Unchanged",
+      "D": "Increased in acute only",
+      "E": "Variable"
+    },
+    "answer": "B",
+    "explanation": "Regurgitant pathway lowers effective resistance.",
+    "tags": [
+      "afterload"
+    ]
+  },
+  {
+    "id": 18,
+    "category": "Mitral Regurgitation",
+    "stem": "Which PV loop feature explains long asymptomatic phase of MR?",
+    "choices": {
+      "A": "Increased afterload",
+      "B": "Decreased contractility",
+      "C": "Decreased ESV",
+      "D": "Decreased preload",
+      "E": "Increased LA pressure"
+    },
+    "answer": "C",
+    "explanation": "Low afterload maintains forward CO early.",
+    "tags": [
+      "compensation"
+    ]
+  },
+  {
+    "id": 19,
+    "category": "Mitral Regurgitation",
+    "stem": "When MR becomes severe, the PV loop:",
+    "choices": {
+      "A": "Narrows",
+      "B": "Widens from forward SV",
+      "C": "Shifts right",
+      "D": "Widens due to total SV",
+      "E": "Shifts left"
+    },
+    "answer": "D",
+    "explanation": "Total SV (forward + regurgitant) increases.",
+    "tags": [
+      "severe MR"
+    ]
+  },
+  {
+    "id": 20,
+    "category": "Mitral Regurgitation",
+    "stem": "Which PV loop phase is most abnormal in MR?",
+    "choices": {
+      "A": "Mitral closure",
+      "B": "Aortic opening",
+      "C": "Isovolumetric contraction",
+      "D": "Aortic closure",
+      "E": "Relaxation"
+    },
+    "answer": "C",
+    "explanation": "Isovolumetric contraction disappears.",
+    "tags": [
+      "pv loop"
+    ]
+  },
+  {
+    "id": 21,
+    "category": "HFrEF",
+    "stem": "Which physiological change is seen in chronic HFrEF?",
+    "choices": {
+      "A": "Increased ESV",
+      "B": "Increased contractility",
+      "C": "Decreased preload",
+      "D": "Increased SV"
+    },
+    "answer": "A",
+    "explanation": "Systolic dysfunction prevents full ejection.",
+    "tags": [
+      "HFrEF"
+    ]
+  },
+  {
+    "id": 22,
+    "category": "HFrEF",
+    "stem": "Which compensation initially maintains CO in HFrEF?",
+    "choices": {
+      "A": "Decreased sympathetic tone",
+      "B": "Increased parasympathetic tone",
+      "C": "Increased renin release",
+      "D": "Decreased venous return"
+    },
+    "answer": "C",
+    "explanation": "RAAS activation increases preload.",
+    "tags": [
+      "RAAS"
+    ]
+  },
+  {
+    "id": 23,
+    "category": "HFrEF",
+    "stem": "Leftward shift of ESPVR indicates:",
+    "choices": {
+      "A": "Increased contractility",
+      "B": "Decreased contractility",
+      "C": "Increased afterload",
+      "D": "Increased SV"
+    },
+    "answer": "B",
+    "explanation": "Flattened ESPVR = reduced inotropy.",
+    "tags": [
+      "ESPVR"
+    ]
+  },
+  {
+    "id": 24,
+    "category": "HFrEF",
+    "stem": "Main reason pulmonary edema develops in left-sided HFrEF?",
+    "choices": {
+      "A": "Increased RV contractility",
+      "B": "Increased LAP from LVEDP",
+      "C": "Decreased blood volume",
+      "D": "High oncotic pressure"
+    },
+    "answer": "B",
+    "explanation": "LV failure \u2192 back pressure \u2192 pulmonary congestion.",
+    "tags": [
+      "pulmonary edema"
+    ]
+  },
+  {
+    "id": 25,
+    "category": "HFrEF",
+    "stem": "Afterload is often increased in HFrEF due to:",
+    "choices": {
+      "A": "Increased NO",
+      "B": "RAAS vasoconstriction",
+      "C": "Low sympathetic tone",
+      "D": "Low \u03b11 activity"
+    },
+    "answer": "B",
+    "explanation": "Angiotensin II increases SVR.",
+    "tags": [
+      "afterload"
+    ]
+  },
+  {
+    "id": 26,
+    "category": "HFrEF",
+    "stem": "Characteristic PV loop change in HFrEF:",
+    "choices": {
+      "A": "Increased ESPVR slope",
+      "B": "Rightward EDV shift",
+      "C": "Higher systolic pressure",
+      "D": "Decreased EDV"
+    },
+    "answer": "B",
+    "explanation": "Fluid retention increases preload.",
+    "tags": [
+      "pv loop"
+    ]
+  },
+  {
+    "id": 27,
+    "category": "HFrEF",
+    "stem": "Which renal mechanism worsens HFrEF?",
+    "choices": {
+      "A": "Low aldosterone",
+      "B": "Natriuresis",
+      "C": "RAAS activation",
+      "D": "High RBF"
+    },
+    "answer": "C",
+    "explanation": "Fluid retention worsens congestion.",
+    "tags": [
+      "renal"
+    ]
+  },
+  {
+    "id": 28,
+    "category": "HFrEF",
+    "stem": "Why EF drops despite high preload in HFrEF?",
+    "choices": {
+      "A": "Flattened Frank-Starling curve",
+      "B": "Low venous return",
+      "C": "Low afterload",
+      "D": "High compliance"
+    },
+    "answer": "A",
+    "explanation": "Poor contractility limits SV response.",
+    "tags": [
+      "EF"
+    ]
+  },
+  {
+    "id": 29,
+    "category": "HFrEF",
+    "stem": "Chronic sympathetic activation causes:",
+    "choices": {
+      "A": "Lower O2 demand",
+      "B": "\u03b21 downregulation",
+      "C": "Increased CO",
+      "D": "Lower renin"
+    },
+    "answer": "B",
+    "explanation": "Chronic stimulation desensitizes receptors.",
+    "tags": [
+      "sympathetic"
+    ]
+  },
+  {
+    "id": 30,
+    "category": "HFrEF",
+    "stem": "ACE inhibitors improve survival in HFrEF because they:",
+    "choices": {
+      "A": "Increase afterload",
+      "B": "Reduce preload and afterload",
+      "C": "Decrease K+",
+      "D": "Increase sympathetic tone"
+    },
+    "answer": "B",
+    "explanation": "Reduced angiotensin II lowers preload & afterload.",
+    "tags": [
+      "therapy"
+    ]
+  },
+  {
+    "id": 31,
+    "category": "HFpEF",
+    "stem": "Normal EF with thickened LV walls and dyspnea is due to:",
+    "choices": {
+      "A": "Increased compliance",
+      "B": "Decreased LVEDP",
+      "C": "Impaired relaxation",
+      "D": "Increased filling time"
+    },
+    "answer": "C",
+    "explanation": "Stiff ventricle impairs diastolic filling.",
+    "tags": [
+      "HFpEF"
+    ]
+  },
+  {
+    "id": 32,
+    "category": "HFpEF",
+    "stem": "Characteristic PV loop change in HFpEF:",
+    "choices": {
+      "A": "Rightward ESPVR",
+      "B": "Upward/leftward EDPVR",
+      "C": "Increased SV",
+      "D": "Decreased LVEDP"
+    },
+    "answer": "B",
+    "explanation": "Stiff LV requires higher filling pressure.",
+    "tags": [
+      "pv loop"
+    ]
+  },
+  {
+    "id": 33,
+    "category": "HFpEF",
+    "stem": "HFpEF most commonly results from:",
+    "choices": {
+      "A": "Chronic AR",
+      "B": "Hypertension with LVH",
+      "C": "Dilated cardiomyopathy",
+      "D": "Myocarditis"
+    },
+    "answer": "B",
+    "explanation": "Concentric hypertrophy causes stiffness.",
+    "tags": [
+      "hypertension"
+    ]
+  },
+  {
+    "id": 34,
+    "category": "HFpEF",
+    "stem": "Which confirms preserved systolic function?",
+    "choices": {
+      "A": "Low EF",
+      "B": "Normal EF",
+      "C": "Low SV",
+      "D": "High ESV"
+    },
+    "answer": "B",
+    "explanation": "EF remains normal.",
+    "tags": [
+      "EF"
+    ]
+  },
+  {
+    "id": 35,
+    "category": "HFpEF",
+    "stem": "Characteristic hemodynamic finding in HFpEF:",
+    "choices": {
+      "A": "Low LVEDP",
+      "B": "High LVEDP",
+      "C": "Large LV volume",
+      "D": "Thin LV walls"
+    },
+    "answer": "B",
+    "explanation": "Stiff ventricle \u2192 high filling pressure.",
+    "tags": [
+      "hemodynamics"
+    ]
+  },
+  {
+    "id": 36,
+    "category": "HFpEF",
+    "stem": "HFpEF PV loop typically shows:",
+    "choices": {
+      "A": "Wide loop",
+      "B": "Narrow loop",
+      "C": "Downward EDPVR",
+      "D": "Low afterload"
+    },
+    "answer": "B",
+    "explanation": "Reduced EDV and SV.",
+    "tags": [
+      "pv loop"
+    ]
+  },
+  {
+    "id": 37,
+    "category": "HFpEF",
+    "stem": "Early diastolic change in HFpEF:",
+    "choices": {
+      "A": "Increased early filling",
+      "B": "Decreased passive filling",
+      "C": "Rapid relaxation",
+      "D": "Improved congestion"
+    },
+    "answer": "B",
+    "explanation": "Impaired relaxation reduces early filling.",
+    "tags": [
+      "diastole"
+    ]
+  },
+  {
+    "id": 38,
+    "category": "HFpEF",
+    "stem": "Most consistent exam finding in HFpEF:",
+    "choices": {
+      "A": "Bounding pulses",
+      "B": "S3",
+      "C": "S4",
+      "D": "Wide pulse pressure"
+    },
+    "answer": "C",
+    "explanation": "Atrial kick against stiff ventricle.",
+    "tags": [
+      "heart sounds"
+    ]
+  },
+  {
+    "id": 39,
+    "category": "HFpEF",
+    "stem": "Exercise worsens HFpEF because:",
+    "choices": {
+      "A": "Compliance increases",
+      "B": "LVEDP falls",
+      "C": "LV cannot accommodate increased preload",
+      "D": "EF worsens"
+    },
+    "answer": "C",
+    "explanation": "Stiff LV cannot accept increased venous return.",
+    "tags": [
+      "exercise"
+    ]
+  },
+  {
+    "id": 40,
+    "category": "HFpEF",
+    "stem": "Primary therapy target in HFpEF:",
+    "choices": {
+      "A": "Inotropes",
+      "B": "BP control",
+      "C": "Fluid boluses",
+      "D": "Volume expansion"
+    },
+    "answer": "B",
+    "explanation": "Treat hypertension to reduce stiffness.",
+    "tags": [
+      "therapy"
+    ]
+  },
+  {
+    "id": 41,
+    "category": "HOCM",
+    "stem": "Standing increases HOCM murmur because:",
+    "choices": {
+      "A": "Decreased preload worsens obstruction",
+      "B": "Increased preload",
+      "C": "Increased afterload",
+      "D": "Larger LV"
+    },
+    "answer": "A",
+    "explanation": "Smaller LV worsens LVOT obstruction.",
+    "tags": [
+      "HOCM"
+    ]
+  },
+  {
+    "id": 42,
+    "category": "HOCM",
+    "stem": "Which maneuver decreases HOCM murmur?",
+    "choices": {
+      "A": "Valsalva",
+      "B": "Standing",
+      "C": "Squatting",
+      "D": "Diuretics"
+    },
+    "answer": "C",
+    "explanation": "Increases preload & afterload.",
+    "tags": [
+      "murmurs"
+    ]
+  },
+  {
+    "id": 43,
+    "category": "HOCM",
+    "stem": "Primary pathology in HOCM is:",
+    "choices": {
+      "A": "Systolic dysfunction",
+      "B": "Dilated LV",
+      "C": "Dynamic LVOT obstruction",
+      "D": "Increased compliance"
+    },
+    "answer": "C",
+    "explanation": "Septal hypertrophy narrows LVOT.",
+    "tags": [
+      "pathophys"
+    ]
+  },
+  {
+    "id": 44,
+    "category": "HOCM",
+    "stem": "Cause of systolic anterior motion of MV in HOCM:",
+    "choices": {
+      "A": "High afterload",
+      "B": "Venturi effect",
+      "C": "Volume overload",
+      "D": "Valve fibrosis"
+    },
+    "answer": "B",
+    "explanation": "Fast LVOT flow pulls leaflet anteriorly.",
+    "tags": [
+      "SAM"
+    ]
+  },
+  {
+    "id": 45,
+    "category": "HOCM",
+    "stem": "PV loop in HOCM shows:",
+    "choices": {
+      "A": "Increased EDV",
+      "B": "High pressure, low volume",
+      "C": "Low contractility",
+      "D": "High SV"
+    },
+    "answer": "B",
+    "explanation": "Small stiff ventricle generates high pressure.",
+    "tags": [
+      "pv loop"
+    ]
+  },
+  {
+    "id": 46,
+    "category": "HOCM",
+    "stem": "Nitroglycerin causes hypotension in HOCM because it:",
+    "choices": {
+      "A": "Increases afterload",
+      "B": "Increases LV volume",
+      "C": "Reduces preload",
+      "D": "Increases venous return"
+    },
+    "answer": "C",
+    "explanation": "Smaller LV worsens obstruction.",
+    "tags": [
+      "pharmacology"
+    ]
+  },
+  {
+    "id": 47,
+    "category": "HOCM",
+    "stem": "Best medication for HOCM symptoms:",
+    "choices": {
+      "A": "Diuretics",
+      "B": "ACE inhibitors",
+      "C": "Beta-blockers",
+      "D": "Digoxin"
+    },
+    "answer": "C",
+    "explanation": "Reduce HR and contractility.",
+    "tags": [
+      "therapy"
+    ]
+  },
+  {
+    "id": 48,
+    "category": "HOCM",
+    "stem": "Main cause of dyspnea in HOCM:",
+    "choices": {
+      "A": "High compliance",
+      "B": "Impaired filling",
+      "C": "Low LV pressure",
+      "D": "High preload"
+    },
+    "answer": "B",
+    "explanation": "Stiff LV limits filling.",
+    "tags": [
+      "dyspnea"
+    ]
+  },
+  {
+    "id": 49,
+    "category": "HOCM",
+    "stem": "ECG finding associated with HOCM:",
+    "choices": {
+      "A": "ST elevation",
+      "B": "Deep Q waves",
+      "C": "Peaked T waves",
+      "D": "U waves"
+    },
+    "answer": "B",
+    "explanation": "Septal hypertrophy mimics infarct.",
+    "tags": [
+      "ECG"
+    ]
+  },
+  {
+    "id": 50,
+    "category": "HOCM",
+    "stem": "Valsalva increases HOCM murmur because it:",
+    "choices": {
+      "A": "Increases afterload",
+      "B": "Increases SV",
+      "C": "Decreases preload",
+      "D": "Decreases contractility"
+    },
+    "answer": "C",
+    "explanation": "Smaller LV worsens obstruction.",
+    "tags": [
+      "murmurs"
+    ]
+  },
+  {
+    "id": 51,
+    "category": "Cardiac Tamponade",
+    "stem": "Hallmark hemodynamic finding in tamponade:",
+    "choices": {
+      "A": "Equalized diastolic pressures",
+      "B": "High afterload",
+      "C": "Wide pulse pressure",
+      "D": "Low venous pressure"
+    },
+    "answer": "A",
+    "explanation": "External compression equalizes filling pressures.",
+    "tags": [
+      "tamponade"
+    ]
+  },
+  {
+    "id": 52,
+    "category": "Cardiac Tamponade",
+    "stem": "Most specific sign of tamponade:",
+    "choices": {
+      "A": "S3",
+      "B": "Kussmaul sign",
+      "C": "Fixed S2",
+      "D": "Pulsus paradoxus"
+    },
+    "answer": "D",
+    "explanation": "Inspiratory BP drop due to ventricular interdependence.",
+    "tags": [
+      "pulsus paradoxus"
+    ]
+  },
+  {
+    "id": 53,
+    "category": "Cardiac Tamponade",
+    "stem": "Absent y-descent occurs because:",
+    "choices": {
+      "A": "RV filling impaired",
+      "B": "No atrial contraction",
+      "C": "High venous return",
+      "D": "Low RV afterload"
+    },
+    "answer": "A",
+    "explanation": "Pericardial pressure blocks filling.",
+    "tags": [
+      "JVP"
+    ]
+  },
+  {
+    "id": 54,
+    "category": "Cardiac Tamponade",
+    "stem": "Mechanism of pulsus paradoxus:",
+    "choices": {
+      "A": "LV preload increases",
+      "B": "RV expansion compresses LV",
+      "C": "High intrathoracic pressure",
+      "D": "Low contractility"
+    },
+    "answer": "B",
+    "explanation": "Septal shift reduces LV filling.",
+    "tags": [
+      "physiology"
+    ]
+  },
+  {
+    "id": 55,
+    "category": "Cardiac Tamponade",
+    "stem": "Cause of tachycardia in tamponade:",
+    "choices": {
+      "A": "Baroreceptor response",
+      "B": "High vagal tone",
+      "C": "Pericardial stretch",
+      "D": "SA node dysfunction"
+    },
+    "answer": "A",
+    "explanation": "Compensatory response to low SV.",
+    "tags": [
+      "compensation"
+    ]
+  },
+  {
+    "id": 56,
+    "category": "Cardiac Tamponade",
+    "stem": "Which pressure change is expected?",
+    "choices": {
+      "A": "High afterload",
+      "B": "Low RA pressure",
+      "C": "Narrow pulse pressure",
+      "D": "Low sympathetic tone"
+    },
+    "answer": "C",
+    "explanation": "Reduced SV narrows pulse pressure.",
+    "tags": [
+      "hemodynamics"
+    ]
+  },
+  {
+    "id": 57,
+    "category": "Cardiac Tamponade",
+    "stem": "Earliest abnormality in tamponade:",
+    "choices": {
+      "A": "High contractility",
+      "B": "Decreased diastolic filling",
+      "C": "Low SVR",
+      "D": "High EF"
+    },
+    "answer": "B",
+    "explanation": "Compression limits filling first.",
+    "tags": [
+      "early tamponade"
+    ]
+  },
+  {
+    "id": 58,
+    "category": "Cardiac Tamponade",
+    "stem": "Finding distinguishing tamponade from constrictive pericarditis:",
+    "choices": {
+      "A": "High JVP",
+      "B": "Narrow pulse pressure",
+      "C": "Absent y-descent",
+      "D": "Peripheral edema"
+    },
+    "answer": "C",
+    "explanation": "Constrictive pericarditis has prominent y-descent.",
+    "tags": [
+      "differential"
+    ]
+  },
+  {
+    "id": 59,
+    "category": "Cardiac Tamponade",
+    "stem": "First chamber to collapse in tamponade:",
+    "choices": {
+      "A": "LA",
+      "B": "RA",
+      "C": "RV",
+      "D": "LV"
+    },
+    "answer": "B",
+    "explanation": "Lowest pressure chamber collapses first.",
+    "tags": [
+      "echo"
+    ]
+  },
+  {
+    "id": 60,
+    "category": "Cardiac Tamponade",
+    "stem": "Beck\u2019s triad excludes which finding?",
+    "choices": {
+      "A": "Elevated JVP",
+      "B": "Muffled heart sounds",
+      "C": "Hypertension",
+      "D": "Hypotension"
+    },
+    "answer": "C",
+    "explanation": "Tamponade causes hypotension, not hypertension.",
+    "tags": [
+      "Beck triad"
+    ]
+  }
+]

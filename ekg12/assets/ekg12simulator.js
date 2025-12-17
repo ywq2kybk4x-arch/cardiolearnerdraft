@@ -353,12 +353,13 @@ class Ecg12Simulator {
     this.drawBigGrid();
     this.reset();
 
-    if (this.bigTraceCanvas) {
-      this.bigTraceCanvas.addEventListener('mousemove', this.handleBigMouseMove);
-      this.bigTraceCanvas.addEventListener('mouseleave', this.handleBigMouseLeave);
-      this.bigTraceCanvas.addEventListener('click', this.handleBigClick);
-      this.bigTraceCanvas.addEventListener('dblclick', this.handleBigDoubleClick);
-    }
+    [this.bigTraceCanvas, this.bigOverlayCanvas].forEach((canvas) => {
+      if (!canvas) return;
+      canvas.addEventListener('mousemove', this.handleBigMouseMove);
+      canvas.addEventListener('mouseleave', this.handleBigMouseLeave);
+      canvas.addEventListener('click', this.handleBigClick);
+      canvas.addEventListener('dblclick', this.handleBigDoubleClick);
+    });
   }
 
   setHeartRate(bpm) {
@@ -2022,3 +2023,257 @@ class Ecg12Simulator {
 }
 
 window.Ecg12Simulator = Ecg12Simulator;
+
+window.initEcg12Simulator = function initEcg12Simulator(rootEl) {
+  console.log('[EKG12] init called', rootEl);
+  if (!rootEl) return null;
+  if (rootEl.__ecg12Initialized && rootEl.__ecg12Sim) return rootEl.__ecg12Sim;
+
+  const scoped = (id) => rootEl.querySelector(`#${id}`);
+
+  const backgroundCanvas = scoped('ecg12Background');
+  const traceCanvas = scoped('ecg12Trace');
+  const overlayCanvas = scoped('ecg12Overlay');
+  const bigBackgroundCanvas = scoped('ecg12BigBackground');
+  const bigTraceCanvas = scoped('ecg12BigTrace');
+  const bigOverlayCanvas = scoped('ecg12BigOverlay');
+
+  if (!backgroundCanvas || !traceCanvas || !overlayCanvas) {
+    console.warn('[EKG12] missing canvas', {
+      backgroundCanvas,
+      traceCanvas,
+      overlayCanvas
+    });
+    return null;
+  }
+
+  const sim = new Ecg12Simulator(
+    {
+      backgroundCanvas,
+      traceCanvas,
+      overlayCanvas,
+      bigBackgroundCanvas,
+      bigTraceCanvas,
+      bigOverlayCanvas
+    },
+    { displayTime: 10, heartRate: 75 }
+  );
+
+  rootEl.__ecg12Initialized = true;
+  rootEl.__ecg12Sim = sim;
+
+  sim.forceLayout = () => {
+    if (typeof sim.handleResize === 'function') sim.handleResize();
+    if (typeof sim.drawGrid === 'function') sim.drawGrid();
+    if (typeof sim.drawBigGrid === 'function') sim.drawBigGrid();
+    if (typeof sim.drawTrace === 'function') sim.drawTrace();
+    if (typeof sim.drawExpandedTrace === 'function') sim.drawExpandedTrace();
+  };
+
+  const gridWrap = scoped('ecg12GridWrap');
+  if (gridWrap) {
+    gridWrap.addEventListener('scroll', () => sim.drawReadoutOverlay());
+  }
+
+  const heartRateInput = scoped('ecg12HeartRate');
+  const axisModeSelect = scoped('ecg12AxisMode');
+  const leadISignSelect = scoped('ecg12LeadISign');
+  const leadAVFSignSelect = scoped('ecg12LeadAVFSign');
+  const rhythmSelect = scoped('ecg12RhythmPreset');
+  const measureToggle = scoped('ecg12MeasureTool');
+  const measureHint = scoped('ecg12MeasureHint');
+  const playBtn = scoped('ecg12Play');
+  const pauseBtn = scoped('ecg12Pause');
+  const resetBtn = scoped('ecg12Reset');
+  const expandedLabel = scoped('ecg12ActiveLead');
+  const trace = scoped('ecg12Trace');
+
+  const clampNumber = (val, min, max) => Math.min(Math.max(val, min), max);
+
+  const updateExpandedLabel = () => {
+    if (expandedLabel) {
+      expandedLabel.textContent = sim.getSelectedLead();
+    }
+  };
+
+  const commitHeartRate = () => {
+    if (!heartRateInput) return;
+    const clampRange = typeof sim.getHeartRateClamp === 'function'
+      ? sim.getHeartRateClamp()
+      : { min: 40, max: 180 };
+    const raw = parseInt(heartRateInput.value || String(sim.getHeartRate ? sim.getHeartRate() : clampRange.min), 10);
+    const fallback = Number.isNaN(raw) ? (sim.getHeartRate ? sim.getHeartRate() : clampRange.min) : raw;
+    const target = clampNumber(fallback, clampRange.min, clampRange.max);
+    const applied = typeof sim.setHeartRate === 'function' ? sim.setHeartRate(target) : target;
+    heartRateInput.value = applied;
+  };
+
+  const syncHeartRateInput = () => {
+    if (!heartRateInput) return;
+    const clampRange = typeof sim.getHeartRateClamp === 'function'
+      ? sim.getHeartRateClamp()
+      : { min: 40, max: 180 };
+    heartRateInput.min = clampRange.min;
+    heartRateInput.max = clampRange.max;
+    const hr = sim.getHeartRate ? sim.getHeartRate() : clampNumber(75, clampRange.min, clampRange.max);
+    heartRateInput.value = hr;
+  };
+
+  if (heartRateInput) {
+    heartRateInput.addEventListener('change', commitHeartRate);
+    heartRateInput.addEventListener('blur', commitHeartRate);
+  }
+
+  const axisModeToQuadrant = {
+    normal: { leadI: 'pos', avf: 'pos' },
+    lad: { leadI: 'pos', avf: 'neg' },
+    rad: { leadI: 'neg', avf: 'pos' },
+    extreme: { leadI: 'neg', avf: 'neg' }
+  };
+
+  const quadrantToAxisMode = (leadISign, avfSign) => {
+    if (leadISign === 'pos' && avfSign === 'pos') return 'normal';
+    if (leadISign === 'pos' && avfSign === 'neg') return 'lad';
+    if (leadISign === 'neg' && avfSign === 'pos') return 'rad';
+    return 'extreme';
+  };
+
+  let syncingAxisControls = false;
+
+  const syncQuadrantFromMode = (mode) => {
+    const mapping = axisModeToQuadrant[mode] || axisModeToQuadrant.normal;
+    syncingAxisControls = true;
+    if (leadISignSelect) leadISignSelect.value = mapping.leadI;
+    if (leadAVFSignSelect) leadAVFSignSelect.value = mapping.avf;
+    syncingAxisControls = false;
+  };
+
+  const applyAxisMode = (mode) => {
+    const normalized = axisModeToQuadrant[mode] ? mode : 'normal';
+    if (axisModeSelect) axisModeSelect.value = normalized;
+    sim.setAxisMode(normalized);
+    syncQuadrantFromMode(normalized);
+  };
+
+  if (axisModeSelect) {
+    axisModeSelect.addEventListener('change', () => applyAxisMode(axisModeSelect.value));
+  }
+
+  const handleQuadrantChange = () => {
+    if (syncingAxisControls) return;
+    const leadISign = leadISignSelect ? leadISignSelect.value : 'pos';
+    const avfSign = leadAVFSignSelect ? leadAVFSignSelect.value : 'pos';
+    const mode = quadrantToAxisMode(leadISign, avfSign);
+    if (axisModeSelect) axisModeSelect.value = mode;
+    sim.setAxisMode(mode);
+  };
+
+  if (leadISignSelect) leadISignSelect.addEventListener('change', handleQuadrantChange);
+  if (leadAVFSignSelect) leadAVFSignSelect.addEventListener('change', handleQuadrantChange);
+
+  const handleRhythmChange = () => {
+    if (!rhythmSelect) return;
+    const desired = rhythmSelect.value;
+    if (typeof sim.setRhythm === 'function') {
+      sim.setRhythm(desired);
+      const current = sim.getCurrentRhythm ? sim.getCurrentRhythm() : desired;
+      rhythmSelect.value = current;
+      syncHeartRateInput();
+    }
+  };
+
+  const populateRhythmOptions = () => {
+    if (!rhythmSelect || typeof sim.getRhythmList !== 'function') return;
+    const rhythms = sim.getRhythmList();
+    if (rhythms && rhythms.length) {
+      rhythmSelect.innerHTML = '';
+      rhythms.forEach(({ id, label }) => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = label;
+        rhythmSelect.appendChild(option);
+      });
+    }
+    const current = sim.getCurrentRhythm ? sim.getCurrentRhythm() : null;
+    if (current) rhythmSelect.value = current;
+    rhythmSelect.addEventListener('change', handleRhythmChange);
+  };
+
+  const highlightIds = [
+    ['ecg12HighlightP', 'P'],
+    ['ecg12HighlightQRS', 'QRS'],
+    ['ecg12HighlightT', 'T']
+  ];
+  const intervalHighlightIds = [
+    ['ecg12HighlightPR', 'PR'],
+    ['ecg12HighlightQRSDur', 'QRSd'],
+    ['ecg12HighlightQT', 'QT'],
+    ['ecg12HighlightRR', 'RR']
+  ];
+
+  const updateHighlights = () => {
+    const highlightState = {};
+    highlightIds.forEach(([id, key]) => {
+      const el = scoped(id);
+      highlightState[key] = !!(el && el.checked);
+    });
+    sim.setHighlights(highlightState);
+
+    const intervalState = {};
+    intervalHighlightIds.forEach(([id, key]) => {
+      const el = scoped(id);
+      intervalState[key] = !!(el && el.checked);
+    });
+    sim.setIntervalHighlights(intervalState);
+
+    if (measureToggle) {
+      const enabled = !!measureToggle.checked;
+      if (measureHint) {
+        measureHint.classList.toggle('active', enabled);
+      }
+      if (typeof sim.setMeasureToolEnabled === 'function') {
+        sim.setMeasureToolEnabled(enabled);
+      }
+    }
+  };
+
+  [...highlightIds, ...intervalHighlightIds].forEach(([id]) => {
+    const el = scoped(id);
+    if (el) el.addEventListener('change', updateHighlights);
+  });
+  if (measureToggle) measureToggle.addEventListener('change', updateHighlights);
+
+  if (playBtn) playBtn.addEventListener('click', () => sim.play());
+  if (pauseBtn) pauseBtn.addEventListener('click', () => sim.pause());
+  if (resetBtn) resetBtn.addEventListener('click', () => sim.reset());
+
+  if (trace) {
+    trace.addEventListener('click', (event) => {
+      const lead = sim.getLeadAtEvent(event);
+      if (lead) {
+        sim.setSelectedLead(lead);
+        updateExpandedLabel();
+      }
+    });
+  }
+
+  if (gridWrap) {
+    gridWrap.addEventListener('mousemove', (event) => {
+      sim.setHoverLead(sim.getLeadAtEvent(event));
+    });
+  }
+
+  const initialAxisMode = typeof sim.getAxisMode === 'function' ? sim.getAxisMode() : 'normal';
+  applyAxisMode(initialAxisMode);
+  populateRhythmOptions();
+  syncHeartRateInput();
+
+  sim.setHoverLead(null);
+  updateHighlights();
+  updateExpandedLabel();
+
+  sim.handleResize();
+  sim.reset();
+
+  return sim;
+};

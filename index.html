@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="./assets/chart.js"></script>
     <script src="./assets/chartjs-plugin-annotation.js"></script>
-    <script src="./assets/ecg-simulator.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
     <script type="importmap">
     {
@@ -964,6 +963,107 @@
             flex-wrap: wrap;
         }
 
+        .qbank-alert {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(248, 113, 113, 0.4);
+            background: rgba(254, 226, 226, 0.6);
+            color: #7f1d1d;
+            font-weight: 600;
+            display: none;
+        }
+
+        .qbank-session-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 220px;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .qbank-nav {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            padding: 12px;
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .qbank-nav-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        .qbank-nav-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+            gap: 8px;
+        }
+
+        .qbank-nav-button {
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            padding: 6px 0;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .qbank-nav-button.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        .qbank-nav-button.correct {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.6);
+            color: #15803d;
+        }
+
+        .qbank-nav-button.incorrect {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.6);
+            color: #b91c1c;
+        }
+
+        .qbank-nav-button.omitted {
+            background: rgba(148, 163, 184, 0.15);
+            border-color: rgba(148, 163, 184, 0.6);
+            color: #475569;
+        }
+
+        .qbank-nav-button.answered {
+            border-color: rgba(148, 163, 184, 0.9);
+            background: rgba(148, 163, 184, 0.15);
+            color: #475569;
+        }
+
+        .qbank-nav-flag {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 0.7rem;
+            color: #f97316;
+        }
+
+        @media (max-width: 1100px) {
+            .qbank-session-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .qbank-nav {
+                position: relative;
+                top: auto;
+            }
+        }
+
         @media (max-width: 1100px) {
             .qbank-grid {
                 grid-template-columns: 1fr;
@@ -1815,147 +1915,59 @@
             box-shadow: var(--shadow-md);
         }
 
-        /* ECG simulator styles (scoped to ecg-* classes to avoid collisions) */
-        .ecg-shell {
-            background: #f9fafb;
-            border-top: 2px solid #e5e7eb;
-            padding: 20px 24px 28px;
-        }
+        /* 12-lead ECG module */
+        #ecg12Module .ecg12-grid{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}
+        #ecg12Module .ecg12-controls{background:#fff;border:1px solid rgba(148,163,184,.35);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px}
+        #ecg12Module .ecg12-section{border:1px solid rgba(148,163,184,.35);border-radius:14px;padding:12px;background:#fff}
+        #ecg12Module .ecg12-section-title{font-weight:800;letter-spacing:.06em;font-size:12px;color:#64748b;text-transform:uppercase;margin-bottom:10px}
+        #ecg12Module .ecg12-field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+        #ecg12Module .ecg12-field label{font-size:13px;font-weight:600;color:#0f172a}
+        #ecg12Module select,#ecg12Module input[type="number"]{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(148,163,184,.35);background:#fff;font-size:14px}
+        #ecg12Module .ecg12-help{font-size:12px;color:#64748b;margin-top:6px}
+        #ecg12Module .ecg12-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid rgba(148,163,184,.25)}
+        #ecg12Module .ecg12-row:first-of-type{border-top:0}
+        #ecg12Module .ecg12-row-left{display:flex;align-items:center;gap:10px}
+        #ecg12Module .ecg12-row-left span{font-size:14px;font-weight:600}
+        #ecg12Module .ecg12-hint{font-size:12px;color:#64748b;white-space:nowrap}
+        #ecg12Module .ecg12-measure-hint{margin-top:10px;font-size:12px;color:#64748b;background:#f1f5f9;border:1px solid rgba(148,163,184,.35);border-radius:12px;padding:10px;display:none}
+        #ecg12Module .ecg12-measure-hint.active{display:block}
+        #ecg12Module .ecg12-buttons{display:flex;gap:10px}
+        #ecg12Module .ecg12-buttons button{flex:1;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,.35);background:#fff;font-weight:700;cursor:pointer}
+        #ecg12Module .ecg12-display{background:#fff;border:1px solid rgba(148,163,184,.35);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0}
+        #ecg12Module .ecg12-canvas-wrap{position:relative;width:100%;height:360px;border:1px solid rgba(148,163,184,.35);border-radius:14px;overflow:auto;background:#fff}
+        #ecg12Module .ecg12-expanded-wrap{height:260px}
+        #ecg12Module .ecg12-expanded-header{font-weight:800;color:#0f172a;margin:2px 0 8px}
+        #ecg12Module .ecg12-canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+        #ecg12Module #ecg12Trace,#ecg12Module #ecg12Overlay,#ecg12Module #ecg12BigTrace,#ecg12Module #ecg12BigOverlay{pointer-events:auto}
 
-        .ecg-shell h2 {
-            margin-bottom: 10px;
-            color: #1f2933;
-        }
+        .ekg-mode-toggle{display:flex;gap:10px;margin:24px 0}
+        .ekg-mode-toggle button{flex:1;border:1px solid rgba(148,163,184,.35);background:#fff;border-radius:999px;padding:10px;font-weight:600;cursor:pointer;transition:all .2s}
+        .ekg-mode-toggle button.active{background:#0f172a;color:#fff;border-color:#0f172a;box-shadow:0 10px 20px rgba(15,23,42,.2)}
 
-        .ecg-shell p {
-            color: #4b5563;
-            margin-bottom: 18px;
-        }
+        #singleLeadEcgContainer{background:#fff;border:1px solid rgba(148,163,184,.35);border-radius:18px;padding:20px;box-shadow:var(--shadow-sm)}
+        #singleLeadEcgContainer h3{margin-top:0;margin-bottom:12px;font-size:1.1rem}
+        .single-lead-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px}
+        .single-lead-controls{display:flex;flex-direction:column;gap:14px;border:1px solid rgba(148,163,184,.35);border-radius:16px;padding:14px;background:#f8fafc}
+        .single-lead-section{display:flex;flex-direction:column;gap:10px}
+        .single-lead-section label{font-weight:600;font-size:.9rem}
+        .single-lead-section select,.single-lead-section input[type="number"]{width:100%;padding:10px;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:#fff}
+        .single-lead-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:.9rem}
+        .single-lead-buttons{display:flex;gap:10px}
+        .single-lead-buttons button{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.35);background:#fff;font-weight:600;cursor:pointer}
+        .single-lead-canvas{position:relative;border:1px solid rgba(148,163,184,.35);border-radius:16px;height:320px;overflow:auto;background:#fff}
+        .single-lead-canvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+        .single-lead-display{display:flex;flex-direction:column;gap:12px}
+        .single-lead-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.9rem;color:#475569}
+        .single-lead-legend span{display:flex;align-items:center;gap:8px}
+        .single-lead-legend .swatch{width:16px;height:16px;border-radius:4px;display:inline-block}
 
-        .ecg-grid {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 18px;
-        }
-
-        .ecg-controls {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            display: grid;
-            gap: 12px;
-        }
-
-        .ecg-control label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 6px;
-        }
-
-        .ecg-control small {
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .ecg-control input[type="number"],
-        .ecg-control select {
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .ecg-slider-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .ecg-control input[type="range"] {
-            flex: 1;
-        }
-
-        .ecg-checks {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
-        }
-
-        .ecg-checks label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #f8fafc;
-            padding: 8px 10px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .ecg-buttons {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 8px;
-        }
-
-        .ecg-buttons button {
-            border: none;
-            padding: 10px 12px;
-            border-radius: 10px;
-            color: white;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .ecg-play { background: linear-gradient(135deg, #22c55e, #16a34a); }
-        .ecg-pause { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .ecg-reset { background: linear-gradient(135deg, #ef4444, #dc2626); }
-
-        .ecg-display {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 14px;
-        }
-
-        .ecg-canvas-wrap {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 4 / 1;
-            max-height: 260px;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            overflow: hidden;
-            background: white;
-        }
-
-        .ecg-canvas-wrap canvas {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .ecg-legend {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-top: 10px;
-            color: #4b5563;
-            font-weight: 600;
-        }
-
-        .ecg-swatch {
-            width: 14px;
-            height: 14px;
-            border-radius: 4px;
-            display: inline-block;
+        @media (max-width: 1000px) {
+            #ecg12Module .ecg12-grid {
+                grid-template-columns: 1fr;
+            }
+            .single-lead-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 1000px) {
@@ -2660,83 +2672,201 @@
                     </div>
                 </div>
             </div>
-            <div class="ecg-shell">
-                <h2>ECG Rhythm Simulator</h2>
-                <p>Live synthetic ECG with adjustable heart rate, display window, speed, and wave highlights—embedded here so you can correlate conduction pathways with the surface ECG.</p>
-                        <div class="ecg-grid">
-                    <div class="ecg-controls">
-                        <div class="ecg-control">
-                            <label for="ecgHeartRate">Heart rate <small>(bpm)</small></label>
-                            <input id="ecgHeartRate" type="number" min="40" max="180" value="75">
-                        </div>
-                        <div class="ecg-control">
-                            <label for="rhythmPreset">Rhythm Preset</label>
+            <div class="ekg-mode-toggle">
+                <button type="button" id="showSingleLeadBtn" class="active">Single lead</button>
+                <button type="button" id="show12LeadBtn">12 lead</button>
+            </div>
+            <div id="singleLeadEcgContainer" class="single-lead-card">
+                <h3>Single-Lead Rhythm Simulator</h3>
+                <div class="single-lead-grid">
+                    <div class="single-lead-controls">
+                        <div class="single-lead-section">
+                            <label for="rhythmPreset">Rhythm preset</label>
                             <select id="rhythmPreset">
-                                <option value="sinus">Normal Sinus Rhythm</option>
+                                <option value="sinus" selected>Sinus Rhythm</option>
                                 <option value="afib">Atrial Fibrillation</option>
-                                <option value="mvtach">Monomorphic Ventricular Tachycardia</option>
-<option value="pvtach">Polymorphic Ventricular Tachycardia</option>
+                                <option value="mvtach">Monomorphic VT</option>
+                                <option value="pvtach">Polymorphic VT</option>
                                 <option value="avb1">1° AV Block</option>
                                 <option value="avb2_mobitz1">2° AV Block (Mobitz I)</option>
-                                <option value="avb2_mobitz2">2° AV Block (Mobitz II, 2:1)</option>
+                                <option value="avb2_mobitz2">2° AV Block (Mobitz II)</option>
                                 <option value="avb3">3° AV Block</option>
                             </select>
                         </div>
-                        <div class="ecg-control">
-                            <label for="ecgPR">PR interval <small>(ms)</small></label>
-                            <input id="ecgPR" type="range" min="80" max="320" value="160">
-                            <div class="help-text" style="margin-top: 4px; color:#4b5563; font-weight:600;">Current: <span id="ecgPRValue">160</span> ms</div>
+                        <div class="single-lead-section">
+                            <label for="ecgHeartRate">Heart rate <small>(bpm)</small></label>
+                            <input id="ecgHeartRate" type="number" min="40" max="180" value="75">
                         </div>
-                        <div class="ecg-control">
-                            <label for="ecgQRS">QRS duration <small>(ms)</small></label>
-                            <input id="ecgQRS" type="range" min="60" max="200" value="90">
-                            <div class="help-text" style="margin-top: 4px; color:#4b5563; font-weight:600;">Current: <span id="ecgQRSValue">90</span> ms</div>
-                        </div>
-                        <div class="ecg-control">
-                            <label for="ecgQT">QT interval <small>(ms)</small></label>
-                            <input id="ecgQT" type="range" min="300" max="600" step="10" value="400">
-                            <div class="help-text" style="margin-top: 4px; color:#4b5563; font-weight:600;">Current: <span id="ecgQTValue">400</span> ms</div>
-                        </div>
-                        <div class="ecg-control">
-                            <label for="ecgDisplayTime">Display window <small>(seconds)</small></label>
-                            <select id="ecgDisplayTime">
-                                <option value="2">2</option>
-                                <option value="5" selected>5</option>
-                                <option value="10">10</option>
-                            </select>
-                        </div>
-                        <div class="ecg-control">
-                            <label for="ecgSpeed">Speed <small>(mm/s)</small></label>
-                            <select id="ecgSpeed">
-                                <option value="25" selected>25</option>
-                                <option value="50">50</option>
-                            </select>
-                        </div>
-                        <div class="ecg-control">
-                            <label>Highlights</label>
-                            <div class="ecg-checks">
+                        <div class="single-lead-section">
+                            <label>Wave highlights</label>
+                            <div class="single-lead-checks">
                                 <label><input type="checkbox" id="ecgHighlightP"> P wave</label>
                                 <label><input type="checkbox" id="ecgHighlightQRS"> QRS</label>
                                 <label><input type="checkbox" id="ecgHighlightT"> T wave</label>
+                                <label><input type="checkbox" id="ecgHighlightPR"> PR interval</label>
+                                <label><input type="checkbox" id="ecgHighlightQRSDur"> QRS duration</label>
+                                <label><input type="checkbox" id="ecgHighlightQT"> QT interval</label>
                             </div>
                         </div>
-                        <div class="ecg-buttons">
-                            <button class="ecg-play" id="ecgPlay">Play</button>
-                            <button class="ecg-pause" id="ecgPause">Pause</button>
-                            <button class="ecg-reset" id="ecgReset">Reset</button>
+                        <div class="single-lead-buttons">
+                            <button type="button" id="ecgPlay">Play</button>
+                            <button type="button" id="ecgPause">Pause</button>
+                            <button type="button" id="ecgReset">Reset</button>
                         </div>
                     </div>
-
-                    <div class="ecg-display">
-                        <div class="ecg-canvas-wrap">
+                    <div class="single-lead-display">
+                        <div class="single-lead-canvas">
                             <canvas id="ecgBackground"></canvas>
                             <canvas id="ecgTrace"></canvas>
+                            <canvas id="ecgOverlay"></canvas>
                         </div>
-                        <div class="ecg-legend">
-                            <span><span class="ecg-swatch" style="background: #1f2937;"></span> Default</span>
-                            <span><span class="ecg-swatch" style="background: #2563eb;"></span> P (highlight)</span>
-                            <span><span class="ecg-swatch" style="background: #d33f49;"></span> QRS (highlight)</span>
-                            <span><span class="ecg-swatch" style="background: #2f855a;"></span> T (highlight)</span>
+                        <div class="single-lead-legend">
+                            <span><span class="swatch" style="background:#1f2937;"></span>Default</span>
+                            <span><span class="swatch" style="background:#2563eb;"></span>P wave</span>
+                            <span><span class="swatch" style="background:#d33f49;"></span>QRS</span>
+                            <span><span class="swatch" style="background:#2f855a;"></span>T wave</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="ekg12Mount">
+                <div id="ecg12Module" class="ecg12-shell" style="display:none;">
+                    <div class="ecg12-grid">
+                        <div class="ecg12-controls">
+                            <div class="ecg12-section">
+                                <div class="ecg12-section-title">RHYTHM</div>
+                                <div class="ecg12-field">
+                                    <label for="ecg12RhythmPreset">Rhythm preset</label>
+                                    <select id="ecg12RhythmPreset">
+                                        <option value="sinus" selected>Sinus Rhythm</option>
+                                    </select>
+                                </div>
+                                <div class="ecg12-field">
+                                    <label for="ecg12HeartRate">Heart rate <small>(bpm)</small></label>
+                                    <input id="ecg12HeartRate" type="number" min="40" max="180" value="75" />
+                                </div>
+                            </div>
+
+                            <div class="ecg12-section">
+                                <div class="ecg12-section-title">AXIS</div>
+                                <div class="ecg12-field">
+                                    <label for="ecg12AxisMode">Axis mode</label>
+                                    <select id="ecg12AxisMode">
+                                        <option value="normal" selected>Normal Axis (0° to +90°)</option>
+                                        <option value="lad">Left Axis Deviation (0° to −90°)</option>
+                                        <option value="rad">Right Axis Deviation (+90° to +180°)</option>
+                                        <option value="extreme">Extreme Axis (−90° to −180°)</option>
+                                    </select>
+                                </div>
+                                <div class="ecg12-field">
+                                    <div style="display:flex; gap:8px;">
+                                        <select id="ecg12LeadISign" style="flex:1;">
+                                            <option value="pos" selected>Lead I: Positive</option>
+                                            <option value="neg">Lead I: Negative</option>
+                                        </select>
+                                        <select id="ecg12LeadAVFSign" style="flex:1;">
+                                            <option value="pos" selected>aVF: Positive</option>
+                                            <option value="neg">aVF: Negative</option>
+                                        </select>
+                                    </div>
+                                    <div class="ecg-help">Quadrant method: choose Lead I and aVF polarity; simulator picks axis category.</div>
+                                </div>
+                            </div>
+
+                            <div class="ecg12-section">
+                                <div class="ecg12-section-title">WAVE HIGHLIGHTS</div>
+                                <div class="ecg12-row">
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12HighlightP" />
+                                        <span>P wave</span>
+                                    </div>
+                                    <div class="ecg12-hint"></div>
+                                </div>
+                                <div class="ecg12-row">
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12HighlightQRS" />
+                                        <span>QRS</span>
+                                    </div>
+                                    <div class="ecg12-hint"></div>
+                                </div>
+                                <div class="ecg12-row">
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12HighlightT" />
+                                        <span>T wave</span>
+                                    </div>
+                                    <div class="ecg12-hint"></div>
+                                </div>
+                            </div>
+
+                            <div class="ecg12-section">
+                                <div class="ecg12-section-title">INTERVALS &amp; TOOLS</div>
+                                <div class="ecg12-row">
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12HighlightPR" />
+                                        <span>PR interval</span>
+                                    </div>
+                                    <div class="ecg12-hint">Normal: 120–200 ms</div>
+                                </div>
+                                <div class="ecg12-row">
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12HighlightQRSDur" />
+                                        <span>QRS duration</span>
+                                    </div>
+                                    <div class="ecg12-hint">Normal: &lt;120 ms</div>
+                                </div>
+                                <div class="ecg12-row">
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12HighlightRR" />
+                                        <span>R–R interval</span>
+                                    </div>
+                                    <div class="ecg12-hint">Normal: 600–1000 ms</div>
+                                </div>
+                                <div class="ecg12-row">
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12HighlightQT" />
+                                        <span>QT interval</span>
+                                    </div>
+                                    <div class="ecg12-hint">Normal: ~350–440 ms</div>
+                                </div>
+                                <div class="ecg12-row" style="padding-bottom:0;">
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12MeasureTool" />
+                                        <span>Click &amp; Measure</span>
+                                    </div>
+                                    <div class="ecg12-hint"></div>
+                                </div>
+                                <div id="ecg12MeasureHint" class="ecg12-measure-hint">
+                                    Click to set start/end.<br />
+                                    Drag to measure.<br />
+                                    Hold Shift to keep previous measurements.<br />
+                                    Double-click a measurement to remove it.
+                                </div>
+                            </div>
+
+                            <div class="ecg12-buttons">
+                                <button id="ecg12Play">Play</button>
+                                <button id="ecg12Pause">Pause</button>
+                                <button id="ecg12Reset">Reset</button>
+                            </div>
+                        </div>
+
+                        <div class="ecg12-display">
+                            <div class="ecg12-canvas-wrap" id="ecg12GridWrap">
+                                <canvas id="ecg12Background"></canvas>
+                                <canvas id="ecg12Trace"></canvas>
+                                <canvas id="ecg12Overlay"></canvas>
+                            </div>
+
+                            <div>
+                                <div class="ecg12-expanded-header">
+                                    Expanded Lead: <span id="ecg12ActiveLead">II</span>
+                                </div>
+                                <div class="ecg12-canvas-wrap ecg12-expanded-wrap">
+                                    <canvas id="ecg12BigBackground"></canvas>
+                                    <canvas id="ecg12BigTrace"></canvas>
+                                    <canvas id="ecg12BigOverlay"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2745,6 +2875,7 @@
 
         <div id="qbank-content" class="tab-content">
             <div id="qbank-root"></div>
+            <div id="qbank-alert" class="qbank-alert"></div>
         </div>
 
         <!-- SHOCK SIMULATOR TAB -->
@@ -2853,7 +2984,7 @@
         V6: 'v6'
     };
 
-    const coronaryMap = {
+const coronaryMap = {
         LAD: {
             id: 'LAD',
             name: 'Left Anterior Descending (LAD)',
@@ -2885,6 +3016,8 @@
             highlightLeads: ['I', 'aVL', 'V5', 'V6', 'V7', 'V8', 'V9']
         }
     };
+
+    let coronaryButtons = [];
 
     const coronaryState = {
         LAD: { meshes: [], originalMaterials: [] },
@@ -3005,6 +3138,13 @@
 
         updateCoronaryInfoPanel(coro);
         updateLeadHighlights(coro.highlightLeads || []);
+
+        if (coronaryButtons.length) {
+            coronaryButtons.forEach((btn) => {
+                const isMatch = btn.dataset.coronary === id;
+                btn.classList.toggle('active', isMatch);
+            });
+        }
     }
 
     window.highlightCoronary = highlightCoronary;
@@ -3091,9 +3231,10 @@
         return conduction3DState;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const buttons = Array.from(document.querySelectorAll('[data-coronary]'));
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttons = Array.from(document.querySelectorAll('[data-coronary]'));
         if (!buttons.length) return;
+        coronaryButtons = buttons;
 
         buttons.forEach((btn) => {
             btn.addEventListener('click', () => {
@@ -3112,11 +3253,11 @@
         if (defaultBtn) {
             defaultBtn.classList.add('active');
         }
-    });
+        });
 
-    window.initConduction3DViewer = function() {
-        const state = createConductionViewer();
-        if (state && state.resize) state.resize();
+        window.initConduction3DViewer = function() {
+            const state = createConductionViewer();
+            if (state && state.resize) state.resize();
     };
     window.resizeConduction3DViewer = function() {
         if (conduction3DState && conduction3DState.resize) {
@@ -3124,6 +3265,9 @@
         }
     };
     </script>
+
+    <script src="./assets/ekgsimulatorcopy.js"></script>
+    <script src="./ekg12/assets/ekg12simulator.js"></script>
 
     <script>
         // Initialize charts
@@ -3141,6 +3285,264 @@
         let showLoopAnnotations = true;
         let currentPathology = 'normal';
         let loadedPathology = 'normal'; // Tracks which pathology card was selected
+        let currentEkgMode = 'single';
+
+        function handleEkgResize() {
+            const conductionPanel = document.getElementById('conduction-content');
+            if (!conductionPanel || !conductionPanel.classList.contains('active')) return;
+
+            if (currentEkgMode === 'twelve') {
+                window.ecg12SimInstance?.handleResize?.();
+            } else {
+                window.ecgSimInstance?.handleResize?.();
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            window.requestAnimationFrame(handleEkgResize);
+        });
+
+        function initSingleLeadSimulatorOnce() {
+            if (window.ecgSimInstance) return;
+            if (typeof window.EcgSimulator === 'undefined') return;
+
+            const bgCanvas = document.getElementById('ecgBackground');
+            const traceCanvas = document.getElementById('ecgTrace');
+            const overlayCanvas = document.getElementById('ecgOverlay');
+            if (!bgCanvas || !traceCanvas) return;
+
+            const sim = new window.EcgSimulator(bgCanvas, traceCanvas, overlayCanvas, { displayTime: 10, heartRate: 75, speed: 25 });
+            window.ecgSimInstance = sim;
+
+            const wrap = document.querySelector('#singleLeadEcgContainer .single-lead-canvas');
+            if (wrap) {
+                wrap.addEventListener('scroll', () => sim.drawReadoutOverlay());
+            }
+
+            const heartRateInput = document.getElementById('ecgHeartRate');
+            const rhythmSelect = document.getElementById('rhythmPreset');
+            const highlightP = document.getElementById('ecgHighlightP');
+            const highlightQRS = document.getElementById('ecgHighlightQRS');
+            const highlightT = document.getElementById('ecgHighlightT');
+            const highlightPR = document.getElementById('ecgHighlightPR');
+            const highlightQRSDur = document.getElementById('ecgHighlightQRSDur');
+            const highlightQT = document.getElementById('ecgHighlightQT');
+            const playBtn = document.getElementById('ecgPlay');
+            const pauseBtn = document.getElementById('ecgPause');
+            const resetBtn = document.getElementById('ecgReset');
+
+            const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+            const commitHeartRate = () => {
+                if (!heartRateInput) return;
+                const raw = parseInt(heartRateInput.value || '75', 10);
+                const target = clamp(Number.isFinite(raw) ? raw : 75, 40, 180);
+                sim.setHeartRate(target);
+                heartRateInput.value = target;
+            };
+
+            heartRateInput?.addEventListener('change', commitHeartRate);
+            heartRateInput?.addEventListener('blur', commitHeartRate);
+
+            rhythmSelect?.addEventListener('change', () => {
+                sim.setRhythm(rhythmSelect.value);
+            });
+
+            const updateHighlights = () => {
+                const highlights = {
+                    P: !!highlightP?.checked,
+                    QRS: !!highlightQRS?.checked,
+                    T: !!highlightT?.checked
+                };
+                const intervals = {
+                    PR: !!highlightPR?.checked,
+                    QRSd: !!highlightQRSDur?.checked,
+                    QT: !!highlightQT?.checked
+                };
+                sim.setHighlights(highlights);
+                sim.setIntervalHighlights(intervals);
+            };
+
+            [highlightP, highlightQRS, highlightT, highlightPR, highlightQRSDur, highlightQT].forEach((input) => {
+                input?.addEventListener('change', updateHighlights);
+            });
+
+            playBtn?.addEventListener('click', () => sim.play());
+            pauseBtn?.addEventListener('click', () => sim.pause());
+            resetBtn?.addEventListener('click', () => sim.reset());
+
+            updateHighlights();
+            requestAnimationFrame(() => {
+                sim.handleResize?.();
+                sim.drawGrid?.();
+                sim.drawTrace?.();
+            });
+        }
+
+        function initEcg12Once() {
+            if (window.ecg12SimInstance) return;
+            if (typeof window.Ecg12Simulator === 'undefined') return;
+
+            const bg = document.getElementById('ecg12Background');
+            const trace = document.getElementById('ecg12Trace');
+            const overlay = document.getElementById('ecg12Overlay');
+            const bigBg = document.getElementById('ecg12BigBackground');
+            const bigTrace = document.getElementById('ecg12BigTrace');
+            const bigOverlay = document.getElementById('ecg12BigOverlay');
+            if (!bg || !trace || !overlay || !bigBg || !bigTrace || !bigOverlay) return;
+
+            const sim = new window.Ecg12Simulator(
+                {
+                    backgroundCanvas: bg,
+                    traceCanvas: trace,
+                    overlayCanvas: overlay,
+                    bigBackgroundCanvas: bigBg,
+                    bigTraceCanvas: bigTrace,
+                    bigOverlayCanvas: bigOverlay
+                },
+                { displayTime: 10, heartRate: 75 }
+            );
+            window.ecg12SimInstance = sim;
+
+            const gridWrap = document.getElementById('ecg12GridWrap');
+            gridWrap?.addEventListener('scroll', () => sim.drawReadoutOverlay());
+
+            const heartRateInput = document.getElementById('ecg12HeartRate');
+            const axisModeSelect = document.getElementById('ecg12AxisMode');
+            const leadISignSelect = document.getElementById('ecg12LeadISign');
+            const leadAVFSignSelect = document.getElementById('ecg12LeadAVFSign');
+            const rhythmSelect = document.getElementById('ecg12RhythmPreset');
+            const measureToggle = document.getElementById('ecg12MeasureTool');
+            const measureHint = document.getElementById('ecg12MeasureHint');
+            const traceCanvas = document.getElementById('ecg12Trace');
+
+            const highlightIds = [['ecg12HighlightP','P'],['ecg12HighlightQRS','QRS'],['ecg12HighlightT','T']];
+            const intervalIds = [['ecg12HighlightPR','PR'],['ecg12HighlightQRSDur','QRSd'],['ecg12HighlightQT','QT'],['ecg12HighlightRR','RR']];
+            const stemiCoronaryMap = {
+                stemi_inferior: 'RCA',
+                stemi_anterior: 'LAD',
+                stemi_lateral: 'LCX'
+            };
+
+            const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+            const highlightCoronaryForRhythm = () => {
+                const rhythmId = sim.getCurrentRhythm ? sim.getCurrentRhythm() : rhythmSelect?.value;
+                const artery = rhythmId ? stemiCoronaryMap[rhythmId] : null;
+                if (!artery) return;
+                if (typeof window.highlightCoronary === 'function') {
+                    window.highlightCoronary(artery);
+                }
+            };
+
+            const commitHeartRate = () => {
+                if (!heartRateInput) return;
+                const clampRange = sim.getHeartRateClamp ? sim.getHeartRateClamp() : {min:40,max:180};
+                const raw = parseInt(heartRateInput.value || sim.getHeartRate?.() || 75, 10);
+                const target = clamp(Number.isFinite(raw) ? raw : (sim.getHeartRate?.() || 75), clampRange.min, clampRange.max);
+                const applied = sim.setHeartRate ? sim.setHeartRate(target) : target;
+                heartRateInput.value = applied;
+            };
+            heartRateInput?.addEventListener('change', commitHeartRate);
+            heartRateInput?.addEventListener('blur', commitHeartRate);
+
+            const axisModeToQuadrant = {
+                normal:{leadI:'pos',avf:'pos'},
+                lad:{leadI:'pos',avf:'neg'},
+                rad:{leadI:'neg',avf:'pos'},
+                extreme:{leadI:'neg',avf:'neg'}
+            };
+            const quadrantToAxisMode = (leadI, avf) => {
+                if (leadI==='pos' && avf==='pos') return 'normal';
+                if (leadI==='pos' && avf==='neg') return 'lad';
+                if (leadI==='neg' && avf==='pos') return 'rad';
+                return 'extreme';
+            };
+
+            let syncing = false;
+            const syncQuadrantFromMode = (mode) => {
+                const m = axisModeToQuadrant[mode] || axisModeToQuadrant.normal;
+                syncing = true;
+                if (leadISignSelect) leadISignSelect.value = m.leadI;
+                if (leadAVFSignSelect) leadAVFSignSelect.value = m.avf;
+                syncing = false;
+            };
+            const applyAxisMode = (mode) => {
+                const normalized = axisModeToQuadrant[mode] ? mode : 'normal';
+                if (axisModeSelect) axisModeSelect.value = normalized;
+                sim.setAxisMode(normalized);
+                syncQuadrantFromMode(normalized);
+            };
+
+            axisModeSelect?.addEventListener('change', () => applyAxisMode(axisModeSelect.value));
+            const handleQuadrant = () => {
+                if (syncing) return;
+                const mode = quadrantToAxisMode(leadISignSelect?.value || 'pos', leadAVFSignSelect?.value || 'pos');
+                if (axisModeSelect) axisModeSelect.value = mode;
+                sim.setAxisMode(mode);
+            };
+            leadISignSelect?.addEventListener('change', handleQuadrant);
+            leadAVFSignSelect?.addEventListener('change', handleQuadrant);
+
+            const populateRhythms = () => {
+                if (!rhythmSelect || !sim.getRhythmList) return;
+                const rhythms = sim.getRhythmList();
+                rhythmSelect.innerHTML = '';
+                rhythms.forEach(({id,label}) => {
+                    const opt = document.createElement('option');
+                    opt.value = id; opt.textContent = label;
+                    rhythmSelect.appendChild(opt);
+                });
+                rhythmSelect.value = sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus';
+                rhythmSelect.addEventListener('change', () => {
+                    sim.setRhythm(rhythmSelect.value);
+                    rhythmSelect.value = sim.getCurrentRhythm ? sim.getCurrentRhythm() : rhythmSelect.value;
+                    highlightCoronaryForRhythm();
+                });
+            };
+            populateRhythms();
+            applyAxisMode(sim.getAxisMode ? sim.getAxisMode() : 'normal');
+
+            const updateHighlights = () => {
+                const h = {};
+                highlightIds.forEach(([id,key]) => { h[key] = !!document.getElementById(id)?.checked; });
+                sim.setHighlights(h);
+
+                const iv = {};
+                intervalIds.forEach(([id,key]) => { iv[key] = !!document.getElementById(id)?.checked; });
+                sim.setIntervalHighlights(iv);
+
+                if (measureToggle) {
+                    const enabled = !!measureToggle.checked;
+                    if (measureHint) measureHint.classList.toggle('active', enabled);
+                    sim.setMeasureToolEnabled?.(enabled);
+                }
+
+                sim.drawTrace?.();
+                sim.drawExpandedTrace?.();
+                sim.drawReadoutOverlay?.();
+            };
+
+            [...highlightIds, ...intervalIds].forEach(([id]) => document.getElementById(id)?.addEventListener('change', updateHighlights));
+            measureToggle?.addEventListener('change', updateHighlights);
+
+            document.getElementById('ecg12Play')?.addEventListener('click', () => sim.play());
+            document.getElementById('ecg12Pause')?.addEventListener('click', () => sim.pause());
+            document.getElementById('ecg12Reset')?.addEventListener('click', () => sim.reset());
+
+            traceCanvas?.addEventListener('click', (event) => {
+                const lead = sim.getLeadAtEvent(event);
+                if (lead) {
+                    sim.setSelectedLead(lead);
+                    const expandedLabel = document.getElementById('ecg12ActiveLead');
+                    if (expandedLabel) expandedLabel.textContent = sim.getSelectedLead();
+                }
+            });
+
+            updateHighlights();
+            highlightCoronaryForRhythm();
+            sim.play();
+        }
         
         // Pathology presets with physiologically accurate values
         const pathologyPresets = {
@@ -3256,6 +3658,49 @@
             return currentHfrefVariant === 'acute' ? 'chronic' : 'acute';
         }
         
+        document.addEventListener('DOMContentLoaded', () => {
+            const show12Btn = document.getElementById('show12LeadBtn');
+            const showSingleBtn = document.getElementById('showSingleLeadBtn');
+            const ecg12Module = document.getElementById('ecg12Module');
+            const singleLeadContainer = document.getElementById('singleLeadEcgContainer');
+
+            const activate12Lead = () => {
+                if (currentEkgMode === 'twelve') return;
+                currentEkgMode = 'twelve';
+                show12Btn?.classList.add('active');
+                showSingleBtn?.classList.remove('active');
+                if (singleLeadContainer) singleLeadContainer.style.display = 'none';
+                if (ecg12Module) ecg12Module.style.display = '';
+                initEcg12Once();
+                window.ecg12SimInstance?.handleResize?.();
+            };
+
+            const activateSingleLead = () => {
+                if (currentEkgMode === 'single') return;
+                currentEkgMode = 'single';
+                showSingleBtn?.classList.add('active');
+                show12Btn?.classList.remove('active');
+                if (singleLeadContainer) singleLeadContainer.style.display = '';
+                if (ecg12Module) ecg12Module.style.display = 'none';
+                initSingleLeadSimulatorOnce();
+                window.ecgSimInstance?.handleResize?.();
+            };
+
+            show12Btn?.addEventListener('click', activate12Lead);
+            showSingleBtn?.addEventListener('click', activateSingleLead);
+
+            if (singleLeadContainer) {
+                singleLeadContainer.style.display = '';
+            }
+            if (ecg12Module) {
+                ecg12Module.style.display = 'none';
+            }
+            initSingleLeadSimulatorOnce();
+            currentEkgMode = 'single';
+            showSingleBtn?.classList.add('active');
+            show12Btn?.classList.remove('active');
+        });
+
         // Wiggers diagram change descriptions for each pathology
         const wiggersDescriptions = {
             normal: 'Normal cardiac cycle showing typical pressure, volume, ECG, and heart sound relationships.',
@@ -3396,11 +3841,11 @@
 
         const QBANK_PLACEHOLDER = [];
         const QBANK_SOURCE_OPTIONS = {
-            unused: { label: 'Unused', count: 420 },
-            incorrect: { label: 'Incorrect', count: 210 },
-            marked: { label: 'Marked', count: 150 },
-            omitted: { label: 'Omitted', count: 95 },
-            correct: { label: 'Correct', count: 310 }
+            unused: { label: 'Unused', count: 0 },
+            incorrect: { label: 'Incorrect', count: 0 },
+            marked: { label: 'Marked', count: 0 },
+            omitted: { label: 'Omitted', count: 0 },
+            correct: { label: 'Correct', count: 0 }
         };
 
         const QBANK_TOPIC_TEMPLATE = {
@@ -3435,6 +3880,293 @@
         ];
 
         const qbankRoot = document.getElementById('qbank-root');
+        const qbankAlert = document.getElementById('qbank-alert');
+        const QBANK_DEBUG = false;
+
+        function qbankLog(...args) {
+            if (QBANK_DEBUG) {
+                console.log('[QBank]', ...args);
+            }
+        }
+
+        const qbankQuestions = [];
+        const qbankQuestionIndex = new Map();
+        const qbankDuplicateWarnings = new Set();
+        const QBANK_STORAGE_KEY = 'cardiolearner_qbank_v1';
+
+        const QBANK_DYNAMIC_SOURCES = [
+            {
+                key: 'cardiology1',
+                url: './assets/qbank_cardiology_1.json'
+            }
+        ];
+
+        function safeHashId(text = '', idx = 0) {
+            let hash = 0;
+            const str = String(text);
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash << 5) - hash + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return `q_${Math.abs(hash)}_${idx}`;
+        }
+
+        function loadQbankProgress() {
+            if (typeof window === 'undefined' || !window.localStorage) {
+                return { statusById: {}, markedById: {} };
+            }
+            try {
+                const raw = localStorage.getItem(QBANK_STORAGE_KEY);
+                if (!raw) return { statusById: {}, markedById: {} };
+                const parsed = JSON.parse(raw);
+                return {
+                    statusById: parsed.statusById || {},
+                    markedById: parsed.markedById || {}
+                };
+            } catch (err) {
+                console.warn('[QBank] Failed to load progress from storage', err);
+                return { statusById: {}, markedById: {} };
+            }
+        }
+
+        function saveQbankProgress() {
+            if (typeof window === 'undefined' || !window.localStorage) return;
+            try {
+                localStorage.setItem(QBANK_STORAGE_KEY, JSON.stringify(qbankProgress));
+            } catch (err) {
+                console.warn('[QBank] Failed to save progress', err);
+            }
+        }
+
+        const qbankProgress = loadQbankProgress();
+
+        function getQuestionStatus(id) {
+            if (!id) return 'unused';
+            return qbankProgress.statusById[id] || 'unused';
+        }
+
+        function setQuestionStatus(id, status) {
+            if (!id || !status) return;
+            if (qbankProgress.statusById[id] === status) return;
+            qbankProgress.statusById[id] = status;
+            saveQbankProgress();
+            updateQbankSourceCounts();
+        }
+
+        function isQuestionMarked(id) {
+            if (!id) return false;
+            return !!qbankProgress.markedById[id];
+        }
+
+        function toggleQuestionMarked(id) {
+            if (!id) return false;
+            const current = isQuestionMarked(id);
+            if (current) {
+                delete qbankProgress.markedById[id];
+            } else {
+                qbankProgress.markedById[id] = true;
+            }
+            saveQbankProgress();
+            updateQbankSourceCounts();
+            return !current;
+        }
+
+        function getQbankStatusCounts() {
+            const counts = {
+                unused: 0,
+                incorrect: 0,
+                marked: 0,
+                omitted: 0,
+                correct: 0
+            };
+            qbankQuestions.forEach((question) => {
+                const status = getQuestionStatus(question.id);
+                if (status && counts.hasOwnProperty(status)) {
+                    counts[status] += 1;
+                } else {
+                    counts.unused += 1;
+                }
+                if (isQuestionMarked(question.id)) {
+                    counts.marked += 1;
+                }
+            });
+            return counts;
+        }
+
+        function updateQbankSourceCounts() {
+            const counts = getQbankStatusCounts();
+            Object.entries(counts).forEach(([key, value]) => {
+                if (QBANK_SOURCE_OPTIONS[key]) {
+                    QBANK_SOURCE_OPTIONS[key].count = value;
+                }
+            });
+        }
+
+        function resetQbankDataWithConfirm() {
+            const confirmed = window.confirm('Reset QBank progress? This will erase all saved Correct/Incorrect/Marked/Omitted status on this device.');
+            if (!confirmed) return;
+            qbankProgress.statusById = {};
+            qbankProgress.markedById = {};
+            try {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    localStorage.removeItem(QBANK_STORAGE_KEY);
+                }
+            } catch (err) {
+                console.warn('[QBank] Unable to clear storage', err);
+            }
+            updateQbankSourceCounts();
+            resetQbankState();
+            qbankState.sessionActive = false;
+            qbankState.session = null;
+            showQbankAlert('QBank progress reset.');
+            renderQbank();
+        }
+
+        function formatSeconds(totalSeconds = 0) {
+            const sec = Math.max(0, Number(totalSeconds) || 0);
+            const minutes = Math.floor(sec / 60);
+            const seconds = sec % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateSessionTimerDisplay() {
+            const timerEl = document.getElementById('qbank-timer');
+            const session = qbankState.session;
+            if (!timerEl) return;
+            if (!session || !session.timed || !Number.isFinite(session.secondsLeft)) {
+                timerEl.textContent = '';
+                return;
+            }
+            timerEl.textContent = formatSeconds(session.secondsLeft);
+        }
+
+        function stopSessionTimer() {
+            const session = qbankState.session;
+            if (session && session.timerId) {
+                clearInterval(session.timerId);
+                session.timerId = null;
+            }
+        }
+
+        function startSessionTimer() {
+            const session = qbankState.session;
+            if (!session || !session.timed) return;
+            stopSessionTimer();
+            session.startedAt = Date.now();
+            if (!Number.isFinite(session.secondsLeft)) {
+                session.secondsLeft = session.totalSeconds;
+            }
+            session.timerId = setInterval(() => {
+                if (!qbankState.session || qbankState.session !== session) {
+                    clearInterval(session.timerId);
+                    session.timerId = null;
+                    return;
+                }
+                session.secondsLeft = Math.max(0, (session.secondsLeft || 0) - 1);
+                updateSessionTimerDisplay();
+                if (session.secondsLeft === 0 && !session.finished) {
+                    stopSessionTimer();
+                    showQbankAlert('Time is up — test submitted.');
+                    finishQbankSession({ reason: 'timeout' });
+                }
+            }, 1000);
+            updateSessionTimerDisplay();
+        }
+
+        function countUnansweredQuestions(session) {
+            return session.questions.reduce((total, q) => {
+                const resp = session.responses[q.id];
+                return total + (resp && resp.choice != null ? 0 : 1);
+            }, 0);
+        }
+
+        function gradeQbankSession(session) {
+            const summary = {
+                total: session.questions.length,
+                correct: 0,
+                incorrect: 0,
+                omitted: 0
+            };
+            session.responses = session.responses || {};
+            session.answersById = session.answersById || {};
+            session.answeredById = session.answeredById || {};
+            session.gradedById = session.gradedById || {};
+            session.questions.forEach((question) => {
+                const resp = session.responses[question.id] || {};
+                const storedChoice = resp.choice != null ? resp.choice : (session.answersById[question.id] ?? null);
+                const answered = storedChoice != null;
+                let status = 'omitted';
+                if (answered) {
+                    status = storedChoice === question.answer ? 'correct' : 'incorrect';
+                }
+                session.responses[question.id] = resp;
+                session.answersById[question.id] = storedChoice;
+                session.answeredById[question.id] = answered;
+                resp.choice = storedChoice;
+                resp.correct = status === 'correct'
+                    ? true
+                    : (status === 'incorrect' ? false : null);
+                session.gradedById[question.id] = {
+                    status,
+                    choice: storedChoice,
+                    correctAnswer: question.answer
+                };
+                summary[status] += 1;
+            });
+            const usedSeconds = session.totalSeconds
+                ? session.totalSeconds - (session.secondsLeft ?? session.totalSeconds)
+                : (session.startedAt ? Math.floor((Date.now() - session.startedAt) / 1000) : null);
+            summary.percent = summary.total ? Math.round((summary.correct / summary.total) * 100) : 0;
+            summary.timeUsedSeconds = usedSeconds;
+            return summary;
+        }
+
+        function applyResultsToProgress(session) {
+            if (!session.gradedById) return;
+            Object.entries(session.gradedById).forEach(([id, result]) => {
+                applySingleQuestionResultToProgress(id, result.status);
+            });
+        }
+
+        function applySingleQuestionResultToProgress(id, status) {
+            if (!id) return;
+            switch (status) {
+                case 'correct':
+                    setQuestionStatus(id, 'correct');
+                    break;
+                case 'incorrect':
+                    setQuestionStatus(id, 'incorrect');
+                    break;
+                case 'omitted':
+                default:
+                    setQuestionStatus(id, 'omitted');
+                    break;
+            }
+        }
+
+        function finishQbankSession({ reason = 'user' } = {}) {
+            const session = qbankState.session;
+            if (!session || session.finished) return;
+            stopSessionTimer();
+            const summary = gradeQbankSession(session);
+            session.finished = true;
+            session.reviewUnlocked = true;
+            session.resultsSummary = summary;
+            applyResultsToProgress(session);
+            renderQbank();
+        }
+
+        function canRevealForQuestion(qid) {
+            const session = qbankState.session;
+            if (!session || !qid) return false;
+            if (session.reviewUnlocked) return true;
+            if (session.mode === 'test') return false;
+            return !!session.answeredById?.[qid];
+        }
+
+        function canShowExplanation(qid) {
+            return canRevealForQuestion(qid);
+        }
 
         function createQbankTopics() {
             const topics = {};
@@ -3453,37 +4185,202 @@
             }));
         }
 
+        function normalizeQbankChoices(raw) {
+            if (!raw) return {};
+            if (Array.isArray(raw)) {
+                const letters = ['A', 'B', 'C', 'D', 'E'];
+                const obj = {};
+                raw.forEach((choice, idx) => {
+                    const key = letters[idx] || String(idx + 1);
+                    obj[key] = choice;
+                });
+                return obj;
+            }
+            if (typeof raw === 'object') {
+                return { ...raw };
+            }
+            return {};
+        }
+
+        function updateQbankMetaCounts() {
+            const categoryCounts = {};
+            qbankQuestions.forEach((question) => {
+                const category = question.category || 'General';
+                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            });
+
+            Object.entries(categoryCounts).forEach(([category, count]) => {
+                if (!qbankState.topics[category]) {
+                    qbankState.topics[category] = { selected: false, count };
+                } else {
+                    qbankState.topics[category].count = count;
+                }
+            });
+
+            Object.keys(qbankState.topics).forEach((category) => {
+                if (!categoryCounts[category]) {
+                    qbankState.topics[category].count = 0;
+                }
+            });
+
+            if (Array.isArray(qbankState.systemsTree) && qbankState.systemsTree.length) {
+                const root = qbankState.systemsTree[0];
+                root.count = qbankQuestions.length;
+                root.children.forEach((child) => {
+                    child.count = categoryCounts[child.name] || child.count || 0;
+                });
+            }
+        }
+
+        function showQbankAlert(message) {
+            if (!qbankAlert) return;
+            if (!message) {
+                qbankAlert.style.display = 'none';
+                qbankAlert.textContent = '';
+                return;
+            }
+            qbankAlert.textContent = message;
+            qbankAlert.style.display = 'block';
+        }
+
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function getFilteredQbankQuestions() {
+            if (!qbankQuestions.length) return [];
+            let activeStatuses = Object.entries(qbankState.sources)
+                .filter(([, enabled]) => enabled)
+                .map(([key]) => key);
+            if (!activeStatuses.length) {
+                activeStatuses = ['unused'];
+            }
+            const markedFilterOn = activeStatuses.includes('marked');
+            const statusFilters = activeStatuses.filter((key) => key !== 'marked');
+            const selectedTopics = Object.entries(qbankState.topics)
+                .filter(([, meta]) => meta.selected)
+                .map(([key]) => key);
+            const hasStatusFilter = statusFilters.length > 0;
+            return qbankQuestions.filter((question) => {
+                const questionStatus = getQuestionStatus(question.id);
+                if (hasStatusFilter && !statusFilters.includes(questionStatus)) {
+                    return false;
+                }
+                if (!hasStatusFilter && !markedFilterOn && questionStatus !== 'unused') {
+                    return false;
+                }
+                if (markedFilterOn && !isQuestionMarked(question.id)) {
+                    return false;
+                }
+                if (selectedTopics.length && !selectedTopics.includes(question.category)) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        async function loadQbankFile(url, sourceMeta) {
+            if (!sourceMeta?.key) return;
+            const sourceKey = sourceMeta.key;
+            const label = sourceMeta.label || sourceKey;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const payload = await response.json();
+                if (!Array.isArray(payload)) return;
+                let added = 0;
+                let progressDirty = false;
+                payload.forEach((item, idx) => {
+                    const rawId = item.id != null ? String(item.id) : '';
+                    const id = rawId || safeHashId(item.stem || item.question || JSON.stringify(item), idx + qbankQuestions.length);
+                    if (!id) return;
+                    if (qbankQuestionIndex.has(id)) {
+                        if (!qbankDuplicateWarnings.has(id)) {
+                            console.warn(`[QBank] Duplicate question id ${id} ignored from ${url}`);
+                            qbankDuplicateWarnings.add(id);
+                        }
+                        return;
+                    }
+                    const normalized = {
+                        id,
+                        source: sourceKey,
+                        category: item.category || 'General',
+                        stem: item.stem || item.question || '',
+                        choices: normalizeQbankChoices(item.choices),
+                        answer: item.answer,
+                        explanation: item.explanation || '',
+                        tags: Array.isArray(item.tags) ? [...item.tags] : []
+                    };
+                    qbankQuestionIndex.set(id, normalized);
+                    qbankQuestions.push(normalized);
+                    if (!qbankProgress.statusById[id]) {
+                        qbankProgress.statusById[id] = 'unused';
+                        progressDirty = true;
+                    }
+                    added += 1;
+                });
+                if (progressDirty) {
+                    saveQbankProgress();
+                }
+                updateQbankMetaCounts();
+                updateQbankSourceCounts();
+                showQbankAlert('');
+                renderQbank();
+                qbankLog('loadQbankFile:loaded', { source: sourceKey, added, total: qbankQuestions.length });
+            } catch (err) {
+                console.error(`Failed to load ${url}`, err);
+                showQbankAlert(`Unable to load ${label}. Some QBank questions may be missing.`);
+            }
+        }
+
         function createInitialQbankState() {
+            const baseSources = {
+                unused: true,
+                incorrect: false,
+                marked: false,
+                omitted: false,
+                correct: false
+            };
             return {
                 mode: 'tutor',
                 timing: 'untimed',
-                sources: {
-                    unused: true,
-                    incorrect: false,
-                    marked: false,
-                    omitted: false,
-                    correct: false
-                },
+                sources: baseSources,
                 topics: createQbankTopics(),
                 systemsTree: createQbankSystems(),
-                questionPreset: 20,
-                customCount: 20,
+                questionCount: 20,
                 sessionActive: false
             };
         }
 
         let qbankState = createInitialQbankState();
+        updateQbankSourceCounts();
 
-        function getSelectedQuestionCount() {
-            return qbankState.questionPreset === 'custom'
-                ? Math.max(5, Math.min(120, qbankState.customCount || 10))
-                : qbankState.questionPreset;
+        function resetQbankState() {
+            stopSessionTimer();
+            qbankState = createInitialQbankState();
+            updateQbankMetaCounts();
+            const poolSize = getFilteredQbankQuestions().length;
+            qbankState.questionCount = poolSize ? Math.min(20, poolSize) : 1;
+        }
+
+        function getSelectedQuestionCount(poolSizeOverride = null) {
+            const poolSize = poolSizeOverride ?? getFilteredQbankQuestions().length;
+            if (poolSize <= 0) return 0;
+            const desired = Number.isFinite(qbankState.questionCount) ? qbankState.questionCount : 20;
+            return Math.min(Math.max(1, desired), poolSize);
         }
 
         function getSelectedSources() {
             return Object.entries(qbankState.sources)
                 .filter(([, val]) => val)
-                .map(([key]) => QBANK_SOURCE_OPTIONS[key].label);
+                .map(([key]) => QBANK_SOURCE_OPTIONS[key]?.label || key);
         }
 
         function getSelectedTopics() {
@@ -3492,7 +4389,147 @@
                 .map(([key]) => key);
         }
 
+        function getCurrentSessionQuestion() {
+            const session = qbankState.session;
+            if (!session || !session.questions?.length) return null;
+            return session.questions[session.index] || null;
+        }
+
+        function startQbankSession() {
+            qbankLog('startQbankSession:handler');
+            const availableQuestions = getFilteredQbankQuestions();
+            const poolSize = availableQuestions.length;
+            if (!poolSize) {
+                showQbankAlert('No questions available for the selected filters.');
+                return;
+            }
+            const limit = getSelectedQuestionCount(poolSize);
+            if (!limit) {
+                showQbankAlert('Unable to determine question count for this session.');
+                return;
+            }
+            qbankState.questionCount = limit;
+            const queue = shuffleArray(availableQuestions).slice(0, limit);
+            qbankState.session = {
+                questions: queue,
+                index: 0,
+                responses: {},
+                answersById: {},
+                answeredById: {},
+                mode: qbankState.mode,
+                timed: qbankState.timing === 'timed',
+                totalSeconds: qbankState.timing === 'timed' ? limit * 120 : null,
+                secondsLeft: qbankState.timing === 'timed' ? limit * 120 : null,
+                timerId: null,
+                finished: false,
+                reviewUnlocked: false,
+                resultsSummary: null,
+                gradedById: {},
+                startedAt: Date.now()
+            };
+            qbankState.sessionActive = true;
+            showQbankAlert('');
+            startSessionTimer();
+            renderQbank();
+        }
+
+        function endQbankSession() {
+            stopSessionTimer();
+            qbankState.sessionActive = false;
+            qbankState.session = null;
+            renderQbank();
+        }
+
+        function handleQbankSubmit() {
+            const session = qbankState.session;
+            if (!session) return;
+            if (session.finished) return;
+            const question = getCurrentSessionQuestion();
+            if (!question) return;
+            const choiceInput = qbankRoot.querySelector('input[name="qbank-choice"]:checked');
+            if (!choiceInput) {
+                showQbankAlert('Select an answer before submitting.');
+                return;
+            }
+            showQbankAlert('');
+            const qid = question.id;
+            const choice = choiceInput.value;
+            const correct = choice === question.answer;
+            session.responses[qid] = session.responses[qid] || {};
+            session.responses[qid].choice = choice;
+            if (session.mode === 'tutor' || session.reviewUnlocked) {
+                session.responses[qid].correct = correct;
+            } else {
+                session.responses[qid].correct = null;
+            }
+            session.answersById[qid] = choice;
+            session.answeredById[qid] = true;
+            if (session.mode === 'tutor' || session.reviewUnlocked) {
+                const status = correct ? 'correct' : 'incorrect';
+                session.gradedById[qid] = {
+                    status,
+                    choice,
+                    correctAnswer: question.answer
+                };
+                applySingleQuestionResultToProgress(qid, status);
+            }
+            qbankLog('handleQbankSubmit', { questionId: question.id, choice, correct });
+            renderQbank();
+        }
+
+        function handleQbankNext() {
+            const session = qbankState.session;
+            if (!session) return;
+            if (session.finished) return;
+            if (session.mode === 'tutor') {
+                const question = getCurrentSessionQuestion();
+                if (question && !session.answeredById?.[question.id]) {
+                    session.responses[question.id] = session.responses[question.id] || {};
+                    session.responses[question.id].choice = null;
+                    session.responses[question.id].correct = false;
+                    session.gradedById[question.id] = {
+                        status: 'omitted',
+                        choice: null,
+                        correctAnswer: question.answer
+                    };
+                    session.answeredById[question.id] = false;
+                    applySingleQuestionResultToProgress(question.id, 'omitted');
+                }
+            }
+            if (session.index < session.questions.length - 1) {
+                session.index += 1;
+                qbankLog('handleQbankNext', { index: session.index });
+                renderQbank();
+            }
+        }
+
+        function handleQbankToggleMark() {
+            const question = getCurrentSessionQuestion();
+            if (!question) return;
+            toggleQuestionMarked(question.id);
+            renderQbank();
+        }
+
+        function handleQbankFinishButtonClick() {
+            const session = qbankState.session;
+            if (!session) {
+                endQbankSession();
+                return;
+            }
+            if (session.finished) {
+                endQbankSession();
+                return;
+            }
+            const unanswered = countUnansweredQuestions(session);
+            if (session.mode === 'test' && unanswered > 0) {
+                const ok = window.confirm(`You have ${unanswered} unanswered question${unanswered === 1 ? '' : 's'}. Finish anyway?`);
+                if (!ok) return;
+            }
+            finishQbankSession({ reason: 'user' });
+        }
+
         function renderQbank() {
+            qbankLog('renderQbank:start', { sessionActive: qbankState.sessionActive, totalQuestions: qbankQuestions.length });
             if (!qbankRoot) return;
             qbankRoot.innerHTML = qbankState.sessionActive
                 ? renderQbankSessionView()
@@ -3502,9 +4539,12 @@
             } else {
                 attachQbankBuilderEvents();
             }
+            updateSessionTimerDisplay();
+            qbankLog('renderQbank:end');
         }
 
         function renderQbankBuilderView() {
+            qbankLog('renderQbankBuilderView:start');
             const modeButtons = ['tutor', 'test']
                 .map(mode => `<button class="qbank-seg-btn ${qbankState.mode === mode ? 'active' : ''}" data-qbank-mode="${mode}">${mode === 'tutor' ? 'Tutor Mode' : 'Test Mode'}</button>`)
                 .join('');
@@ -3544,22 +4584,35 @@
                     </div>` : ''}
                 </div>
             `).join('');
-            const countPresets = [10, 20, 40, 'custom'];
-            const countButtons = countPresets.map(preset => `
-                <button class="qbank-count-btn ${qbankState.questionPreset === preset ? 'active' : ''}" data-qbank-count="${preset}">
-                    ${preset === 'custom' ? 'Custom' : preset}
-                </button>
-            `).join('');
-            const customInput = qbankState.questionPreset === 'custom'
-                ? `<input type="number" min="5" max="120" id="qbank-custom-count" class="qbank-custom-input" value="${qbankState.customCount}">`
-                : '';
             const selectedSources = getSelectedSources();
             const selectedTopics = getSelectedTopics();
-            const questionCount = getSelectedQuestionCount();
-            const timeEstimate = qbankState.timing === 'timed'
+            const filteredQuestions = getFilteredQbankQuestions();
+            const poolSize = filteredQuestions.length;
+            if (poolSize > 0) {
+                const defaultCount = Math.min(20, poolSize);
+                if (!Number.isFinite(qbankState.questionCount) || qbankState.questionCount < 1) {
+                    qbankState.questionCount = defaultCount;
+                } else if (qbankState.questionCount > poolSize) {
+                    qbankState.questionCount = poolSize;
+                }
+            }
+            const questionCount = getSelectedQuestionCount(poolSize);
+            const timeEstimate = poolSize && qbankState.timing === 'timed'
                 ? `~${Math.max(10, Math.round(questionCount * 1.2))} min`
-                : 'Untimed';
-            return `
+                : (poolSize ? 'Untimed' : 'N/A');
+            const previewQuestions = filteredQuestions.slice(0, 5);
+            const previewHtml = previewQuestions.length
+                ? `<div class="qbank-section-title" style="margin-top:16px;">Preview (${previewQuestions.length >= 5 ? 'First 5' : previewQuestions.length})</div>
+                    <ol style="padding-left:20px; color:var(--muted); font-size:0.9rem;">
+                        ${previewQuestions.map(q => `<li style="margin-bottom:6px;">${q.stem?.slice(0, 140) || 'Untitled question'}${q.stem && q.stem.length > 140 ? '…' : ''}</li>`).join('')}
+                    </ol>`
+                : `<div class="qbank-section-title" style="margin-top:16px;">Preview</div>
+                    <p class="muted-text">No questions available with the current filters.</p>`;
+            qbankLog('renderQbankBuilderView:preview', { count: previewQuestions.length });
+            const maxLabel = poolSize ? `<p class="muted-text" id="qbank-max-label">Max available: ${poolSize}</p>` : `<p class="muted-text">No questions available with the current filters.</p>`;
+            const startDisabled = poolSize === 0;
+            const startButtonLabel = startDisabled ? 'Start Session' : `Start Session (${questionCount} Qs)`;
+            const html = `
                 <div class="qbank-grid">
                     <div class="qbank-panel">
                         <div>
@@ -3598,56 +4651,178 @@
                                 <div style="margin-top:6px;">
                                     ${selectedTopics.length ? selectedTopics.map(topic => `<span class="qbank-chip">${topic}</span>`).join('') : '<span class="qbank-chip">No topics selected</span>'}
                                 </div>
+                                <p class="muted-text" style="margin-top:8px;">Progress is saved on this device (browser local storage).</p>
                             </div>
                             <div>
                                 <div class="qbank-section-title">Question Count</div>
-                                <div class="qbank-count-options">
-                                    ${countButtons}
-                                    ${customInput}
-                                </div>
+                                <input type="number" id="qbankQuestionCountInput" class="qbank-custom-input" min="1" ${poolSize ? `max="${poolSize}"` : ''} value="${poolSize ? questionCount : ''}" ${poolSize ? '' : 'disabled'}>
+                                ${maxLabel}
                                 <div class="muted-text" style="margin-top:6px;">Estimated time: ${timeEstimate}</div>
                             </div>
                             <div class="qbank-session-actions">
-                                <button id="qbank-start-btn" class="btn btn-primary">Start Session (${questionCount} Qs)</button>
+                                <button id="qbank-start-btn" class="btn btn-primary" ${startDisabled ? 'disabled' : ''}>${startButtonLabel}</button>
                                 <button id="qbank-reset-btn" class="btn btn-ghost">Reset Filters</button>
+                                <button id="qbank-reset-data-btn" class="btn btn-danger" type="button">Reset QBank Data</button>
                             </div>
+                            ${previewHtml}
                         </div>
                     </div>
                 </div>
             `;
+            qbankLog('renderQbankBuilderView:end');
+            return html;
         }
 
         function renderQbankSessionView() {
-            const summary = [
-                qbankState.mode === 'tutor' ? 'Tutor Mode' : 'Test Mode',
-                qbankState.timing === 'timed' ? 'Timed' : 'Untimed',
-                `${getSelectedQuestionCount()} questions`
-            ];
-            const sources = getSelectedSources();
-            const topics = getSelectedTopics();
+            const session = qbankState.session;
+            if (!session || !session.questions?.length) {
+                return `
+                    <div class="qbank-session-card">
+                        <p>No questions loaded for this session.</p>
+                        <div class="qbank-session-actions">
+                            <button class="btn btn-ghost" id="qbank-edit-btn">Back to Builder</button>
+                        </div>
+                </div>
+            `;
+        }
+            const question = getCurrentSessionQuestion();
+            if (!question) {
+                return `
+                    <div class="qbank-session-card">
+                        <p>Unable to load the current question.</p>
+                        <div class="qbank-session-actions">
+                            <button class="btn btn-ghost" id="qbank-edit-btn">Back to Builder</button>
+                        </div>
+                    </div>
+                `;
+            }
+            qbankLog('renderQbankSessionView:question', { id: question.id, index: session.index });
+            qbankLog('renderQbankSessionView:question', { id: question.id, index: session.index });
+            const response = session.responses[question.id] || {};
+            const marked = isQuestionMarked(question.id);
+            const reveal = canRevealForQuestion(question.id);
+            const showExplanation = canShowExplanation(question.id);
+            const graded = session.gradedById?.[question.id] || null;
+            const selectedChoice = response.choice ?? session.answersById?.[question.id] ?? null;
+            const hasChoice = selectedChoice != null;
+            const answered = !!session.answeredById?.[question.id];
+            let feedbackText = '';
+            if (reveal && graded) {
+                if (graded.status === 'correct') {
+                    feedbackText = '✅ Correct';
+                } else if (graded.status === 'incorrect') {
+                    feedbackText = `❌ Incorrect. Correct answer: ${question.answer}`;
+                } else {
+                    feedbackText = '⏭ Omitted';
+                }
+            }
+            const explanation = reveal && showExplanation && question.explanation ? question.explanation : '';
+            const answerReview = reveal
+                ? `<div class="muted-text" style="margin-top:4px;">
+                        Your answer: ${hasChoice ? selectedChoice : 'Omitted'}<br>
+                        Correct answer: ${question.answer}
+                   </div>`
+                : '';
+            const feedbackColor = graded?.status === 'correct'
+                ? '#15803d'
+                : (graded?.status === 'incorrect' ? '#b91c1c' : '#475569');
+            const disableChoices = session.finished || (session.mode === 'tutor' && answered);
+            const choicesHtml = Object.entries(question.choices || {}).map(([letter, text]) => {
+                const inputId = `qbank-choice-${letter}`;
+                const checked = selectedChoice === letter ? 'checked' : '';
+                const disabled = disableChoices ? 'disabled' : '';
+                const highlight = reveal && letter === question.answer
+                    ? 'style="background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.6);"'
+                    : '';
+                return `
+                    <label class="answer-label" ${highlight}>
+                        <input type="radio" name="qbank-choice" value="${letter}" id="${inputId}" ${checked} ${disabled}>
+                        <span><strong>${letter}.</strong> ${text}</span>
+                    </label>
+                `;
+            }).join('');
+            const summaryHtml = session.finished && session.resultsSummary
+                ? `<div class="qbank-session-card" style="margin-bottom:16px;">
+                        <div class="qbank-section-title">Results Summary</div>
+                        <p style="font-weight:600; font-size:1.1rem;">Score: ${session.resultsSummary.correct}/${session.resultsSummary.total} (${session.resultsSummary.percent}%)</p>
+                        <div class="qbank-chip">Correct: ${session.resultsSummary.correct}</div>
+                        <div class="qbank-chip">Incorrect: ${session.resultsSummary.incorrect}</div>
+                        <div class="qbank-chip">Omitted: ${session.resultsSummary.omitted}</div>
+                        ${session.resultsSummary.timeUsedSeconds != null ? `<p class="muted-text" style="margin-top:6px;">Time used: ${formatSeconds(session.resultsSummary.timeUsedSeconds)}</p>` : ''}
+                   </div>`
+                : '';
+            const navButtons = session.questions.map((q, idx) => {
+                const resp = session.responses[q.id] || {};
+                const gradedMeta = session.gradedById?.[q.id] || null;
+                const answeredQuestion = !!session.answeredById?.[q.id];
+                let stateClass = '';
+                if (session.reviewUnlocked && gradedMeta) {
+                    if (gradedMeta.status === 'correct') stateClass = 'correct';
+                    else if (gradedMeta.status === 'incorrect') stateClass = 'incorrect';
+                    else stateClass = 'omitted';
+                } else if (session.mode === 'tutor' && gradedMeta) {
+                    if (gradedMeta.status === 'correct') stateClass = 'correct';
+                    else if (gradedMeta.status === 'incorrect') stateClass = 'incorrect';
+                    else stateClass = 'omitted';
+                } else if (session.mode === 'test' && answeredQuestion) {
+                    stateClass = 'answered';
+                }
+                const activeClass = idx === session.index ? 'active' : '';
+                const flagged = isQuestionMarked(q.id);
+                return `<button type="button" class="qbank-nav-button ${stateClass} ${activeClass}" data-nav-index="${idx}">
+                    ${idx + 1}
+                    ${flagged ? '<span class="qbank-nav-flag">⚑</span>' : ''}
+                </button>`;
+            }).join('');
+            const showTimer = session.timed;
+            const timerHtml = showTimer ? `<div class="qbank-chip" id="qbank-timer">${formatSeconds(session.secondsLeft ?? session.totalSeconds)}</div>` : '';
+            const finishBtnLabel = session.finished ? 'Back to Builder' : (session.mode === 'test' ? 'Finish Test' : 'End Session');
+            const nextDisabled = session.index >= session.questions.length - 1 || session.finished;
             return `
-                <div class="qbank-session-card">
+                <div class="qbank-session-layout">
                     <div>
-                        <h3 style="margin-top:0;">Session Placeholder</h3>
-                        <p>This is where questions will appear once the QBank engine is connected.</p>
-                    </div>
-                    <div>
-                        <div class="qbank-section-title">Selected Settings</div>
-                        <div>
-                            ${summary.map(item => `<span class="qbank-chip">${item}</span>`).join('')}
+                        ${summaryHtml}
+                        <div class="qbank-session-card">
+                            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between;">
+                                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                                    <span class="qbank-chip">${session.mode === 'tutor' ? 'Tutor Mode' : 'Test Mode'}</span>
+                                    <span class="qbank-chip">${session.timed ? 'Timed' : 'Untimed'}</span>
+                                    ${timerHtml}
+                                </div>
+                                <button class="btn btn-danger" id="qbank-finish-btn">${finishBtnLabel}</button>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-top:12px;">
+                                <div>
+                                    <div class="qbank-section-title">Question ${session.index + 1} of ${session.questions.length}</div>
+                                    <p class="muted-text" style="margin-bottom:6px;">Category: ${question.category || 'General'}</p>
+                                </div>
+                                <button class="btn btn-ghost" id="qbank-mark-btn" type="button" style="min-width:90px;" ${marked ? 'data-active="true"' : ''}>
+                                    ${marked ? 'Unmark' : 'Mark'}
+                                </button>
+                            </div>
+                            <div>
+                                <div class="question-container" style="padding:16px; background:var(--surface); border-radius:12px; border:1px solid var(--border);">
+                                    <p class="question-text" style="font-weight:600;">${question.stem || 'Untitled question'}</p>
+                                    <div class="answer-options" style="display:grid; gap:8px; margin-top:12px;">
+                                        ${choicesHtml}
+                                    </div>
+                                    ${feedbackText ? `<div id="qbank-feedback" style="margin-top:12px; font-weight:600; color:${feedbackColor};">${feedbackText}</div>` : ''}
+                                    ${answerReview}
+                                    ${explanation ? `<div class="muted-text" style="margin-top:6px;">${explanation}</div>` : ''}
+                                </div>
+                            </div>
+                            <div class="qbank-session-actions">
+                                <button class="btn btn-primary" id="qbank-submit-btn" ${disableChoices ? 'disabled' : ''}>Submit</button>
+                                <button class="btn btn-ghost" id="qbank-next-btn" ${nextDisabled ? 'disabled' : ''}>Next</button>
+                            </div>
                         </div>
-                        <div style="margin-top:8px;">
-                            <strong>Sources:</strong> ${sources.length ? sources.join(', ') : 'None'}
-                        </div>
-                        <div style="margin-top:4px;">
-                            <strong>Topics:</strong> ${topics.length ? topics.join(', ') : 'None'}
-                        </div>
                     </div>
-                    <div class="qbank-session-actions">
-                        <button class="btn btn-primary" id="qbank-begin-btn" disabled>Begin (Coming Soon)</button>
-                        <button class="btn btn-ghost" id="qbank-edit-btn">Edit Settings</button>
-                        <button class="btn btn-danger" id="qbank-end-btn">End Session</button>
-                    </div>
+                    <aside class="qbank-nav">
+                        <div class="qbank-nav-title">Question Navigator</div>
+                        <div class="qbank-nav-list">
+                            ${navButtons}
+                        </div>
+                    </aside>
                 </div>
             `;
         }
@@ -3693,54 +4868,73 @@
                     renderQbank();
                 });
             }
-            qbankRoot.querySelectorAll('[data-qbank-count]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const val = btn.dataset.qbankCount;
-                    qbankState.questionPreset = val === 'custom' ? 'custom' : Number(val);
-                    renderQbank();
-                });
-            });
-            const customInput = qbankRoot.querySelector('#qbank-custom-count');
-            if (customInput) {
-                customInput.addEventListener('input', (e) => {
-                    qbankState.customCount = Number(e.target.value || 0);
-                });
-                customInput.addEventListener('change', () => renderQbank());
-            }
             const startBtn = qbankRoot.querySelector('#qbank-start-btn');
             if (startBtn) {
-                startBtn.addEventListener('click', () => {
-                    qbankState.sessionActive = true;
-                    renderQbank();
-                });
+                startBtn.addEventListener('click', startQbankSession);
             }
             const resetBtn = qbankRoot.querySelector('#qbank-reset-btn');
             if (resetBtn) {
                 resetBtn.addEventListener('click', () => {
-                    qbankState = createInitialQbankState();
+                    resetQbankState();
                     renderQbank();
+                });
+            }
+            const resetDataBtn = qbankRoot.querySelector('#qbank-reset-data-btn');
+            if (resetDataBtn) {
+                resetDataBtn.addEventListener('click', resetQbankDataWithConfirm);
+            }
+            const countInput = qbankRoot.querySelector('#qbankQuestionCountInput');
+            if (countInput) {
+                countInput.addEventListener('input', () => {
+                    const value = Number.parseInt(countInput.value, 10);
+                    const poolSize = getFilteredQbankQuestions().length;
+                    const clamped = poolSize ? Math.min(Math.max(1, Number.isFinite(value) ? value : 1), poolSize) : 0;
+                    if (clamped) {
+                        qbankState.questionCount = clamped;
+                    }
+                    const startButton = qbankRoot.querySelector('#qbank-start-btn');
+                    if (startButton && poolSize) {
+                        startButton.textContent = `Start Session (${clamped} Qs)`;
+                    }
+                });
+                countInput.addEventListener('blur', () => {
+                    const poolSize = getFilteredQbankQuestions().length;
+                    if (!poolSize) return;
+                    const clamped = getSelectedQuestionCount(poolSize);
+                    qbankState.questionCount = clamped;
+                    countInput.value = clamped;
+                    const startButton = qbankRoot.querySelector('#qbank-start-btn');
+                    if (startButton) {
+                        startButton.textContent = `Start Session (${clamped} Qs)`;
+                    }
                 });
             }
         }
 
         function attachQbankSessionEvents() {
-            const endBtn = qbankRoot.querySelector('#qbank-end-btn');
-            if (endBtn) {
-                endBtn.addEventListener('click', () => {
-                    qbankState = createInitialQbankState();
-                    renderQbank();
-                });
-            }
+            const submitBtn = qbankRoot.querySelector('#qbank-submit-btn');
+            if (submitBtn) submitBtn.addEventListener('click', handleQbankSubmit);
+            const nextBtn = qbankRoot.querySelector('#qbank-next-btn');
+            if (nextBtn) nextBtn.addEventListener('click', handleQbankNext);
+            const finishBtn = qbankRoot.querySelector('#qbank-finish-btn');
+            if (finishBtn) finishBtn.addEventListener('click', handleQbankFinishButtonClick);
             const editBtn = qbankRoot.querySelector('#qbank-edit-btn');
-            if (editBtn) {
-                editBtn.addEventListener('click', () => {
-                    qbankState.sessionActive = false;
-                    renderQbank();
+            if (editBtn) editBtn.addEventListener('click', endQbankSession);
+            const markBtn = qbankRoot.querySelector('#qbank-mark-btn');
+            if (markBtn) markBtn.addEventListener('click', handleQbankToggleMark);
+            qbankRoot.querySelectorAll('.qbank-nav-button').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const idx = Number(btn.dataset.navIndex);
+                    if (!Number.isNaN(idx) && qbankState.session && idx >= 0 && idx < qbankState.session.questions.length) {
+                        qbankState.session.index = idx;
+                        renderQbank();
+                    }
                 });
-            }
+            });
         }
 
         renderQbank();
+        QBANK_DYNAMIC_SOURCES.forEach((source) => loadQbankFile(source.url, source));
 
         let pvQuizChart;
         let answerOverlayVisible = false;
@@ -3754,8 +4948,6 @@
             conduction: { btn: 'conduction-tab-btn', panel: 'conduction-content' },
             qbank: { btn: 'qbank-tab-btn', panel: 'qbank-content' }
         };
-
-        let ecgInitialized = false;
 
         function activateTab(key) {
             Object.values(tabMap).forEach(({ btn, panel }) => {
@@ -3771,18 +4963,14 @@
                         }
                     });
                 }
-                if (!ecgInitialized) {
-                    initEcgSimulator();
-                    ecgInitialized = true;
+                const ecg12Module = document.getElementById('ecg12Module');
+                if (ecg12Module && ecg12Module.style.display !== 'none') {
+                    initEcg12Once();
+                    requestAnimationFrame(() => window.ecg12SimInstance?.handleResize?.());
+                } else {
+                    initSingleLeadSimulatorOnce();
+                    requestAnimationFrame(() => window.ecgSimInstance?.handleResize?.());
                 }
-                // Run after layout so canvases pick up real width/height
-                requestAnimationFrame(() => {
-                    if (window.ecgSimInstance && typeof window.ecgSimInstance.handleResize === 'function') {
-                        window.ecgSimInstance.handleResize();
-                        window.ecgSimInstance.reset();
-                        window.ecgSimInstance.play();
-                    }
-                });
             }
         }
 
@@ -4214,193 +5402,6 @@
             }
         }
 
-        // ECG simulator wiring (conduction tab)
-        function initEcgSimulator() {
-            const bgCanvas = document.getElementById('ecgBackground');
-            const traceCanvas = document.getElementById('ecgTrace');
-            if (!bgCanvas || !traceCanvas || typeof EcgSimulator === 'undefined') return;
-
-            // Avoid double-init if something calls this twice
-            if (window.ecgSimInstance) {
-                return;
-            }
-
-            const ecgSim = new EcgSimulator(bgCanvas, traceCanvas, {
-                displayTime: 5,
-                heartRate: 75,
-                speed: 25
-            });
-            window.ecgSimInstance = ecgSim;
-
-            const heartRateInput = document.getElementById('ecgHeartRate');
-            const displayTimeSelect = document.getElementById('ecgDisplayTime');
-    const speedSelect = document.getElementById('ecgSpeed');
-    const highlightP = document.getElementById('ecgHighlightP');
-    const highlightQRS = document.getElementById('ecgHighlightQRS');
-    const highlightT = document.getElementById('ecgHighlightT');
-    const prSlider = document.getElementById('ecgPR');
-    const qrsSlider = document.getElementById('ecgQRS');
-    const qtSlider = document.getElementById('ecgQT');
-    const prValue = document.getElementById('ecgPRValue');
-    const qrsValue = document.getElementById('ecgQRSValue');
-    const qtValue = document.getElementById('ecgQTValue');
-    const playBtn = document.getElementById('ecgPlay');
-    const pauseBtn = document.getElementById('ecgPause');
-    const resetBtn = document.getElementById('ecgReset');
-    const rhythmSelect = document.getElementById('rhythmPreset');
-
-    // Physiologic-ish QT limits
-    const QT_MIN_MS = 300;
-    const QT_MAX_MS = 600;
-
-    const ecgState = {
-        heartRate: 75,
-        prMs: 160,
-        qrsMs: 90,
-        qtMs: 400
-    };
-
-    const sliderConstraints = {
-        heartRate: { min: 40, max: 180 },
-        pr: { min: 80, max: 320 },
-        qrs: { min: 60, max: 200 },
-        qt: { min: QT_MIN_MS, max: QT_MAX_MS }
-    };
-
-    const rhythmPresets = {
-        sinus: { hr: 75, pr: 160, qrs: 90, qt: 400, lockPR: false, lockQRS: false },
-        avb1: { hr: 70, pr: 240, qrs: 90, qt: 400, lockPR: true, lockQRS: false },
-        avb2_mobitz1: { hr: 70, pr: 220, qrs: 90, qt: 400, lockPR: true, lockQRS: false },
-        avb2_mobitz2: { hr: 55, pr: 180, qrs: 140, qt: 420, lockPR: true, lockQRS: true },
-        avb3: { hr: 35, pr: 160, qrs: 160, qt: 420, lockPR: true, lockQRS: true },
-        afib: { hr: 110, pr: null, qrs: 90, qt: 380, lockPR: true, lockQRS: false },
-        vtach: { hr: 180, pr: null, qrs: 160, qt: 320, lockPR: true, lockQRS: true }
-    };
-
-    const clamp = (val, { min, max }) => Math.min(Math.max(val, min), max);
-    const clampQt = (val) => Math.min(QT_MAX_MS, Math.max(QT_MIN_MS, val));
-
-    const updateValueDisplays = () => {
-        prValue.textContent = ecgState.prMs == null ? '—' : ecgState.prMs;
-        qrsValue.textContent = ecgState.qrsMs;
-        qtValue.textContent = ecgState.qtMs;
-    };
-
-    heartRateInput.value = ecgState.heartRate;
-    prSlider.value = ecgState.prMs;
-    qrsSlider.value = ecgState.qrsMs;
-    qtSlider.value = ecgState.qtMs;
-    updateValueDisplays();
-
-    function applyRhythmPreset(key) {
-        const preset = rhythmPresets[key];
-        if (!preset) return;
-
-        ecgSim.setRhythm(key);
-
-        const hr = clamp(preset.hr, sliderConstraints.heartRate);
-        ecgState.heartRate = hr;
-        heartRateInput.value = hr;
-        ecgSim.setHeartRate(hr);
-
-        if (preset.pr === null) {
-            prSlider.disabled = true;
-            prSlider.dataset.isNull = 'true';
-            ecgState.prMs = null;
-        } else {
-            const prVal = clamp(preset.pr, sliderConstraints.pr);
-            prSlider.value = prVal;
-            prSlider.disabled = !!preset.lockPR;
-            prSlider.dataset.isNull = 'false';
-            ecgState.prMs = prVal;
-            ecgSim.setPRIntervalMs(prVal);
-        }
-
-        if (preset.lockQRS) {
-            qrsSlider.disabled = true;
-        } else {
-            qrsSlider.disabled = false;
-        }
-        const clampedQrs = clamp(preset.qrs, sliderConstraints.qrs);
-        qrsSlider.value = clampedQrs;
-        ecgState.qrsMs = clampedQrs;
-        ecgSim.setQRSDurationMs(clampedQrs);
-
-        qtSlider.disabled = false;
-        const clampedQt = clampQt(preset.qt ?? ecgState.qtMs);
-        qtSlider.value = clampedQt;
-        ecgState.qtMs = clampedQt;
-        ecgSim.setQTIntervalMs(clampedQt);
-
-        updateValueDisplays();
-    }
-
-            heartRateInput.addEventListener('change', () => {
-                const bpm = clamp(parseInt(heartRateInput.value, 10) || 0, sliderConstraints.heartRate);
-                heartRateInput.value = bpm;
-                ecgState.heartRate = bpm;
-                ecgSim.setHeartRate(bpm);
-                updateValueDisplays();
-            });
-
-            displayTimeSelect.addEventListener('change', () => {
-                ecgSim.setDisplayTime(parseFloat(displayTimeSelect.value));
-            });
-
-    speedSelect.addEventListener('change', () => {
-        ecgSim.setSpeed(parseInt(speedSelect.value, 10));
-    });
-    if (rhythmSelect) {
-        rhythmSelect.addEventListener('change', (e) => {
-            ecgSim.setRhythm(e.target.value);
-        });
-    }
-    prSlider.addEventListener('input', () => {
-        if (prSlider.disabled) return;
-        const prVal = clamp(parseInt(prSlider.value, 10) || 0, sliderConstraints.pr);
-        prSlider.value = prVal;
-        ecgState.prMs = prVal;
-        ecgSim.setPRIntervalMs(prVal);
-        updateValueDisplays();
-    });
-    qrsSlider.addEventListener('input', () => {
-        if (qrsSlider.disabled) return;
-        const qrsVal = clamp(parseInt(qrsSlider.value, 10) || 0, sliderConstraints.qrs);
-        qrsSlider.value = qrsVal;
-        ecgState.qrsMs = qrsVal;
-        ecgSim.setQRSDurationMs(qrsVal);
-        updateValueDisplays();
-    });
-    qtSlider.addEventListener('input', () => {
-        const qt = clampQt(parseInt(qtSlider.value, 10) || 0);
-        qtSlider.value = qt;
-        ecgState.qtMs = qt;
-        ecgSim.setQTIntervalMs(qt);
-        updateValueDisplays();
-    });
-
-    const updateHighlights = () => {
-        ecgSim.setHighlights({
-            P: highlightP.checked,
-            QRS: highlightQRS.checked,
-                    T: highlightT.checked
-                });
-            };
-
-            highlightP.addEventListener('change', updateHighlights);
-            highlightQRS.addEventListener('change', updateHighlights);
-            highlightT.addEventListener('change', updateHighlights);
-            updateHighlights();
-            if (rhythmSelect) {
-                applyRhythmPreset(rhythmSelect.value);
-                rhythmSelect.addEventListener('change', (e) => applyRhythmPreset(e.target.value));
-            }
-
-            playBtn.addEventListener('click', () => ecgSim.play());
-            pauseBtn.addEventListener('click', () => ecgSim.pause());
-            resetBtn.addEventListener('click', () => ecgSim.reset());
-        }
-        
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeCharts();
