@@ -2443,20 +2443,20 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑↑</span>
-                                <span>Preload (volume overload)</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Forward Stroke Volume</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Effective Afterload</span>
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Total SV (forward + backward)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Total SV (forward + backward)</span>
+                                <span>Backward (LV to LA) flow</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>Forward Stroke Volume (late stage)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑↑</span>
+                                <span>Preload (volume overload)</span>
                             </div>
                         </div>
                         <div class="pathology-description">
@@ -2471,20 +2471,28 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Total SV (forward + regurgitant (Aorta-LV))</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Backward (Aorta to LV) flow</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>Forward Stroke Volume (late stage)</span>
+                            </div>
+                            <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑↑</span>
                                 <span>Preload (volume overload)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Afterload (runoff into LV)</span>
+                                <span>Afterload (runoff into LV and to promote forward flow)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-variable">↔</span>
                                 <span>Contractility (preserved initially)</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Total SV (forward + regurgitant)</span>
                             </div>
                         </div>
                         <div class="pathology-description">
@@ -2560,7 +2568,7 @@
                         <div class="parameter-changes">
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Preload (impaired filling)</span>
+                                <span>Lucitropy/Compliance (impaired filling)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-variable">↔</span>
@@ -2568,11 +2576,11 @@
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Afterload (HTN common)</span>
+                                <span>Preload</span>
                             </div>
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓</span>
-                                <span>LV Compliance</span>
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Afterload (HTN common)</span>
                             </div>
                         </div>
                         <div class="pathology-description">
@@ -2615,8 +2623,12 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑↑</span>
+                                <span>Pericardial space pressure</span>
+                            </div>
+                            <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓↓</span>
-                                <span>Preload (impaired filling)</span>
+                                <span>RV filling (compressed by pericardium)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓↓</span>
@@ -7549,6 +7561,9 @@ const coronaryMap = {
                 strokeVolume *= 0.7;
             } else if (pathologyKey === 'mitralRegurg') {
                 strokeVolume *= 1.2;
+            } else if (pathologyKey === 'tamponade') {
+                // Tamponade primarily limits diastolic filling and reduces effective SV beyond preload alone.
+                strokeVolume *= 0.4;
             } else if (pathologyKey === 'hfpef') {
                 const fillingLimitation = 0.8 + (preload / 120) * 0.2;
                 strokeVolume *= fillingLimitation;

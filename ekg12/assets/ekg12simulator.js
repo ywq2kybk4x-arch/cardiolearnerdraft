@@ -398,6 +398,9 @@ class Ecg12Simulator {
       this.randomizeAfibPhases();
     }
     this.regenerateRhythm();
+    if (this.currentRhythm === 'avb2_mobitz2') {
+      this.logMobitz2SelfCheck();
+    }
     this.sweepStartTime = this.simulatedTimeMs;
   }
 
@@ -1664,18 +1667,76 @@ class Ecg12Simulator {
     const baseRrMs = this.getCurrentRrMs();
     let cycleStart = 0;
     let idx = 0;
-    const fixedPr = Math.max(this.intervals.prIntervalMs, 180);
+
+    /*
+     * Mobitz II (unambiguous): constant PR on conducted beats with intermittent dropped QRS.
+     * A strict 2:1 pattern (every other P not conducted) is ambiguous and can be mistaken for
+     * non-typeable 2° AV block (could be Mobitz I or II). We avoid that by using ≥3:2 / 4:3
+     * conduction: there are usually ≥2 conducted beats between drops, and PR stays constant.
+     */
+    const fixedPr = Math.max(this.intervals.prIntervalMs, 80);
+    const qrsHalf = this.intervals.qrsDurationMs / 2;
+    let nextDropAt = 3; // start with a 4:3 pattern (drop the 4th P)
+
     while (cycleStart < durationMs) {
-      const conducted = idx % 2 === 0;
-      const rTime = cycleStart + fixedPr + this.intervals.qrsDurationMs / 2;
+      const dropped = idx === nextDropAt;
+      const conducted = !dropped;
+      const rTime = cycleStart + fixedPr + qrsHalf;
       this.addBeatToSchedule(schedule, {
         rTime,
         pr: fixedPr,
-        hasQRS: conducted
+        hasQRS: conducted,
+        hasT: conducted
       });
+      if (dropped) {
+        // Choose spacing between dropped beats: mostly 4:3, sometimes 3:2, rarely 5:4.
+        const spacingBase = this.rand() < 0.7 ? 4 : 3;
+        const spacing = spacingBase + (this.rand() < 0.15 ? 1 : 0);
+        nextDropAt += Math.max(3, spacing);
+      }
       cycleStart += baseRrMs;
       idx++;
     }
+  }
+
+  logMobitz2SelfCheck() {
+    const beats = Array.isArray(this.beatSchedule) ? this.beatSchedule : [];
+    if (!beats.length) return;
+
+    const sample = beats.slice(0, 12).map((beat, i) => {
+      const conducted = beat.hasQRS !== false;
+      // Approximate P center based on the same cue used for rendering.
+      const pCenter = (beat.rTime || 0) - (beat.pr || 0) + 40;
+      return { i, pCenter: Math.round(pCenter), conducted, pr: conducted ? Math.round(beat.pr || 0) : null };
+    });
+
+    const conductedPr = beats.filter((b) => b.hasQRS !== false).map((b) => Math.round(b.pr || 0));
+    const uniquePr = [...new Set(conductedPr)].filter((v) => v > 0);
+    const pattern = beats.slice(0, 12).map((b) => (b.hasQRS !== false ? 1 : 0));
+    const alt1 = pattern.every((v, i) => v === (i % 2 === 0 ? 1 : 0));
+    const alt2 = pattern.every((v, i) => v === (i % 2 === 0 ? 0 : 1));
+
+    const dropIdx = beats
+      .map((b, i) => (b.hasQRS === false ? i : -1))
+      .filter((i) => i >= 0);
+    const gaps = [];
+    for (let j = 1; j < dropIdx.length; j++) {
+      gaps.push(dropIdx[j] - dropIdx[j - 1] - 1);
+    }
+
+    console.groupCollapsed('[Ecg12Simulator][Mobitz II self-check]');
+    sample.forEach((row) => {
+      console.log(
+        `#${row.i} P@${row.pCenter}ms conducted=${row.conducted} ${row.conducted ? `PR=${row.pr}ms` : '(dropped)'}`
+      );
+    });
+    console.assert(uniquePr.length <= 1, '[Mobitz II] PR should be constant on conducted beats.', uniquePr);
+    console.assert(!(alt1 || alt2), '[Mobitz II] Pattern looks like strict 2:1 block; expected ≥3:2 / 4:3.', pattern);
+    if (gaps.length) {
+      const minGap = Math.min(...gaps);
+      console.assert(minGap >= 2, '[Mobitz II] Expected ≥2 conducted beats between drops most of the time.', gaps);
+    }
+    console.groupEnd();
   }
 
   generateThirdDegreeBeats(schedule, durationMs) {

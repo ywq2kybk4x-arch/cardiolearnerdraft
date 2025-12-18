@@ -1048,23 +1048,85 @@ class EcgSimulator {
   }
 
   generateSecondDegreeMobitzII(durationMs, baseRrMs) {
-    const fixedPr = Math.max(this.intervals.prIntervalMs, 180);
+    /*
+     * Mobitz II (unambiguous): constant PR on conducted beats with intermittent dropped QRS.
+     * A strict 2:1 pattern is ambiguous ("cannot tell Mobitz I vs II"), so we avoid dropping
+     * every other beat by using ≥3:2 / 4:3 conduction with small randomness.
+     */
+    const fixedPr = Math.max(this.intervals.prIntervalMs, 80);
+    const qrsHalf = this.intervals.qrsDurationMs / 2;
     let t = 0;
     let beatIndex = 0;
+    let nextDropAt = 3; // start 4:3 (drop the 4th P)
 
     while (t < durationMs) {
-      const conducted = beatIndex % 2 === 0;
+      const dropped = beatIndex === nextDropAt;
+      const conducted = !dropped;
+
       this.addBeat({
-        rTime: t + fixedPr + this.intervals.qrsDurationMs / 2,
+        rTime: t + fixedPr + qrsHalf,
         hasP: true,
         hasQRS: conducted,
+        hasT: conducted,
         pr: fixedPr,
         qrs: this.intervals.qrsDurationMs,
         qt: this.intervals.qtIntervalMs
       });
+
+      if (dropped) {
+        // Mostly 4:3, sometimes 3:2, rarely 5:4. Never 2:1.
+        const spacingBase = Math.random() < 0.7 ? 4 : 3;
+        const spacing = spacingBase + (Math.random() < 0.15 ? 1 : 0);
+        nextDropAt += Math.max(3, spacing);
+      }
+
       t += baseRrMs;
       beatIndex++;
     }
+
+    if (typeof this.logMobitz2SelfCheck === 'function') {
+      this.logMobitz2SelfCheck();
+    }
+  }
+
+  logMobitz2SelfCheck() {
+    if (this.currentRhythm !== 'avb2_mobitz2') return;
+    const beats = Array.isArray(this.beatSchedule) ? this.beatSchedule : [];
+    if (!beats.length) return;
+
+    const sample = beats.slice(0, 12).map((beat, i) => {
+      const conducted = beat.hasQRS !== false;
+      const pCenter = (beat.rTime || 0) - (beat.pr || 0) + 40;
+      return { i, pCenter: Math.round(pCenter), conducted, pr: conducted ? Math.round(beat.pr || 0) : null };
+    });
+
+    const conductedPr = beats.filter((b) => b.hasQRS !== false).map((b) => Math.round(b.pr || 0));
+    const uniquePr = [...new Set(conductedPr)].filter((v) => v > 0);
+    const pattern = beats.slice(0, 12).map((b) => (b.hasQRS !== false ? 1 : 0));
+    const alt1 = pattern.every((v, i) => v === (i % 2 === 0 ? 1 : 0));
+    const alt2 = pattern.every((v, i) => v === (i % 2 === 0 ? 0 : 1));
+
+    const dropIdx = beats
+      .map((b, i) => (b.hasQRS === false ? i : -1))
+      .filter((i) => i >= 0);
+    const gaps = [];
+    for (let j = 1; j < dropIdx.length; j++) {
+      gaps.push(dropIdx[j] - dropIdx[j - 1] - 1);
+    }
+
+    console.groupCollapsed('[EcgSimulator][Mobitz II self-check]');
+    sample.forEach((row) => {
+      console.log(
+        `#${row.i} P@${row.pCenter}ms conducted=${row.conducted} ${row.conducted ? `PR=${row.pr}ms` : '(dropped)'}`
+      );
+    });
+    console.assert(uniquePr.length <= 1, '[Mobitz II] PR should be constant on conducted beats.', uniquePr);
+    console.assert(!(alt1 || alt2), '[Mobitz II] Pattern looks like strict 2:1 block; expected ≥3:2 / 4:3.', pattern);
+    if (gaps.length) {
+      const minGap = Math.min(...gaps);
+      console.assert(minGap >= 2, '[Mobitz II] Expected ≥2 conducted beats between drops most of the time.', gaps);
+    }
+    console.groupEnd();
   }
 
   generateThirdDegreeAVBlock(durationMs) {
