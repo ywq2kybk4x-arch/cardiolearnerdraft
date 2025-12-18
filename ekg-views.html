@@ -703,5 +703,11 @@
 
     animate();
   </script>
+  <script src="./assets/ai-tutor-tab.js"></script>
+  <script>
+    if (!window.__aiTutorTabInitialized) {
+      console.warn('[AI Tutor] ai-tutor-tab.js did not initialize. Check script path and console errors.');
+    }
+  </script>
 </body>
 </html>

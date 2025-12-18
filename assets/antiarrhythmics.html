@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antiarrhythmic Drugs - Interactive Guide</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState } = React;
+
+    const AntiarrhythmicsTool = () => {
+      const [selectedClass, setSelectedClass] = useState('overview');
+      const [selectedSubclass, setSelectedSubclass] = useState(null);
+
+      const drugClasses = {
+        overview: {
+          name: "Overview",
+          subtitle: "Vaughan-Williams Classification",
+          color: "#6b7280"
+        },
+        classI: {
+          name: "Class I",
+          subtitle: "Sodium Channel Blockers",
+          color: "#dc2626",
+          phase: 0,
+          ionCurrent: "Na⁺ (in)",
+          mechanism: "Block voltage-gated sodium channels, reducing the rate of phase 0 depolarization. This decreases conduction velocity and excitability.",
+          effectOnAP: "Decreases slope of phase 0 (reduced dV/dt), slows conduction velocity",
+          ecgEffect: "Widened QRS complex (slowed ventricular conduction)",
+          clinicalUse: "Atrial and ventricular arrhythmias, WPW syndrome",
+          subclasses: {
+            Ia: {
+              name: "Class Ia (Moderate Block)",
+              blockStrength: "Moderate Na⁺ block",
+              additionalEffect: "Also blocks K⁺ channels → prolongs repolarization",
+              apEffect: "Moderate ↓ phase 0 slope + prolonged APD",
+              ecgEffect: "↑ QRS duration + ↑ QT interval",
+              drugs: [
+                { name: "Quinidine", notes: "Also vagolytic; can cause torsades (↑QT), cinchonism (tinnitus, headache)" },
+                { name: "Procainamide", notes: "Can cause drug-induced lupus (anti-histone Ab+). IV for acute VT." },
+                { name: "Disopyramide", notes: "Strong negative inotrope; anticholinergic effects (urinary retention, dry mouth)" }
+              ],
+              uses: "AF, AFL, VT, WPW (procainamide preferred for WPW + AF)",
+              sideEffects: "Torsades de pointes (QT prolongation), GI upset, cinchonism, lupus-like syndrome",
+              color: "#ef4444"
+            },
+            Ib: {
+              name: "Class Ib (Weak Block)",
+              blockStrength: "Weak Na⁺ block",
+              additionalEffect: "Preferentially binds inactivated Na⁺ channels (use-dependent); shortens APD",
+              apEffect: "Minimal effect on phase 0 in normal tissue; ↓ APD in ischemic tissue",
+              ecgEffect: "Minimal QRS change; may shorten QT",
+              drugs: [
+                { name: "Lidocaine", notes: "IV only; first-line for acute VT/VF; use-dependent (more block in ischemic/depolarized tissue)" },
+                { name: "Mexiletine", notes: "Oral lidocaine analog; for chronic ventricular arrhythmias" },
+                { name: "Phenytoin", notes: "Also anticonvulsant; useful for digoxin-induced arrhythmias" }
+              ],
+              uses: "Ventricular arrhythmias (especially ischemia/post-MI), digoxin toxicity",
+              sideEffects: "CNS toxicity (tremor, confusion, seizures at high levels), minimal cardiac depression",
+              color: "#f97316"
+            },
+            Ic: {
+              name: "Class Ic (Strong Block)",
+              blockStrength: "Strong Na⁺ block",
+              additionalEffect: "Marked slowing of conduction; minimal effect on APD/repolarization",
+              apEffect: "Significant ↓ phase 0 slope; no significant change in APD",
+              ecgEffect: "Significant QRS widening; PR prolongation",
+              drugs: [
+                { name: "Flecainide", notes: "Very effective for AF/SVT but proarrhythmic; AVOID in structural heart disease" },
+                { name: "Propafenone", notes: "Also has weak β-blocking and Ca²⁺ blocking activity; can worsen asthma" }
+              ],
+              uses: "SVT, AF in patients WITHOUT structural heart disease ('pill in pocket' strategy)",
+              sideEffects: "Proarrhythmic (can cause VT/VF), negative inotropy, dizziness, visual disturbance",
+              warning: "⚠️ CONTRAINDICATED in structural heart disease, CAD, post-MI (CAST trial: increased mortality)",
+              color: "#b91c1c"
+            }
+          }
+        },
+        classII: {
+          name: "Class II",
+          subtitle: "Beta-Adrenergic Blockers",
+          color: "#2563eb",
+          phase: 4,
+          ionCurrent: "↓ cAMP → ↓ If and ICa",
+          mechanism: "Block β₁-adrenergic receptors → decrease cAMP → reduce If (funny current) in SA node and ICa-L in AV node. This slows SA node automaticity and AV nodal conduction.",
+          effectOnAP: "Decreases slope of phase 4 depolarization in pacemaker cells; prolongs AV nodal refractory period",
+          ecgEffect: "↓ Heart rate (↑ RR interval), ↑ PR interval (slowed AV conduction)",
+          clinicalUse: "Rate control in AF/AFL, SVT, post-MI arrhythmia prophylaxis, long QT syndrome",
+          drugs: [
+            { name: "Metoprolol", notes: "β₁-selective; preferred in patients with reactive airway disease" },
+            { name: "Propranolol", notes: "Non-selective (β₁ + β₂); lipophilic; also has membrane-stabilizing activity" },
+            { name: "Atenolol", notes: "β₁-selective; hydrophilic; renally excreted" },
+            { name: "Esmolol", notes: "Ultra-short acting (t½ ~9 min); IV only; ideal for acute situations" },
+            { name: "Carvedilol", notes: "Non-selective β + α₁ blocker; used in heart failure" }
+          ],
+          sideEffects: "Bradycardia, AV block, hypotension, bronchospasm (non-selective), fatigue, depression, masking hypoglycemia in diabetics",
+          contraindications: "Severe bradycardia, 2nd/3rd degree AV block (without pacemaker), decompensated HF, severe asthma"
+        },
+        classIII: {
+          name: "Class III",
+          subtitle: "Potassium Channel Blockers",
+          color: "#7c3aed",
+          phase: 3,
+          ionCurrent: "K⁺ (out)",
+          mechanism: "Block potassium channels (primarily IKr - rapid delayed rectifier) → slow phase 3 repolarization → prolong action potential duration (APD) and effective refractory period (ERP).",
+          effectOnAP: "Prolongs phase 3 repolarization → increased APD and ERP throughout the heart",
+          ecgEffect: "Prolonged QT interval (increased risk of torsades de pointes)",
+          clinicalUse: "AF, AFL, VT, VF prevention, pharmacologic cardioversion",
+          drugs: [
+            { name: "Amiodarone", notes: "Blocks Na⁺, K⁺, Ca²⁺ channels + β-receptors (ALL 4 CLASSES). Most effective antiarrhythmic. Very long t½ (40-55 days). Toxicities: Pulmonary fibrosis, thyroid dysfunction (hypo or hyper), corneal microdeposits, hepatotoxicity, blue-gray skin discoloration, photosensitivity" },
+            { name: "Dronedarone", notes: "Amiodarone derivative without iodine moiety. Less toxic but less effective. CONTRAINDICATED in permanent AF and HFrEF (PALLAS, ANDROMEDA trials)" },
+            { name: "Sotalol", notes: "Non-selective β-blocker + K⁺ channel blocker (Class II + III). Renally cleared - must dose-adjust for renal function. Significant torsades risk." },
+            { name: "Ibutilide", notes: "IV only; for acute pharmacologic cardioversion of AF/AFL. High torsades risk (~4%) - must monitor on telemetry for 4-6 hours after" },
+            { name: "Dofetilide", notes: "Pure IKr blocker. MUST initiate in hospital with continuous QT monitoring and CrCl-based dosing. Many drug interactions." }
+          ],
+          sideEffects: "Torsades de pointes (QT prolongation), bradycardia. Amiodarone: pulmonary, thyroid, hepatic, ocular, dermatologic toxicity",
+          keyPoint: "Reverse use-dependence: K⁺ channel block is greater at slower heart rates → torsades risk increases with bradycardia"
+        },
+        classIV: {
+          name: "Class IV",
+          subtitle: "Calcium Channel Blockers",
+          color: "#059669",
+          phase: 2,
+          ionCurrent: "Ca²⁺ (in)",
+          mechanism: "Block L-type calcium channels (ICa-L). In SA and AV nodes, Ca²⁺ current (not Na⁺) drives phase 0 depolarization. Reduces automaticity and slows AV nodal conduction.",
+          effectOnAP: "Decreases phase 2 plateau in ventricular myocytes; in nodal tissue, decreases phase 0 and phase 4 slope",
+          ecgEffect: "↓ Heart rate, ↑ PR interval (prolonged AV conduction)",
+          clinicalUse: "Rate control in AF/AFL, SVT (AVNRT, AVRT), termination of PSVT, multifocal atrial tachycardia",
+          drugs: [
+            { name: "Verapamil", notes: "Phenylalkylamine class. Most potent cardiac effects (rate control and negative inotropy). Also causes constipation. Avoid combining with β-blockers (severe bradycardia/heart block risk)." },
+            { name: "Diltiazem", notes: "Benzothiazepine class. Balanced cardiac and vascular effects. Most commonly used for rate control in AF. Available IV and PO." }
+          ],
+          notIncluded: "Dihydropyridines (amlodipine, nifedipine) primarily affect vascular smooth muscle, have minimal cardiac effect, and are NOT used as antiarrhythmics",
+          sideEffects: "Bradycardia, AV block, hypotension, constipation (especially verapamil), peripheral edema, negative inotropy",
+          contraindications: "WPW with AF (can accelerate accessory pathway conduction → VF!), severe LV dysfunction/HFrEF, 2nd/3rd degree AV block, concurrent IV β-blocker",
+          warning: "⚠️ NEVER give to WPW with AF - blocks AV node, forcing conduction down accessory pathway → can degenerate to VF"
+        },
+        other: {
+          name: "Other",
+          subtitle: "Miscellaneous Agents",
+          color: "#d97706",
+          drugs: [
+            { 
+              name: "Adenosine", 
+              mechanism: "Activates A₁ adenosine receptors → opens IKAdo channels → hyperpolarizes SA/AV nodal cells; also decreases cAMP → reduces ICa-L",
+              effect: "Transient, complete AV nodal block lasting 10-15 seconds",
+              use: "First-line for stable PSVT (AVNRT, AVRT); diagnostic tool for wide-complex tachycardia (unmasks atrial activity)",
+              notes: "Ultra-short t½ (~10 sec). Must give as rapid IV push through large-bore proximal IV, followed immediately by saline flush. Warn patient about transient chest discomfort, flushing, dyspnea (normal). Theophylline/caffeine antagonize effect (need higher dose). Dipyridamole potentiates (use lower dose). CONTRAINDICATED in asthma (bronchoconstriction), sick sinus, 2nd/3rd degree block."
+            },
+            { 
+              name: "Digoxin", 
+              mechanism: "Inhibits Na⁺/K⁺-ATPase → increases intracellular Na⁺ → increases intracellular Ca²⁺ via Na⁺/Ca²⁺ exchanger (positive inotropy). Also enhances vagal tone → slows AV conduction.",
+              effect: "Decreased AV nodal conduction velocity, increased vagal tone, positive inotropy",
+              use: "Rate control in AF (especially with HFrEF); rarely used as sole agent now",
+              notes: "Narrow therapeutic index (0.5-2.0 ng/mL). Toxicity signs: GI (nausea, vomiting), visual (yellow-green halos, blurred vision), cardiac (any arrhythmia, classically paroxysmal atrial tachycardia with block, bidirectional VT). Hypokalemia, hypomagnesemia, and hypercalcemia increase toxicity. Treatment of toxicity: Digoxin-specific Fab antibody fragments (Digibind)."
+            },
+            { 
+              name: "Magnesium Sulfate", 
+              mechanism: "Stabilizes cardiac membranes; suppresses early afterdepolarizations (EADs) that trigger torsades; also affects multiple ion channels",
+              effect: "Decreased triggered activity, membrane stabilization, suppression of EADs",
+              use: "First-line for Torsades de Pointes (even if Mg level is normal!), digoxin-induced arrhythmias, refractory VF",
+              notes: "Dose: 1-2g IV over 5-20 min, can repeat. Works even with normal serum Mg. Also useful for eclampsia. Monitor for hypotension, respiratory depression at high doses."
+            },
+            {
+              name: "Atropine",
+              mechanism: "Competitive antagonist at muscarinic (M₂) receptors → blocks parasympathetic (vagal) effects on the heart",
+              effect: "Increases SA node automaticity, increases AV nodal conduction velocity",
+              use: "Symptomatic bradycardia (first-line in ACLS), bradycardia from AV block, organophosphate poisoning",
+              notes: "Dose: 0.5-1mg IV every 3-5 min (max 3mg). May be ineffective in denervated transplanted hearts and infranodal block. Can cause paradoxical bradycardia at very low doses."
+            }
+          ]
+        }
+      };
+
+      // Action Potential SVG Component
+      const ActionPotential = ({ highlightPhase, highlightColor }) => {
+        return (
+          <svg viewBox="0 0 520 380" className="w-full h-auto">
+            {/* Background */}
+            <rect x="0" y="0" width="520" height="380" fill="#dbeafe" rx="8" />
+            
+            {/* Grid lines */}
+            <g stroke="#93c5fd" strokeWidth="0.5" opacity="0.4">
+              {[60, 110, 160, 210, 260].map(y => (
+                <line key={y} x1="50" y1={y} x2="480" y2={y} />
+              ))}
+            </g>
+
+            {/* Y-axis label */}
+            <text x="12" y="170" fontSize="11" fill="#1e40af" fontWeight="500" transform="rotate(-90, 12, 170)">Membrane Potential (mV)</text>
+            
+            {/* Y-axis values */}
+            <text x="42" y="68" fontSize="10" fill="#64748b" textAnchor="end">+20</text>
+            <text x="42" y="118" fontSize="10" fill="#64748b" textAnchor="end">0</text>
+            <text x="42" y="193" fontSize="10" fill="#64748b" textAnchor="end">-50</text>
+            <text x="42" y="268" fontSize="10" fill="#64748b" textAnchor="end">-90</text>
+
+            {/* Phase highlight backgrounds */}
+            {highlightPhase === 0 && (
+              <rect x="100" y="45" width="40" height="230" fill={highlightColor} opacity="0.25" rx="4" />
+            )}
+            {highlightPhase === 1 && (
+              <rect x="140" y="45" width="35" height="230" fill={highlightColor} opacity="0.25" rx="4" />
+            )}
+            {highlightPhase === 2 && (
+              <rect x="175" y="45" width="130" height="230" fill={highlightColor} opacity="0.25" rx="4" />
+            )}
+            {highlightPhase === 3 && (
+              <rect x="305" y="45" width="90" height="230" fill={highlightColor} opacity="0.25" rx="4" />
+            )}
+            {highlightPhase === 4 && (
+              <>
+                <rect x="50" y="45" width="50" height="230" fill={highlightColor} opacity="0.25" rx="4" />
+                <rect x="395" y="45" width="85" height="230" fill={highlightColor} opacity="0.25" rx="4" />
+              </>
+            )}
+
+            {/* Action Potential Curve - main line */}
+            <path
+              d="M 55 260 
+                 L 100 260 
+                 L 105 260
+                 L 125 60
+                 L 145 82
+                 L 175 75
+                 L 305 85
+                 L 350 170
+                 L 395 260
+                 L 475 260"
+              fill="none"
+              stroke="#dc2626"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Phase Labels - numbered */}
+            <g fontWeight="bold" fontSize="16" fill="#1f2937">
+              <text x="118" y="155">0</text>
+              <text x="158" y="95">1</text>
+              <text x="235" y="68">2</text>
+              <text x="365" y="195">3</text>
+              <text x="75" y="250">4</text>
+              <text x="430" y="250">4</text>
+            </g>
+
+            {/* Ion Current Labels with boxes and arrows */}
+            
+            {/* Na+ in - Phase 0 */}
+            <g>
+              <rect x="48" y="172" width="58" height="26" fill="white" stroke="#475569" strokeWidth="1.5" rx="3" />
+              <text x="77" y="190" fontSize="12" fill="#1f2937" textAnchor="middle" fontWeight="500">Na⁺ (in)</text>
+              <path d="M 106 185 L 118 155" stroke="#1e40af" strokeWidth="2" fill="none" markerEnd="url(#arrowBlue)" />
+            </g>
+
+            {/* K+/Cl- out - Phase 1 */}
+            <g>
+              <rect x="143" y="30" width="70" height="26" fill="white" stroke="#475569" strokeWidth="1.5" rx="3" />
+              <text x="178" y="48" fontSize="12" fill="#1f2937" textAnchor="middle" fontWeight="500">K⁺/Cl⁻ (out)</text>
+              <path d="M 178 56 L 155 75" stroke="#1e40af" strokeWidth="2" fill="none" markerEnd="url(#arrowBlue)" />
+            </g>
+
+            {/* Ca2+ in - Phase 2 */}
+            <g>
+              <rect x="255" y="30" width="62" height="26" fill="white" stroke="#475569" strokeWidth="1.5" rx="3" />
+              <text x="286" y="48" fontSize="12" fill="#1f2937" textAnchor="middle" fontWeight="500">Ca²⁺ (in)</text>
+              <path d="M 286 56 L 260 78" stroke="#1e40af" strokeWidth="2" fill="none" markerEnd="url(#arrowBlue)" />
+            </g>
+
+            {/* K+ out - Phase 3 */}
+            <g>
+              <rect x="385" y="120" width="58" height="26" fill="white" stroke="#475569" strokeWidth="1.5" rx="3" />
+              <text x="414" y="138" fontSize="12" fill="#1f2937" textAnchor="middle" fontWeight="500">K⁺ (out)</text>
+              <path d="M 385 133 L 360 160" stroke="#1e40af" strokeWidth="2" fill="none" markerEnd="url(#arrowBlue)" />
+            </g>
+
+            {/* K+ rectifier - Phase 4 */}
+            <g>
+              <rect x="385" y="205" width="75" height="26" fill="white" stroke="#475569" strokeWidth="1.5" rx="3" />
+              <text x="422" y="223" fontSize="12" fill="#1f2937" textAnchor="middle" fontWeight="500">K⁺ (rectifier)</text>
+              <path d="M 385 218 L 370 235" stroke="#1e40af" strokeWidth="2" fill="none" markerEnd="url(#arrowBlue)" />
+            </g>
+
+            {/* Arrow marker definition */}
+            <defs>
+              <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#1e40af" />
+              </marker>
+            </defs>
+
+            {/* ECG below */}
+            <g transform="translate(0, 285)">
+              <rect x="50" y="10" width="430" height="70" fill="#fef2f2" rx="4" />
+              <line x1="55" y1="50" x2="475" y2="50" stroke="#fca5a5" strokeWidth="1" />
+              <path
+                d="M 55 50 L 160 50 L 175 45 L 190 50 L 225 50 L 240 55 L 247 10 L 254 70 L 261 50 L 320 50 L 350 35 L 390 50 L 470 50"
+                fill="none"
+                stroke="#dc2626"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <text x="265" y="88" fontSize="11" fill="#64748b" textAnchor="middle" fontWeight="500">ECG Correlation</text>
+            </g>
+          </svg>
+        );
+      };
+
+      // Render drug details based on selected class
+      const renderDrugDetails = () => {
+        const classData = drugClasses[selectedClass];
+        
+        // Overview tab
+        if (selectedClass === 'overview') {
+          return (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl shadow-lg p-5">
+                <h3 className="text-xl font-bold text-gray-800 mb-3">Vaughan-Williams Classification</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  The Vaughan-Williams system classifies antiarrhythmic drugs by their primary electrophysiological effect on cardiac ion channels. Each class targets a specific phase of the action potential.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {['classI', 'classII', 'classIII', 'classIV'].map(key => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedClass(key)}
+                      className="p-4 rounded-xl border-2 hover:shadow-lg transition-all text-left"
+                      style={{ borderColor: drugClasses[key].color, backgroundColor: `${drugClasses[key].color}08` }}
+                    >
+                      <div className="font-bold text-lg" style={{ color: drugClasses[key].color }}>
+                        {drugClasses[key].name}
+                      </div>
+                      <div className="text-sm text-gray-600 font-medium">{drugClasses[key].subtitle}</div>
+                      <div className="text-xs text-gray-500 mt-1">Phase {drugClasses[key].phase} • {drugClasses[key].ionCurrent}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Quick Reference Table */}
+              <div className="bg-white rounded-xl shadow-lg p-5">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Reference Table</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-gray-300">
+                        <th className="text-left py-3 px-3 font-bold">Class</th>
+                        <th className="text-left py-3 px-3 font-bold">Target</th>
+                        <th className="text-left py-3 px-3 font-bold">Phase</th>
+                        <th className="text-left py-3 px-3 font-bold">ECG Effect</th>
+                        <th className="text-left py-3 px-3 font-bold">Key Drugs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b hover:bg-red-50">
+                        <td className="py-3 px-3 font-bold text-red-600">I (a,b,c)</td>
+                        <td className="py-3 px-3">Na⁺ channels</td>
+                        <td className="py-3 px-3">0</td>
+                        <td className="py-3 px-3">↑ QRS (± QT)</td>
+                        <td className="py-3 px-3 text-xs">Flecainide, Lidocaine, Procainamide</td>
+                      </tr>
+                      <tr className="border-b hover:bg-blue-50">
+                        <td className="py-3 px-3 font-bold text-blue-600">II</td>
+                        <td className="py-3 px-3">β-receptors</td>
+                        <td className="py-3 px-3">4</td>
+                        <td className="py-3 px-3">↓ HR, ↑ PR</td>
+                        <td className="py-3 px-3 text-xs">Metoprolol, Propranolol, Esmolol</td>
+                      </tr>
+                      <tr className="border-b hover:bg-purple-50">
+                        <td className="py-3 px-3 font-bold text-purple-600">III</td>
+                        <td className="py-3 px-3">K⁺ channels</td>
+                        <td className="py-3 px-3">3</td>
+                        <td className="py-3 px-3">↑ QT</td>
+                        <td className="py-3 px-3 text-xs">Amiodarone, Sotalol, Dofetilide</td>
+                      </tr>
+                      <tr className="border-b hover:bg-green-50">
+                        <td className="py-3 px-3 font-bold text-green-600">IV</td>
+                        <td className="py-3 px-3">Ca²⁺ channels</td>
+                        <td className="py-3 px-3">2 (0 in nodes)</td>
+                        <td className="py-3 px-3">↓ HR, ↑ PR</td>
+                        <td className="py-3 px-3 text-xs">Verapamil, Diltiazem</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Memory Aid */}
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl shadow-lg p-5">
+                <h3 className="text-lg font-bold text-indigo-800 mb-3">💡 Memory Aid</h3>
+                <div className="text-sm text-gray-700 space-y-2">
+                  <p><strong className="text-red-600">Class I</strong> = "<strong>S</strong>odium" - <strong>S</strong>lows phase 0 - <strong>S</strong>preads out the QRS</p>
+                  <p><strong className="text-blue-600">Class II</strong> = "<strong>B</strong>eta-blockers" - <strong>B</strong>radycardia - <strong>B</strong>locks sympathetic drive</p>
+                  <p><strong className="text-purple-600">Class III</strong> = "<strong>K</strong>⁺ blockers" - "<strong>K</strong>eeps repolarization going" - ↑ QT</p>
+                  <p><strong className="text-green-600">Class IV</strong> = "<strong>C</strong>alcium blockers" - <strong>C</strong>ontrols rate - AV node focus</p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // Other agents tab
+        if (selectedClass === 'other') {
+          return (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl shadow-lg p-4 border-l-4" style={{ borderColor: classData.color }}>
+                <h3 className="text-xl font-bold" style={{ color: classData.color }}>{classData.name}: {classData.subtitle}</h3>
+                <p className="text-sm text-gray-600 mt-2">
+                  These agents have unique mechanisms that don't fit the standard Vaughan-Williams classification but are essential in arrhythmia management.
+                </p>
+              </div>
+              
+              {classData.drugs.map((drug, idx) => (
+                <div key={idx} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                  <div className="p-4 border-l-4" style={{ borderColor: classData.color }}>
+                    <h4 className="font-bold text-xl text-gray-800">{drug.name}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                      <div className="bg-amber-50 p-3 rounded-lg">
+                        <span className="text-xs font-bold text-amber-700 uppercase">Mechanism</span>
+                        <p className="text-sm text-gray-700 mt-1">{drug.mechanism}</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <span className="text-xs font-bold text-blue-700 uppercase">Effect</span>
+                        <p className="text-sm text-gray-700 mt-1">{drug.effect}</p>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <span className="text-xs font-bold text-green-700 uppercase">Clinical Use</span>
+                        <p className="text-sm text-gray-700 mt-1">{drug.use}</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <span className="text-xs font-bold text-gray-700 uppercase">Important Notes</span>
+                        <p className="text-sm text-gray-700 mt-1">{drug.notes}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        // Class I with subclasses
+        if (selectedClass === 'classI') {
+          return (
+            <div className="space-y-4">
+              {/* Main class header */}
+              <div className="bg-white rounded-xl shadow-lg p-4 border-l-4" style={{ borderColor: classData.color }}>
+                <h3 className="text-xl font-bold" style={{ color: classData.color }}>
+                  {classData.name}: {classData.subtitle}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                  <div className="bg-red-50 p-3 rounded-lg">
+                    <span className="text-xs font-bold text-red-700 uppercase">Target</span>
+                    <p className="text-sm text-gray-700 mt-1 font-medium">Phase {classData.phase} • {classData.ionCurrent}</p>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <span className="text-xs font-bold text-blue-700 uppercase">ECG Effect</span>
+                    <p className="text-sm text-gray-700 mt-1">{classData.ecgEffect}</p>
+                  </div>
+                </div>
+                <div className="mt-3 bg-gray-50 p-3 rounded-lg">
+                  <span className="text-xs font-bold text-gray-700 uppercase">Mechanism</span>
+                  <p className="text-sm text-gray-700 mt-1">{classData.mechanism}</p>
+                </div>
+              </div>
+
+              {/* Subclass selector */}
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(classData.subclasses).map(([key, sub]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedSubclass(selectedSubclass === key ? null : key)}
+                    className={`px-5 py-3 rounded-xl font-bold transition-all ${
+                      selectedSubclass === key
+                        ? 'text-white shadow-lg scale-105'
+                        : 'bg-red-100 text-red-800 hover:bg-red-200'
+                    }`}
+                    style={{ 
+                      backgroundColor: selectedSubclass === key ? sub.color : undefined 
+                    }}
+                  >
+                    Class {key}
+                    <div className={`text-xs font-normal ${selectedSubclass === key ? 'text-red-100' : 'text-red-600'}`}>
+                      {key === 'Ia' ? 'Moderate' : key === 'Ib' ? 'Weak' : 'Strong'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Subclass details */}
+              {selectedSubclass && classData.subclasses[selectedSubclass] && (
+                <div className="bg-white rounded-xl shadow-lg p-5 border-t-4" style={{ borderColor: classData.subclasses[selectedSubclass].color }}>
+                  <h4 className="font-bold text-xl mb-4" style={{ color: classData.subclasses[selectedSubclass].color }}>
+                    {classData.subclasses[selectedSubclass].name}
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div className="bg-red-50 p-3 rounded-lg">
+                      <span className="text-xs font-bold text-red-700">Na⁺ Block Strength</span>
+                      <p className="text-sm font-semibold mt-1">{classData.subclasses[selectedSubclass].blockStrength}</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg">
+                      <span className="text-xs font-bold text-amber-700">Additional Effect</span>
+                      <p className="text-sm mt-1">{classData.subclasses[selectedSubclass].additionalEffect}</p>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <span className="text-xs font-bold text-blue-700">ECG Changes</span>
+                      <p className="text-sm font-semibold mt-1">{classData.subclasses[selectedSubclass].ecgEffect}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <span className="font-bold text-gray-700">Drugs:</span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+                      {classData.subclasses[selectedSubclass].drugs.map((drug, idx) => (
+                        <div key={idx} className="bg-gray-50 p-3 rounded-lg border-l-4" style={{ borderColor: classData.subclasses[selectedSubclass].color }}>
+                          <div className="font-bold text-gray-800">{drug.name}</div>
+                          <div className="text-xs text-gray-600 mt-1">{drug.notes}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <span className="text-xs font-bold text-green-700">Clinical Uses</span>
+                      <p className="text-sm mt-1">{classData.subclasses[selectedSubclass].uses}</p>
+                    </div>
+                    <div className="bg-orange-50 p-3 rounded-lg">
+                      <span className="text-xs font-bold text-orange-700">Side Effects</span>
+                      <p className="text-sm mt-1">{classData.subclasses[selectedSubclass].sideEffects}</p>
+                    </div>
+                  </div>
+
+                  {classData.subclasses[selectedSubclass].warning && (
+                    <div className="mt-4 bg-red-100 border-l-4 border-red-600 p-4 rounded-r-lg">
+                      <span className="font-bold text-red-700">{classData.subclasses[selectedSubclass].warning}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // Classes II, III, IV
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-lg p-5 border-l-4" style={{ borderColor: classData.color }}>
+              <h3 className="text-xl font-bold" style={{ color: classData.color }}>
+                {classData.name}: {classData.subtitle}
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                <div className="p-3 rounded-lg" style={{ backgroundColor: `${classData.color}15` }}>
+                  <span className="text-xs font-bold uppercase" style={{ color: classData.color }}>Target</span>
+                  <p className="text-sm text-gray-800 mt-1 font-semibold">Phase {classData.phase} • {classData.ionCurrent}</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <span className="text-xs font-bold text-blue-700 uppercase">ECG Effect</span>
+                  <p className="text-sm text-gray-700 mt-1 font-medium">{classData.ecgEffect}</p>
+                </div>
+              </div>
+
+              <div className="mt-3 bg-gray-50 p-3 rounded-lg">
+                <span className="text-xs font-bold text-gray-700 uppercase">Mechanism of Action</span>
+                <p className="text-sm text-gray-700 mt-1">{classData.mechanism}</p>
+              </div>
+
+              <div className="mt-3 bg-indigo-50 p-3 rounded-lg">
+                <span className="text-xs font-bold text-indigo-700 uppercase">Effect on Action Potential</span>
+                <p className="text-sm text-gray-700 mt-1">{classData.effectOnAP}</p>
+              </div>
+            </div>
+
+            {/* Drugs */}
+            <div className="bg-white rounded-xl shadow-lg p-5">
+              <h4 className="font-bold text-gray-800 mb-4 text-lg">Drugs in This Class</h4>
+              <div className="space-y-3">
+                {classData.drugs.map((drug, idx) => (
+                  <div key={idx} className="bg-gray-50 p-4 rounded-lg border-l-4" style={{ borderColor: classData.color }}>
+                    <div className="font-bold text-gray-800 text-base">{drug.name}</div>
+                    <div className="text-sm text-gray-600 mt-1">{drug.notes}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Clinical info */}
+            <div className="bg-white rounded-xl shadow-lg p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <span className="text-xs font-bold text-green-700 uppercase">Clinical Uses</span>
+                  <p className="text-sm text-gray-700 mt-2">{classData.clinicalUse}</p>
+                </div>
+                <div className="bg-orange-50 p-4 rounded-lg">
+                  <span className="text-xs font-bold text-orange-700 uppercase">Side Effects</span>
+                  <p className="text-sm text-gray-700 mt-2">{classData.sideEffects}</p>
+                </div>
+                {classData.contraindications && (
+                  <div className="md:col-span-2 bg-red-50 p-4 rounded-lg">
+                    <span className="text-xs font-bold text-red-700 uppercase">Contraindications</span>
+                    <p className="text-sm text-gray-700 mt-2">{classData.contraindications}</p>
+                  </div>
+                )}
+                {classData.keyPoint && (
+                  <div className="md:col-span-2 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                    <span className="font-bold text-amber-700">💡 Key Point: </span>
+                    <span className="text-sm text-amber-800">{classData.keyPoint}</span>
+                  </div>
+                )}
+                {classData.notIncluded && (
+                  <div className="md:col-span-2 bg-gray-100 p-4 rounded-lg">
+                    <span className="text-xs font-bold text-gray-700 uppercase">Note</span>
+                    <p className="text-sm text-gray-600 mt-2">{classData.notIncluded}</p>
+                  </div>
+                )}
+                {classData.warning && (
+                  <div className="md:col-span-2 bg-red-100 border-l-4 border-red-600 p-4 rounded-r-lg">
+                    <span className="font-bold text-red-700">{classData.warning}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // Get highlight phase for current selection
+      const getHighlightPhase = () => {
+        if (selectedClass === 'classI') return 0;
+        if (selectedClass === 'classII') return 4;
+        if (selectedClass === 'classIII') return 3;
+        if (selectedClass === 'classIV') return 2;
+        return null;
+      };
+
+      const getHighlightColor = () => {
+        if (selectedClass && drugClasses[selectedClass]) {
+          return drugClasses[selectedClass].color;
+        }
+        return '#6b7280';
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+          {/* Header */}
+          <header className="bg-gradient-to-r from-indigo-800 to-purple-700 text-white py-5 px-4 shadow-lg">
+            <div className="max-w-7xl mx-auto">
+              <h1 className="text-2xl md:text-3xl font-bold">Antiarrhythmic Drugs</h1>
+              <p className="text-indigo-200 mt-1">Interactive Guide to the Vaughan-Williams Classification</p>
+            </div>
+          </header>
+
+          {/* Navigation Tabs */}
+          <nav className="bg-white shadow-md sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto flex overflow-x-auto scrollbar-hide">
+              {Object.entries(drugClasses).map(([key, data]) => (
+                <button
+                  key={key}
+                  onClick={() => { setSelectedClass(key); setSelectedSubclass(null); }}
+                  className={`px-5 py-3 text-sm font-medium whitespace-nowrap border-b-3 transition-all flex-shrink-0 ${
+                    selectedClass === key
+                      ? 'border-b-2'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
+                  style={{
+                    borderColor: selectedClass === key ? data.color : 'transparent',
+                    color: selectedClass === key ? data.color : undefined,
+                    backgroundColor: selectedClass === key ? `${data.color}10` : undefined
+                  }}
+                >
+                  <div className="font-bold">{data.name}</div>
+                  <div className="text-xs opacity-70">{data.subtitle.split(' ').slice(0, 2).join(' ')}</div>
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Main Content */}
+          <main className="max-w-7xl mx-auto p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Left Column - Action Potential */}
+              <div className="space-y-4">
+                <div className="bg-white rounded-xl shadow-lg p-5">
+                  <h3 className="text-lg font-bold text-gray-800 mb-1">Cardiac Myocyte Action Potential</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    {selectedClass !== 'overview' && selectedClass !== 'other' 
+                      ? <span><strong style={{color: drugClasses[selectedClass].color}}>{drugClasses[selectedClass].name}</strong> drugs target <strong>Phase {drugClasses[selectedClass].phase}</strong> — {drugClasses[selectedClass].ionCurrent}</span>
+                      : 'Select a drug class to highlight its target on the action potential'}
+                  </p>
+                  <ActionPotential 
+                    highlightPhase={getHighlightPhase()} 
+                    highlightColor={getHighlightColor()}
+                  />
+                </div>
+
+                {/* Phase Summary */}
+                <div className="bg-white rounded-xl shadow-lg p-5">
+                  <h4 className="font-bold text-gray-800 mb-3">Action Potential Phases & Drug Targets</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className={`p-3 rounded-lg transition-all ${selectedClass === 'classI' ? 'bg-red-100 ring-2 ring-red-500 shadow' : 'bg-gray-50'}`}>
+                      <span className="font-bold">Phase 0 (Depolarization):</span> Rapid Na⁺ influx
+                      <span className="float-right text-red-600 font-bold">← Class I</span>
+                    </div>
+                    <div className={`p-3 rounded-lg ${selectedClass === 'classI' && selectedSubclass === 'Ia' ? 'bg-orange-50' : 'bg-gray-50'}`}>
+                      <span className="font-bold">Phase 1 (Early Repol):</span> K⁺/Cl⁻ efflux
+                    </div>
+                    <div className={`p-3 rounded-lg transition-all ${selectedClass === 'classIV' ? 'bg-green-100 ring-2 ring-green-500 shadow' : 'bg-gray-50'}`}>
+                      <span className="font-bold">Phase 2 (Plateau):</span> Ca²⁺ in, K⁺ out (balanced)
+                      <span className="float-right text-green-600 font-bold">← Class IV</span>
+                    </div>
+                    <div className={`p-3 rounded-lg transition-all ${selectedClass === 'classIII' ? 'bg-purple-100 ring-2 ring-purple-500 shadow' : 'bg-gray-50'}`}>
+                      <span className="font-bold">Phase 3 (Repolarization):</span> K⁺ efflux predominates
+                      <span className="float-right text-purple-600 font-bold">← Class III</span>
+                    </div>
+                    <div className={`p-3 rounded-lg transition-all ${selectedClass === 'classII' ? 'bg-blue-100 ring-2 ring-blue-500 shadow' : 'bg-gray-50'}`}>
+                      <span className="font-bold">Phase 4 (Resting/Pacemaker):</span> Stable RMP or If current
+                      <span className="float-right text-blue-600 font-bold">← Class II</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Drug Details */}
+              <div>
+                {renderDrugDetails()}
+              </div>
+            </div>
+
+            {/* High-Yield Clinical Pearls */}
+            <div className="mt-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl shadow-lg p-5">
+              <h3 className="text-lg font-bold text-amber-800 mb-4">💡 High-Yield Clinical Pearls</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <span className="font-bold text-amber-700">Amiodarone = All 4 Classes</span>
+                  <p className="text-xs text-gray-600 mt-2">Blocks Na⁺, K⁺, Ca²⁺ channels + β-receptors. Most effective but most toxic. Remember: <strong>P</strong>ulmonary fibrosis, <strong>T</strong>hyroid, <strong>H</strong>epatotoxicity, <strong>O</strong>ptic/<strong>O</strong>cular, <strong>S</strong>kin (blue-gray)</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <span className="font-bold text-amber-700">Class Ic + Structural HD = ☠️</span>
+                  <p className="text-xs text-gray-600 mt-2">CAST trial showed flecainide/encainide increased mortality post-MI. <strong>Never use Class Ic in CAD, prior MI, or cardiomyopathy!</strong></p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <span className="font-bold text-amber-700">WPW + AF = Danger Zone</span>
+                  <p className="text-xs text-gray-600 mt-2">Avoid AV nodal blockers (β-blockers, CCB, adenosine, digoxin) — they accelerate accessory pathway conduction → VF! Use procainamide or ibutilide.</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <span className="font-bold text-amber-700">Torsades de Pointes Tx</span>
+                  <p className="text-xs text-gray-600 mt-2">IV Magnesium is first-line (even with normal Mg!). Also: stop QT-prolonging drug, correct K⁺/Mg²⁺, overdrive pacing if refractory.</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <span className="font-bold text-amber-700">Adenosine Tips</span>
+                  <p className="text-xs text-gray-600 mt-2">Rapid IV push + flush (t½ ~10 sec). Caffeine/theophylline block effect. Dipyridamole potentiates (↓ dose). Warn pt about flushing/chest tightness.</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <span className="font-bold text-amber-700">Reverse Use-Dependence</span>
+                  <p className="text-xs text-gray-600 mt-2">Class III K⁺ blockers work better at slow HR → paradoxically higher torsades risk with bradycardia. Ensure adequate HR before/after dosing.</p>
+                </div>
+              </div>
+            </div>
+          </main>
+          
+          {/* Footer */}
+          <footer className="bg-gray-100 py-4 px-4 mt-8">
+            <div className="max-w-7xl mx-auto text-center text-sm text-gray-500">
+              Interactive Antiarrhythmic Drug Reference • For Educational Use
+            </div>
+          </footer>
+        </div>
+      );
+    };
+
+    // Render the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AntiarrhythmicsTool />);
+  </script>
+  <script src="./ai-tutor-tab.js"></script>
+</body>
+</html>

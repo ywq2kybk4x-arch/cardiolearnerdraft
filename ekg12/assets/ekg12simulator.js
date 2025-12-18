@@ -322,6 +322,9 @@ class Ecg12Simulator {
     this.simulatedTimeMs = 0;
     this.lastFrameTime = 0;
     this.sweepStartTime = 0;
+    this.shouldLoopSweep = true;
+    this.singleRunState = null;
+    this.highlightedLeads = new Set();
 
     this.intervals = { ...BASE_INTERVALS };
     const initialPreset = this.getPresetForId(this.currentRhythm);
@@ -353,12 +356,13 @@ class Ecg12Simulator {
     this.drawBigGrid();
     this.reset();
 
-    if (this.bigTraceCanvas) {
-      this.bigTraceCanvas.addEventListener('mousemove', this.handleBigMouseMove);
-      this.bigTraceCanvas.addEventListener('mouseleave', this.handleBigMouseLeave);
-      this.bigTraceCanvas.addEventListener('click', this.handleBigClick);
-      this.bigTraceCanvas.addEventListener('dblclick', this.handleBigDoubleClick);
-    }
+    [this.bigTraceCanvas, this.bigOverlayCanvas].forEach((canvas) => {
+      if (!canvas) return;
+      canvas.addEventListener('mousemove', this.handleBigMouseMove);
+      canvas.addEventListener('mouseleave', this.handleBigMouseLeave);
+      canvas.addEventListener('click', this.handleBigClick);
+      canvas.addEventListener('dblclick', this.handleBigDoubleClick);
+    });
   }
 
   setHeartRate(bpm) {
@@ -401,6 +405,18 @@ class Ecg12Simulator {
     this.highlights = { ...this.highlights, ...cfg };
   }
 
+  setHighlightedLeads(leads) {
+    if (!this.highlightedLeads) this.highlightedLeads = new Set();
+    this.highlightedLeads.clear();
+    if (Array.isArray(leads)) {
+      leads.forEach((lead) => {
+        const key = normLead(lead);
+        if (key) this.highlightedLeads.add(key);
+      });
+    }
+    this.drawTrace?.();
+  }
+
   setIntervalHighlights(cfg) {
     this.intervalHighlights = { ...this.intervalHighlights, ...cfg };
   }
@@ -421,6 +437,57 @@ class Ecg12Simulator {
     this.axisDeg = this.axisDegFromMode(normalized);
     this.drawTrace();
     this.drawExpandedTrace();
+  }
+
+  setLoopingEnabled(looping = true) {
+    this.shouldLoopSweep = looping !== false;
+  }
+
+  isLoopingEnabled() {
+    return this.shouldLoopSweep;
+  }
+
+  cancelSingleRun(resolve = false) {
+    if (!this.singleRunState) return;
+    const pending = this.singleRunState;
+    this.singleRunState = null;
+    if (resolve && typeof pending.resolve === 'function') {
+      try {
+        pending.resolve();
+      } catch (err) {
+        console.warn('[Ecg12Simulator] Error resolving single-run promise', err);
+      }
+    }
+  }
+
+  computeSweepDurationMs() {
+    const pxPerMm = this.pixelPerMm || PX_PER_MM_12;
+    const msPerPixel = 1000 / (this.config.speed * pxPerMm);
+    const width = this.renderWidth || (this.traceCanvas ? this.traceCanvas.clientWidth : 0);
+    if (width > 0 && Number.isFinite(msPerPixel) && msPerPixel > 0) {
+      return width * msPerPixel;
+    }
+    return Math.max(1000, (this.config.displayTime || 10) * 1000);
+  }
+
+  renderOnceAndFreeze() {
+    if (!this.traceCanvas) return Promise.resolve();
+    this.cancelSingleRun(true);
+    this.pause();
+    this.setLoopingEnabled(false);
+    this.simulatedTimeMs = 0;
+    this.sweepStartTime = 0;
+    this.drawTrace();
+    this.drawExpandedTrace();
+    const durationMs = Math.max(1, this.computeSweepDurationMs());
+    return new Promise((resolve) => {
+      this.singleRunState = {
+        active: true,
+        targetMs: durationMs,
+        resolve
+      };
+      this.play();
+    });
   }
 
   getAxisMode() {
@@ -710,6 +777,7 @@ class Ecg12Simulator {
   }
 
   reset() {
+    this.cancelSingleRun();
     this.simulatedTimeMs = 0;
     this.sweepStartTime = 0;
     this.drawTrace();
@@ -722,8 +790,22 @@ class Ecg12Simulator {
     const dt = timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
     this.simulatedTimeMs += dt;
+    const singleRunActive = this.singleRunState && this.singleRunState.active;
+    const targetMs = singleRunActive ? this.singleRunState.targetMs : 0;
+    if (singleRunActive && this.simulatedTimeMs >= targetMs) {
+      this.simulatedTimeMs = targetMs;
+    }
     this.drawTrace();
     this.drawExpandedTrace();
+    if (singleRunActive && this.simulatedTimeMs >= targetMs) {
+      const resolver = this.singleRunState.resolve;
+      this.singleRunState = null;
+      this.pause();
+      if (typeof resolver === 'function') {
+        resolver();
+      }
+      return;
+    }
     requestAnimationFrame(this.tick);
   }
 
@@ -852,17 +934,24 @@ class Ecg12Simulator {
     const h = this.renderHeight || this.traceCanvas.clientHeight || 0;
     ctx.clearRect(0, 0, w, h);
 
+    if (!this.highlightedLeads) this.highlightedLeads = new Set();
+
     const pxPerMm = this.pixelPerMm;
     const msPerPixel = 1000 / (this.config.speed * pxPerMm);
     this._lastBigMsPerPixel = msPerPixel;
     const windowMs = w * msPerPixel;
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
-    if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
-      this.sweepStartTime = this.simulatedTimeMs;
-      elapsedInSweep = 0;
+    if (this.shouldLoopSweep) {
+      if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
+        this.sweepStartTime = this.simulatedTimeMs;
+        elapsedInSweep = 0;
+      }
+    } else {
+      elapsedInSweep = clamp(elapsedInSweep, 0, windowMs);
     }
     const sweepProgress = Math.min(elapsedInSweep / windowMs, 1);
     const xMax = Math.max(1, Math.floor(sweepProgress * (w - 1)));
+    const sweepCursorVisible = this.shouldLoopSweep || (this.singleRunState && this.singleRunState.active);
 
     this.viewports.forEach((vp) => {
       const leadLabel = vp.leadLabel;
@@ -892,6 +981,12 @@ class Ecg12Simulator {
       ctx.fillStyle = 'rgba(15,23,42,0.8)';
       ctx.fillText(leadLabel, labelX, labelY);
       ctx.textBaseline = 'alphabetic';
+
+      if (this.highlightedLeads && this.highlightedLeads.has(leadKey)) {
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(vp.x + 2, vp.y + 2, vp.width - 4, vp.height - 4);
+      }
 
       if (this.debugLeadModelOverlay) {
         const dbgGain = this.getLeadDebugGain(leadKey);
@@ -941,12 +1036,14 @@ class Ecg12Simulator {
 
       ctx.stroke();
 
-      ctx.strokeStyle = '#16a34a';
-      ctx.beginPath();
-      const sweepX = vp.x + Math.min(xMax, vp.width - 1) + 0.5;
-      ctx.moveTo(sweepX, vp.y);
-      ctx.lineTo(sweepX, vp.y + vp.height);
-      ctx.stroke();
+      if (sweepCursorVisible) {
+        ctx.strokeStyle = '#16a34a';
+        ctx.beginPath();
+        const sweepX = vp.x + Math.min(xMax, vp.width - 1) + 0.5;
+        ctx.moveTo(sweepX, vp.y);
+        ctx.lineTo(sweepX, vp.y + vp.height);
+        ctx.stroke();
+      }
       ctx.restore();
     });
     this.drawReadoutOverlay();
@@ -963,9 +1060,13 @@ class Ecg12Simulator {
     const msPerPixel = 1000 / (this.config.speed * pxPerMm);
     const windowMs = (this.renderWidth || w) * msPerPixel;
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
-    if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
-      this.sweepStartTime = this.simulatedTimeMs;
-      elapsedInSweep = 0;
+    if (this.shouldLoopSweep) {
+      if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
+        this.sweepStartTime = this.simulatedTimeMs;
+        elapsedInSweep = 0;
+      }
+    } else {
+      elapsedInSweep = clamp(elapsedInSweep, 0, windowMs);
     }
     const sweepProgress = Math.min(elapsedInSweep / windowMs, 1);
     const xMax = Math.max(1, Math.floor(sweepProgress * ((this.renderWidth || w) - 1)));
@@ -1001,11 +1102,14 @@ class Ecg12Simulator {
     }
     ctx.stroke();
 
-    ctx.strokeStyle = '#16a34a';
-    ctx.beginPath();
-    ctx.moveTo(xMax + 0.5, 0);
-    ctx.lineTo(xMax + 0.5, h);
-    ctx.stroke();
+    const sweepCursorVisible = this.shouldLoopSweep || (this.singleRunState && this.singleRunState.active);
+    if (sweepCursorVisible) {
+      ctx.strokeStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.moveTo(xMax + 0.5, 0);
+      ctx.lineTo(xMax + 0.5, h);
+      ctx.stroke();
+    }
 
     if (this.showCalibrationPulse) {
       this.drawCalibrationPulse(ctx, baselineY, msPerPixel, overlayTopY, h);
@@ -1316,6 +1420,19 @@ class Ecg12Simulator {
       qrsMs: Math.round(this.intervals.qrsDurationMs),
       qtMs: Math.round(this.intervals.qtIntervalMs)
     };
+  }
+
+  destroy() {
+    this.pause();
+    this.cancelSingleRun();
+    window.removeEventListener('resize', this.handleResize);
+    [this.bigTraceCanvas, this.bigOverlayCanvas].forEach((canvas) => {
+      if (!canvas) return;
+      canvas.removeEventListener('mousemove', this.handleBigMouseMove);
+      canvas.removeEventListener('mouseleave', this.handleBigMouseLeave);
+      canvas.removeEventListener('click', this.handleBigClick);
+      canvas.removeEventListener('dblclick', this.handleBigDoubleClick);
+    });
   }
 
   roundedRectPath(ctx, x, y, width, height, radius) {
@@ -2022,3 +2139,257 @@ class Ecg12Simulator {
 }
 
 window.Ecg12Simulator = Ecg12Simulator;
+
+window.initEcg12Simulator = function initEcg12Simulator(rootEl) {
+  console.log('[EKG12] init called', rootEl);
+  if (!rootEl) return null;
+  if (rootEl.__ecg12Initialized && rootEl.__ecg12Sim) return rootEl.__ecg12Sim;
+
+  const scoped = (id) => rootEl.querySelector(`#${id}`);
+
+  const backgroundCanvas = scoped('ecg12Background');
+  const traceCanvas = scoped('ecg12Trace');
+  const overlayCanvas = scoped('ecg12Overlay');
+  const bigBackgroundCanvas = scoped('ecg12BigBackground');
+  const bigTraceCanvas = scoped('ecg12BigTrace');
+  const bigOverlayCanvas = scoped('ecg12BigOverlay');
+
+  if (!backgroundCanvas || !traceCanvas || !overlayCanvas) {
+    console.warn('[EKG12] missing canvas', {
+      backgroundCanvas,
+      traceCanvas,
+      overlayCanvas
+    });
+    return null;
+  }
+
+  const sim = new Ecg12Simulator(
+    {
+      backgroundCanvas,
+      traceCanvas,
+      overlayCanvas,
+      bigBackgroundCanvas,
+      bigTraceCanvas,
+      bigOverlayCanvas
+    },
+    { displayTime: 10, heartRate: 75 }
+  );
+
+  rootEl.__ecg12Initialized = true;
+  rootEl.__ecg12Sim = sim;
+
+  sim.forceLayout = () => {
+    if (typeof sim.handleResize === 'function') sim.handleResize();
+    if (typeof sim.drawGrid === 'function') sim.drawGrid();
+    if (typeof sim.drawBigGrid === 'function') sim.drawBigGrid();
+    if (typeof sim.drawTrace === 'function') sim.drawTrace();
+    if (typeof sim.drawExpandedTrace === 'function') sim.drawExpandedTrace();
+  };
+
+  const gridWrap = scoped('ecg12GridWrap');
+  if (gridWrap) {
+    gridWrap.addEventListener('scroll', () => sim.drawReadoutOverlay());
+  }
+
+  const heartRateInput = scoped('ecg12HeartRate');
+  const axisModeSelect = scoped('ecg12AxisMode');
+  const leadISignSelect = scoped('ecg12LeadISign');
+  const leadAVFSignSelect = scoped('ecg12LeadAVFSign');
+  const rhythmSelect = scoped('ecg12RhythmPreset');
+  const measureToggle = scoped('ecg12MeasureTool');
+  const measureHint = scoped('ecg12MeasureHint');
+  const playBtn = scoped('ecg12Play');
+  const pauseBtn = scoped('ecg12Pause');
+  const resetBtn = scoped('ecg12Reset');
+  const expandedLabel = scoped('ecg12ActiveLead');
+  const trace = scoped('ecg12Trace');
+
+  const clampNumber = (val, min, max) => Math.min(Math.max(val, min), max);
+
+  const updateExpandedLabel = () => {
+    if (expandedLabel) {
+      expandedLabel.textContent = sim.getSelectedLead();
+    }
+  };
+
+  const commitHeartRate = () => {
+    if (!heartRateInput) return;
+    const clampRange = typeof sim.getHeartRateClamp === 'function'
+      ? sim.getHeartRateClamp()
+      : { min: 40, max: 180 };
+    const raw = parseInt(heartRateInput.value || String(sim.getHeartRate ? sim.getHeartRate() : clampRange.min), 10);
+    const fallback = Number.isNaN(raw) ? (sim.getHeartRate ? sim.getHeartRate() : clampRange.min) : raw;
+    const target = clampNumber(fallback, clampRange.min, clampRange.max);
+    const applied = typeof sim.setHeartRate === 'function' ? sim.setHeartRate(target) : target;
+    heartRateInput.value = applied;
+  };
+
+  const syncHeartRateInput = () => {
+    if (!heartRateInput) return;
+    const clampRange = typeof sim.getHeartRateClamp === 'function'
+      ? sim.getHeartRateClamp()
+      : { min: 40, max: 180 };
+    heartRateInput.min = clampRange.min;
+    heartRateInput.max = clampRange.max;
+    const hr = sim.getHeartRate ? sim.getHeartRate() : clampNumber(75, clampRange.min, clampRange.max);
+    heartRateInput.value = hr;
+  };
+
+  if (heartRateInput) {
+    heartRateInput.addEventListener('change', commitHeartRate);
+    heartRateInput.addEventListener('blur', commitHeartRate);
+  }
+
+  const axisModeToQuadrant = {
+    normal: { leadI: 'pos', avf: 'pos' },
+    lad: { leadI: 'pos', avf: 'neg' },
+    rad: { leadI: 'neg', avf: 'pos' },
+    extreme: { leadI: 'neg', avf: 'neg' }
+  };
+
+  const quadrantToAxisMode = (leadISign, avfSign) => {
+    if (leadISign === 'pos' && avfSign === 'pos') return 'normal';
+    if (leadISign === 'pos' && avfSign === 'neg') return 'lad';
+    if (leadISign === 'neg' && avfSign === 'pos') return 'rad';
+    return 'extreme';
+  };
+
+  let syncingAxisControls = false;
+
+  const syncQuadrantFromMode = (mode) => {
+    const mapping = axisModeToQuadrant[mode] || axisModeToQuadrant.normal;
+    syncingAxisControls = true;
+    if (leadISignSelect) leadISignSelect.value = mapping.leadI;
+    if (leadAVFSignSelect) leadAVFSignSelect.value = mapping.avf;
+    syncingAxisControls = false;
+  };
+
+  const applyAxisMode = (mode) => {
+    const normalized = axisModeToQuadrant[mode] ? mode : 'normal';
+    if (axisModeSelect) axisModeSelect.value = normalized;
+    sim.setAxisMode(normalized);
+    syncQuadrantFromMode(normalized);
+  };
+
+  if (axisModeSelect) {
+    axisModeSelect.addEventListener('change', () => applyAxisMode(axisModeSelect.value));
+  }
+
+  const handleQuadrantChange = () => {
+    if (syncingAxisControls) return;
+    const leadISign = leadISignSelect ? leadISignSelect.value : 'pos';
+    const avfSign = leadAVFSignSelect ? leadAVFSignSelect.value : 'pos';
+    const mode = quadrantToAxisMode(leadISign, avfSign);
+    if (axisModeSelect) axisModeSelect.value = mode;
+    sim.setAxisMode(mode);
+  };
+
+  if (leadISignSelect) leadISignSelect.addEventListener('change', handleQuadrantChange);
+  if (leadAVFSignSelect) leadAVFSignSelect.addEventListener('change', handleQuadrantChange);
+
+  const handleRhythmChange = () => {
+    if (!rhythmSelect) return;
+    const desired = rhythmSelect.value;
+    if (typeof sim.setRhythm === 'function') {
+      sim.setRhythm(desired);
+      const current = sim.getCurrentRhythm ? sim.getCurrentRhythm() : desired;
+      rhythmSelect.value = current;
+      syncHeartRateInput();
+    }
+  };
+
+  const populateRhythmOptions = () => {
+    if (!rhythmSelect || typeof sim.getRhythmList !== 'function') return;
+    const rhythms = sim.getRhythmList();
+    if (rhythms && rhythms.length) {
+      rhythmSelect.innerHTML = '';
+      rhythms.forEach(({ id, label }) => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = label;
+        rhythmSelect.appendChild(option);
+      });
+    }
+    const current = sim.getCurrentRhythm ? sim.getCurrentRhythm() : null;
+    if (current) rhythmSelect.value = current;
+    rhythmSelect.addEventListener('change', handleRhythmChange);
+  };
+
+  const highlightIds = [
+    ['ecg12HighlightP', 'P'],
+    ['ecg12HighlightQRS', 'QRS'],
+    ['ecg12HighlightT', 'T']
+  ];
+  const intervalHighlightIds = [
+    ['ecg12HighlightPR', 'PR'],
+    ['ecg12HighlightQRSDur', 'QRSd'],
+    ['ecg12HighlightQT', 'QT'],
+    ['ecg12HighlightRR', 'RR']
+  ];
+
+  const updateHighlights = () => {
+    const highlightState = {};
+    highlightIds.forEach(([id, key]) => {
+      const el = scoped(id);
+      highlightState[key] = !!(el && el.checked);
+    });
+    sim.setHighlights(highlightState);
+
+    const intervalState = {};
+    intervalHighlightIds.forEach(([id, key]) => {
+      const el = scoped(id);
+      intervalState[key] = !!(el && el.checked);
+    });
+    sim.setIntervalHighlights(intervalState);
+
+    if (measureToggle) {
+      const enabled = !!measureToggle.checked;
+      if (measureHint) {
+        measureHint.classList.toggle('active', enabled);
+      }
+      if (typeof sim.setMeasureToolEnabled === 'function') {
+        sim.setMeasureToolEnabled(enabled);
+      }
+    }
+  };
+
+  [...highlightIds, ...intervalHighlightIds].forEach(([id]) => {
+    const el = scoped(id);
+    if (el) el.addEventListener('change', updateHighlights);
+  });
+  if (measureToggle) measureToggle.addEventListener('change', updateHighlights);
+
+  if (playBtn) playBtn.addEventListener('click', () => sim.play());
+  if (pauseBtn) pauseBtn.addEventListener('click', () => sim.pause());
+  if (resetBtn) resetBtn.addEventListener('click', () => sim.reset());
+
+  if (trace) {
+    trace.addEventListener('click', (event) => {
+      const lead = sim.getLeadAtEvent(event);
+      if (lead) {
+        sim.setSelectedLead(lead);
+        updateExpandedLabel();
+      }
+    });
+  }
+
+  if (gridWrap) {
+    gridWrap.addEventListener('mousemove', (event) => {
+      sim.setHoverLead(sim.getLeadAtEvent(event));
+    });
+  }
+
+  const initialAxisMode = typeof sim.getAxisMode === 'function' ? sim.getAxisMode() : 'normal';
+  applyAxisMode(initialAxisMode);
+  populateRhythmOptions();
+  syncHeartRateInput();
+
+  sim.setHoverLead(null);
+  updateHighlights();
+  updateExpandedLabel();
+
+  sim.handleResize();
+  sim.reset();
+
+  return sim;
+};
