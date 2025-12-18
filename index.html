@@ -6564,6 +6564,18 @@ const coronaryMap = {
             const preloadIdx = getQuizSliderIndex('preloadSlider');
             const afterloadIdx = getQuizSliderIndex('afterloadSlider');
             const contractilityIdx = getQuizSliderIndex('inotropySlider');
+
+            // If all sliders are set to \"No change\", return the global normal loop
+            // so the red quiz loop exactly matches the gray normal reference.
+            if (preloadIdx === 1 && afterloadIdx === 1 && contractilityIdx === 1) {
+                const edv = 120;
+                const esv = 50;
+                const systolic = 125;
+                const afterload = QUIZ_AFTERLOAD_VALUES[1]; // 1200
+                const contractility = QUIZ_CONTRACTILITY_FACTORS[1]; // 1.0
+                return { edv, esv, systolic, afterload, contractility };
+            }
+
             const matchGuidance = () => {
                 const guidance = PATHOLOGY_FEEDBACK[pathologyKey];
                 if (!guidance) return false;
@@ -6669,7 +6681,60 @@ const coronaryMap = {
                     }
                 }
             });
-            updateQuizChart();
+            // Initialize quiz so red loop overlays the normal reference on first load
+            const normalEDV = 120;
+            const normalESV = 50;
+            const normalSystolic = 125;
+            const normalAfterload = 1200;
+            const normalContractility = 1.0;
+            const normalHR = 70;
+            const normalSV = normalEDV - normalESV;
+            const normalCO = (normalSV * normalHR) / 1000;
+            const normalEF = (normalSV / normalEDV) * 100;
+
+            const normalLoop = buildSimpleLoop(normalEDV, normalESV, normalSystolic);
+            pvQuizChart.data.datasets[0].data = normalLoop;
+            pvQuizChart.data.datasets[1].data = normalLoop;
+            pvQuizChart.options.scales.x.max = Math.max(180, normalEDV + 20);
+            pvQuizChart.options.scales.y.max = Math.max(150, normalSystolic + 20);
+            pvQuizChart.update('none');
+
+            // Sync quiz stats and chips with normal reference values
+            lastQuizStats = {
+                preload: normalEDV,
+                afterload: normalAfterload,
+                contractility: normalContractility,
+                hr: normalHR,
+                sv: normalSV,
+                co: normalCO,
+                ef: normalEF
+            };
+
+            const setText = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            };
+            setText('quizEDVDisplay', Math.round(normalEDV));
+            setText('quizAfterloadDisplay', Math.round(normalAfterload));
+            setText('quizContractDisplay', normalContractility.toFixed(1));
+            setText('quizHRDisplay', Math.round(normalHR));
+            setText('quizSVDisplay', Math.round(normalSV));
+            setText('quizCODisplay', normalCO.toFixed(1));
+            setText('quizEFDisplay', Math.round(normalEF));
+
+            const setChipState = (chipId, inRange) => {
+                const chip = document.getElementById(chipId);
+                if (!chip) return;
+                chip.classList.remove('chip-normal', 'chip-alert');
+                chip.classList.add(inRange ? 'chip-normal' : 'chip-alert');
+            };
+            setChipState('quiz-chip-edv', normalEDV >= 100 && normalEDV <= 140);
+            setChipState('quiz-chip-esv', normalAfterload >= 900 && normalAfterload <= 1400);
+            setChipState('quiz-chip-contractility', normalContractility >= 0.9 && normalContractility <= 1.1);
+            setChipState('quiz-chip-hr', normalHR >= 60 && normalHR <= 100);
+            setChipState('quiz-chip-sv', normalSV >= 60 && normalSV <= 100);
+            setChipState('quiz-chip-co', normalCO >= 4 && normalCO <= 8);
+            setChipState('quiz-chip-ef', normalEF >= 55 && normalEF <= 70);
         }
 
         function updateQuizChart() {
