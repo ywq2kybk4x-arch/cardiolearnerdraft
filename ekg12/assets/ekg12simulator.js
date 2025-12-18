@@ -1685,6 +1685,7 @@ class Ecg12Simulator {
       this.addBeatToSchedule(schedule, {
         rTime,
         pr: fixedPr,
+        hasP: conducted,
         hasQRS: conducted,
         hasT: conducted
       });
@@ -1705,9 +1706,17 @@ class Ecg12Simulator {
 
     const sample = beats.slice(0, 12).map((beat, i) => {
       const conducted = beat.hasQRS !== false;
+      const pShown = beat.hasP !== false;
       // Approximate P center based on the same cue used for rendering.
       const pCenter = (beat.rTime || 0) - (beat.pr || 0) + 40;
-      return { i, pCenter: Math.round(pCenter), conducted, pr: conducted ? Math.round(beat.pr || 0) : null };
+      return {
+        i,
+        pCenter: pShown ? Math.round(pCenter) : null,
+        hasP: pShown,
+        hasQRS: conducted,
+        hasT: beat.hasT !== false,
+        pr: conducted ? Math.round(beat.pr || 0) : null
+      };
     });
 
     const conductedPr = beats.filter((b) => b.hasQRS !== false).map((b) => Math.round(b.pr || 0));
@@ -1727,7 +1736,7 @@ class Ecg12Simulator {
     console.groupCollapsed('[Ecg12Simulator][Mobitz II self-check]');
     sample.forEach((row) => {
       console.log(
-        `#${row.i} P@${row.pCenter}ms conducted=${row.conducted} ${row.conducted ? `PR=${row.pr}ms` : '(dropped)'}`
+        `#${row.i} P=${row.hasP ? `@${row.pCenter}ms` : 'off'} QRS=${row.hasQRS ? 'on' : 'off'} T=${row.hasT ? 'on' : 'off'} ${row.hasQRS ? `PR=${row.pr}ms` : '(dropped)'}`
       );
     });
     console.assert(uniquePr.length <= 1, '[Mobitz II] PR should be constant on conducted beats.', uniquePr);

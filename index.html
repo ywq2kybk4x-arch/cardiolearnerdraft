@@ -1195,21 +1195,57 @@
             }
         }
 
-        #showAnswerButton {
-            background: var(--success);
-            border: none;
-            color: #fff;
-            font-weight: 600;
-            border-radius: var(--radius-md);
-            padding: var(--s3);
-            width: 100%;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+        .pv-quiz-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: var(--s3);
         }
 
-        #showAnswerButton:hover {
+        @media (min-width: 720px) {
+            .pv-quiz-actions {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .pv-quiz-btn {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: var(--surface);
+            color: var(--text);
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .pv-quiz-btn:hover {
             transform: translateY(-1px);
             box-shadow: var(--shadow-sm);
+            border-color: rgba(148, 163, 184, 0.6);
+        }
+
+        .pv-quiz-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .pv-quiz-btn--primary {
+            background: var(--primary);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .pv-quiz-btn--secondary {
+            background: var(--surface);
+            color: var(--success);
+            border-color: rgba(34, 197, 94, 0.35);
+        }
+
+        .pv-quiz-btn--secondary:hover {
+            border-color: rgba(34, 197, 94, 0.55);
+            background: rgba(34, 197, 94, 0.06);
         }
 
         .answer-panel {
@@ -2775,8 +2811,10 @@
                             </div>
                         </div>
                     </div>
-                    <button class="reset-button" style="width: 100%; margin-top: 5px;" id="quizSubmit">Submit Attempt</button>
-                    <button type="button" id="showAnswerButton">Show Answer</button>
+                    <div class="pv-quiz-actions">
+                        <button type="button" class="pv-quiz-btn pv-quiz-btn--primary" id="quizSubmit">Submit Attempt</button>
+                        <button type="button" class="pv-quiz-btn pv-quiz-btn--secondary" id="showAnswerButton">Show Answer</button>
+                    </div>
                     <div class="quiz-feedback" id="quizFeedback">Pick a lesion and adjust the loop to match it.</div>
                 </div>
                     <div class="chart-container quiz-chart-container">
@@ -2888,6 +2926,7 @@
                                 <label><input type="checkbox" id="ecgHighlightT"> T wave</label>
                                 <label><input type="checkbox" id="ecgHighlightPR"> PR interval</label>
                                 <label><input type="checkbox" id="ecgHighlightQRSDur"> QRS duration</label>
+                                <label><input type="checkbox" id="ecgHighlightRR"> R–R interval</label>
                                 <label><input type="checkbox" id="ecgHighlightQT"> QT interval</label>
                             </div>
                         </div>
@@ -4136,6 +4175,7 @@ const coronaryMap = {
             const highlightT = document.getElementById('ecgHighlightT');
             const highlightPR = document.getElementById('ecgHighlightPR');
             const highlightQRSDur = document.getElementById('ecgHighlightQRSDur');
+            const highlightRR = document.getElementById('ecgHighlightRR');
             const highlightQT = document.getElementById('ecgHighlightQT');
             const playBtn = document.getElementById('ecgPlay');
             const pauseBtn = document.getElementById('ecgPause');
@@ -4191,6 +4231,7 @@ const coronaryMap = {
                 const intervals = {
                     PR: !!highlightPR?.checked,
                     QRSd: !!highlightQRSDur?.checked,
+                    RR: !!highlightRR?.checked,
                     QT: !!highlightQT?.checked
                 };
                 sim.setHighlights(highlights);
@@ -4198,7 +4239,7 @@ const coronaryMap = {
                 sim.drawExpandedTrace?.();
             };
 
-            [highlightP, highlightQRS, highlightT, highlightPR, highlightQRSDur, highlightQT].forEach((input) => {
+            [highlightP, highlightQRS, highlightT, highlightPR, highlightQRSDur, highlightRR, highlightQT].forEach((input) => {
                 input?.addEventListener('change', updateHighlights);
             });
 
