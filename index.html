@@ -2319,7 +2319,7 @@
                                         </div>
                                         <label class="hfref-compare">
                                             <input id="hfrefCompareCheckbox" type="checkbox">
-                                            Compare with Chronic
+                                            <span id="hfrefCompareCheckboxText">Compare with Chronic</span>
                                         </label>
                                     </div>
                                     <div class="hfref-panel-note">
@@ -5934,15 +5934,8 @@ const coronaryMap = {
                 asBox.style.display = pathologyKey === 'aorticStenosis' ? 'block' : 'none';
             }
 
-            // Show/hide HFrEF compare controls
-            const hfrefBox = document.getElementById('hfrefCompareBox');
-            if (hfrefBox) {
-                const showHfrefControls = pathologyKey === 'hfref';
-                hfrefBox.style.display = showHfrefControls ? 'block' : 'none';
-                if (showHfrefControls) {
-                    updateHfrefToggleActiveState();
-                }
-            }
+            // Show/hide HFrEF compare controls + force compare off outside HFrEF
+            syncHfrefCompareUI();
 
             // Show/hide AR Practice Questions button
             const arQuestionsBtn = document.getElementById('toggle-ar-questions-btn');
@@ -6379,7 +6372,10 @@ const coronaryMap = {
                             labels: {
                                 filter: function(item, chart) {
                                     // Hide helper datasets from legend
-                                    return item.text !== 'Valve Events' && item.text !== 'Drag Handles';
+                                    if (item.text === 'Valve Events' || item.text === 'Drag Handles') return false;
+                                    // Only show HFrEF compare legend entry when HFrEF is the active pathology.
+                                    if (item.text === 'HFrEF compare' && currentPathology !== 'hfref') return false;
+                                    return true;
                                 }
                             }
                         },
@@ -6529,6 +6525,36 @@ const coronaryMap = {
                 if (!btn.dataset.variant) return;
                 btn.classList.toggle('active', btn.dataset.variant === currentHfrefVariant);
             });
+            updateHfrefCompareLabelText();
+        }
+
+        function updateHfrefCompareLabelText() {
+            const labelText = document.getElementById('hfrefCompareCheckboxText');
+            if (!labelText) return;
+            labelText.textContent = currentHfrefVariant === 'chronic' ? 'Compare with Acute' : 'Compare with Chronic';
+        }
+
+        function syncHfrefCompareUI() {
+            const isHfref = currentPathology === 'hfref';
+
+            const hfrefBox = document.getElementById('hfrefCompareBox');
+            if (hfrefBox) {
+                hfrefBox.style.display = isHfref ? 'block' : 'none';
+                if (isHfref) {
+                    updateHfrefToggleActiveState();
+                }
+            }
+
+            if (!isHfref) {
+                // Force compare off outside HFrEF so no overlays/annotations linger.
+                hfrefCompareEnabled = false;
+                const hfrefCompareCheckbox = document.getElementById('hfrefCompareCheckbox');
+                if (hfrefCompareCheckbox) {
+                    hfrefCompareCheckbox.checked = false;
+                }
+            }
+
+            updateHfrefCompareDataset();
         }
         
         function attachEventListeners() {
@@ -6582,6 +6608,7 @@ const coronaryMap = {
                 });
             }
             updateHfrefToggleActiveState();
+            syncHfrefCompareUI();
         }
 
         // Quiz helpers
@@ -7009,7 +7036,7 @@ const coronaryMap = {
             // Update charts and overlay
             const peakPressure = updatePVLoop(preload, strokeVolume, afterload, contractility);
             updatePVOverlay(strokeVolume, peakPressure);
-            updateHfrefCompareDataset();
+            syncHfrefCompareUI();
         }
 
         function updateFloatingStats(preload, afterload, contractility, heartRate, sv, co, ef) {
