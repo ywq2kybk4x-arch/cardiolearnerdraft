@@ -1,0 +1,601 @@
+#ekgTutorialRoot {
+  --ekg-tut-surface: var(--surface, #ffffff);
+  --ekg-tut-surface-2: var(--surface-2, #f4f6fb);
+  --ekg-tut-border: rgba(148, 163, 184, 0.35);
+  --ekg-tut-text: var(--text, #0a0f1a);
+  --ekg-tut-muted: var(--muted, #1f2937);
+  --ekg-tut-muted-2: var(--muted-2, #475569);
+  --ekg-tut-primary: var(--primary, #2563eb);
+  --ekg-tut-primary-50: var(--primary-50, rgba(37, 99, 235, 0.08));
+  --ekg-tut-success: var(--success, #059669);
+  --ekg-tut-danger: var(--danger, #dc2626);
+  --ekg-tut-shadow: var(--shadow-sm, 0 6px 16px rgba(15, 23, 42, 0.08));
+  --ekg-tut-radius: 16px;
+}
+
+#ekgTutorialSection {
+  background: var(--surface, #fff);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm, 0 6px 16px rgba(15, 23, 42, 0.08));
+}
+
+#ekgTutorialRoot .ekg-tutorial {
+  position: relative;
+  border: 1px solid var(--ekg-tut-border);
+  border-radius: 18px;
+  background: var(--ekg-tut-surface);
+  box-shadow: var(--ekg-tut-shadow);
+  padding: 14px;
+}
+
+#ekgTutorialRoot .ekg-tutorial-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+#ekgTutorialRoot .ekg-tutorial-kicker {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--ekg-tut-muted-2);
+  margin-bottom: 6px;
+}
+
+#ekgTutorialRoot .ekg-tutorial-title {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-tutorial-subtitle {
+  margin: 0;
+  color: var(--ekg-tut-muted);
+  font-size: 0.9rem;
+}
+
+#ekgTutorialRoot .ekg-stepper {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--ekg-tut-border);
+  border-radius: 14px;
+  padding: 10px 10px;
+  background: var(--ekg-tut-surface-2);
+  margin-bottom: 12px;
+}
+
+#ekgTutorialRoot .ekg-stepper-progress {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ekg-tut-muted);
+}
+
+#ekgTutorialRoot .ekg-stepper-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+#ekgTutorialRoot .ekg-stepper-btn {
+  border: 1px solid var(--ekg-tut-border);
+  background: #fff;
+  color: var(--ekg-tut-text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+#ekgTutorialRoot .ekg-stepper-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#ekgTutorialRoot .ekg-stepper-btn--primary {
+  border-color: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.92);
+  color: #fff;
+}
+
+#ekgTutorialRoot .ekg-stepper-btn--ghost {
+  background: transparent;
+}
+
+#ekgTutorialRoot .ekg-step-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+#ekgTutorialRoot .ekg-step-label {
+  font-weight: 800;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-step-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+#ekgTutorialRoot .ekg-tag {
+  border: 1px solid var(--ekg-tut-border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ekg-tut-muted);
+}
+
+#ekgTutorialRoot .ekg-tag.success {
+  border-color: rgba(5, 150, 105, 0.45);
+  background: rgba(5, 150, 105, 0.1);
+  color: #065f46;
+}
+
+#ekgTutorialRoot .ekg-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#ekgTutorialRoot .ekg-card {
+  border: 1px solid var(--ekg-tut-border);
+  background: #fff;
+  border-radius: var(--ekg-tut-radius);
+  padding: 12px;
+}
+
+#ekgTutorialRoot .ekg-card--focus {
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.9));
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
+#ekgTutorialRoot .ekg-card-title {
+  font-weight: 900;
+  margin-bottom: 6px;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-card-text {
+  margin: 0;
+  color: var(--ekg-tut-muted);
+  font-size: 0.92rem;
+}
+
+#ekgTutorialRoot .ekg-bullets,
+#ekgTutorialRoot .ekg-ordered {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--ekg-tut-muted);
+  font-size: 0.92rem;
+}
+
+#ekgTutorialRoot .ekg-inline-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+#ekgTutorialRoot .ekg-mini-btn {
+  border: 1px solid var(--ekg-tut-border);
+  background: #fff;
+  border-radius: 12px;
+  padding: 9px 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+#ekgTutorialRoot .ekg-mini-btn--primary {
+  border-color: rgba(37, 99, 235, 0.6);
+  background: var(--ekg-tut-primary-50);
+  color: var(--ekg-tut-primary);
+}
+
+#ekgTutorialRoot .ekg-waveform-wrap {
+  border: 1px solid var(--ekg-tut-border);
+  border-radius: var(--ekg-tut-radius);
+  background: #fff;
+  overflow: hidden;
+}
+
+#ekgTutorialRoot .ekg-waveform {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+#ekgTutorialRoot .tutorial-wave-slot {
+  border: 1px solid var(--ekg-tut-border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  min-height: 220px;
+}
+
+#ekgTutorialRoot .tutorial-waveform-wrap {
+  position: relative;
+  min-height: 220px;
+  background: #fff;
+}
+
+#ekgTutorialRoot .tutorial-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#ekgTutorialRoot .tutorial-canvas--trace {
+  z-index: 1;
+}
+
+#ekgTutorialRoot .tutorial-canvas--overlay {
+  z-index: 2;
+  pointer-events: none;
+}
+
+#ekgTutorialRoot .tutorial-hit-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  cursor: crosshair;
+}
+
+#ekgTutorialRoot .tutorial-highlight-indicator {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.55);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, left 0.2s ease, width 0.2s ease;
+}
+
+#ekgTutorialRoot .tutorial-chip-host {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#ekgTutorialRoot .tutorial-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+#ekgTutorialRoot .tutorial-chip {
+  border: 1px solid var(--ekg-tut-border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  color: var(--ekg-tut-text);
+  cursor: pointer;
+}
+
+#ekgTutorialRoot .tutorial-chip--active {
+  border-color: var(--ekg-tut-primary);
+  background: var(--ekg-tut-primary-50);
+  color: var(--ekg-tut-primary);
+}
+
+#ekgTutorialRoot .tutorial-waveform-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+#ekgTutorialRoot .tutorial-chip-note {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--ekg-tut-muted);
+}
+
+#ekgTutorialRoot .ekg-waveform-label {
+  font-size: 12px;
+  font-weight: 800;
+  fill: rgba(71, 85, 105, 0.95);
+  pointer-events: none;
+}
+
+#ekgTutorialRoot .ekg-waveform-hit {
+  fill: rgba(37, 99, 235, 0.02);
+  stroke: rgba(37, 99, 235, 0.0);
+  stroke-width: 2;
+  cursor: help;
+}
+
+#ekgTutorialRoot .ekg-waveform-hit:hover,
+#ekgTutorialRoot .ekg-waveform-hit:focus {
+  fill: rgba(37, 99, 235, 0.08);
+  stroke: rgba(37, 99, 235, 0.45);
+}
+
+#ekgTutorialRoot .ekg-waveform-hit.is-highlight {
+  fill: rgba(37, 99, 235, 0.12);
+  stroke: rgba(37, 99, 235, 0.7);
+  filter: url(#ekgGlow);
+}
+
+#ekgTutorialRoot .ekg-tooltip {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: min(320px, 92%);
+  border-radius: 14px;
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.14);
+  padding: 10px 12px;
+  z-index: 5;
+  display: none;
+}
+
+#ekgTutorialRoot .ekg-tooltip.is-visible {
+  display: block;
+}
+
+#ekgTutorialRoot .ekg-tooltip-title {
+  font-weight: 900;
+  margin-bottom: 4px;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-tooltip-body {
+  color: var(--ekg-tut-muted);
+  font-size: 0.9rem;
+}
+
+#ekgTutorialRoot .ekg-tooltip-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+#ekgTutorialRoot .ekg-tooltip-chip {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(248, 250, 252, 0.95);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 0.86rem;
+  color: var(--ekg-tut-muted);
+}
+
+#ekgTutorialRoot .ekg-checklist {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+#ekgTutorialRoot .ekg-check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 700;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-check input {
+  width: 18px;
+  height: 18px;
+}
+
+#ekgTutorialRoot .ekg-quiz {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#ekgTutorialRoot .ekg-q {
+  border: 1px solid var(--ekg-tut-border);
+  border-radius: var(--ekg-tut-radius);
+  padding: 12px;
+  background: #fff;
+}
+
+#ekgTutorialRoot .ekg-q-prompt {
+  font-weight: 900;
+  margin-bottom: 8px;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-q-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(248, 250, 252, 0.6);
+  cursor: pointer;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-q-option input {
+  margin: 0;
+}
+
+#ekgTutorialRoot .ekg-q-expl {
+  margin-top: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ekg-tut-muted);
+}
+
+#ekgTutorialRoot .ekg-q-expl.correct {
+  color: #065f46;
+}
+
+#ekgTutorialRoot .ekg-q-expl.incorrect {
+  color: #b91c1c;
+}
+
+#ekgTutorialRoot .ekg-quiz-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#ekgTutorialRoot .ekg-quiz-feedback {
+  border: 1px solid var(--ekg-tut-border);
+  border-radius: var(--ekg-tut-radius);
+  padding: 10px 12px;
+  background: var(--ekg-tut-surface-2);
+  font-weight: 900;
+  color: var(--ekg-tut-muted);
+}
+
+#ekgTutorialRoot .ekg-quiz-feedback.success {
+  border-color: rgba(5, 150, 105, 0.45);
+  background: rgba(5, 150, 105, 0.1);
+  color: #065f46;
+}
+
+#ekgTutorialRoot .ekg-quiz-feedback.error {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+}
+
+#ekgTutorialRoot .ekg-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 520px) {
+  #ekgTutorialRoot .ekg-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+#ekgTutorialRoot .ekg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#ekgTutorialRoot .ekg-field-label {
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ekg-tut-border);
+  background: #fff;
+  font-weight: 700;
+}
+
+#ekgTutorialRoot .ekg-output {
+  margin-top: 10px;
+  border-radius: var(--ekg-tut-radius);
+  border: 1px solid var(--ekg-tut-border);
+  padding: 10px 12px;
+  background: #fff;
+  font-weight: 900;
+  color: var(--ekg-tut-muted);
+}
+
+#ekgTutorialRoot .ekg-output.success {
+  border-color: rgba(5, 150, 105, 0.45);
+  background: rgba(5, 150, 105, 0.08);
+  color: #065f46;
+}
+
+#ekgTutorialRoot .ekg-output.error {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+}
+
+#ekgTutorialRoot .ekg-pill-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+#ekgTutorialRoot .ekg-pill {
+  border: 1px solid var(--ekg-tut-border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 900;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-pill.active {
+  border-color: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.92);
+  color: #fff;
+}
+
+#ekgTutorialRoot .ekg-strip {
+  margin-top: 10px;
+  border: 1px solid var(--ekg-tut-border);
+  border-radius: var(--ekg-tut-radius);
+  overflow: hidden;
+  background: #fff;
+}
+
+#ekgTutorialRoot .ekg-axis-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+#ekgTutorialRoot .ekg-axis-card {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: var(--ekg-tut-radius);
+  padding: 10px 12px;
+  background: rgba(248, 250, 252, 0.6);
+}
+
+#ekgTutorialRoot .ekg-axis-prompt {
+  font-weight: 900;
+  margin-bottom: 8px;
+  color: var(--ekg-tut-text);
+}
+
+#ekgTutorialRoot .ekg-axis-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 800;
+  color: var(--ekg-tut-text);
+}

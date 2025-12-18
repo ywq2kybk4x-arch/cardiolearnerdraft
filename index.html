@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="./assets/ekg-tutorial.css" rel="stylesheet">
     <script src="./assets/chart.js"></script>
     <script src="./assets/chartjs-plugin-annotation.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
@@ -2893,9 +2894,13 @@
                 </div>
             </div>
             <div class="ekg-mode-toggle">
+                <button type="button" id="showTutorialBtn">Tutorial</button>
                 <button type="button" id="showSingleLeadBtn" class="active">Single lead</button>
                 <button type="button" id="show12LeadBtn">12 lead</button>
                 <button type="button" id="showQuizBtn">EKG Quiz</button>
+            </div>
+            <div id="ekgTutorialSection" class="single-lead-card" style="display:none;">
+                <div id="ekgTutorialRoot"></div>
             </div>
             <div id="singleLeadEcgContainer" class="single-lead-card">
                 <h3>Single-Lead Rhythm Simulator</h3>
@@ -3552,6 +3557,7 @@ const coronaryMap = {
 
     <script src="./assets/ekgsimulatorcopy.js"></script>
     <script src="./ekg12/assets/ekg12simulator.js"></script>
+    <script src="./assets/ekg-tutorial.js"></script>
 
     <script>
         // Initialize charts
@@ -4644,23 +4650,28 @@ const coronaryMap = {
         }
         
         document.addEventListener('DOMContentLoaded', () => {
+            let tutorialInitialized = false;
             const show12Btn = document.getElementById('show12LeadBtn');
             const showSingleBtn = document.getElementById('showSingleLeadBtn');
             const showQuizBtn = document.getElementById('showQuizBtn');
+            const showTutorialBtn = document.getElementById('showTutorialBtn');
             const ecg12Module = document.getElementById('ecg12Module');
             const singleLeadContainer = document.getElementById('singleLeadEcgContainer');
             const ecgQuizSection = document.getElementById('ecgQuizSection');
+            const tutorialSection = document.getElementById('ekgTutorialSection');
 
             const clearActive = () => {
                 show12Btn?.classList.remove('active');
                 showSingleBtn?.classList.remove('active');
                 showQuizBtn?.classList.remove('active');
+                showTutorialBtn?.classList.remove('active');
             };
 
             const hideAllSections = () => {
                 if (singleLeadContainer) singleLeadContainer.style.display = 'none';
                 if (ecg12Module) ecg12Module.style.display = 'none';
                 if (ecgQuizSection) ecgQuizSection.style.display = 'none';
+                if (tutorialSection) tutorialSection.style.display = 'none';
             };
 
             const activate12Lead = () => {
@@ -4696,9 +4707,26 @@ const coronaryMap = {
                 scheduleQuizResize();
             };
 
+            const activateTutorial = () => {
+                if (currentEkgMode === 'tutorial') return;
+                currentEkgMode = 'tutorial';
+                clearActive();
+                showTutorialBtn?.classList.add('active');
+                hideAllSections();
+                if (tutorialSection) tutorialSection.style.display = '';
+                if (!tutorialInitialized) {
+                    const mountEl = document.getElementById('ekgTutorialRoot');
+                    if (mountEl && typeof window.initEkgTutorial === 'function') {
+                        window.initEkgTutorial({ mountEl });
+                        tutorialInitialized = true;
+                    }
+                }
+            };
+
             show12Btn?.addEventListener('click', activate12Lead);
             showSingleBtn?.addEventListener('click', activateSingleLead);
             showQuizBtn?.addEventListener('click', activateQuiz);
+            showTutorialBtn?.addEventListener('click', activateTutorial);
 
             hideAllSections();
             if (singleLeadContainer) {
