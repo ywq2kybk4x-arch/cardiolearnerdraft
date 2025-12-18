@@ -45,7 +45,8 @@ class EcgSimulator {
     this.config = {
       displayTime: config.displayTime || 10,
       heartRate: config.heartRate || 75,
-      speed: config.speed || 25 // fixed at 25 mm/s
+      speed: config.speed || 25, // fixed at 25 mm/s
+      autoplay: config.autoplay !== undefined ? config.autoplay : true
     };
 
     this.highlights = { P: false, QRS: false, T: false };
@@ -88,7 +89,9 @@ class EcgSimulator {
     this.regenerateRhythm();
     this.drawGrid();
     this.reset();
-    this.play();
+    if (this.config.autoplay) {
+      this.play();
+    }
   }
 
   // ---------------------------
@@ -163,6 +166,11 @@ class EcgSimulator {
 
   pause() {
     this.isPlaying = false;
+  }
+
+  destroy() {
+    this.pause();
+    window.removeEventListener('resize', this.handleResize);
   }
 
   reset() {

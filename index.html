@@ -2085,6 +2085,45 @@
         .single-lead-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.9rem;color:#475569}
         .single-lead-legend span{display:flex;align-items:center;gap:8px}
         .single-lead-legend .swatch{width:16px;height:16px;border-radius:4px;display:inline-block}
+        .ecg-quiz-section{margin-top:32px;border:1px solid rgba(148,163,184,.35);border-radius:24px;padding:24px;background:var(--surface,#fff);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:16px}
+        .ecg-quiz-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+        .ecg-quiz-header-meta{display:flex;gap:12px;font-size:.9rem;color:var(--muted);flex-wrap:wrap}
+        .ecg-quiz-paper{background:var(--kc-bg);border:1px solid var(--kc-border);border-radius:18px;padding:12px;box-shadow:var(--kc-shadow)}
+        .ecg12-quiz-display{border-radius:16px;border:1px solid rgba(148,163,184,.35);background:var(--surface,#fff);padding:12px;width:100%}
+        .ecg12-quiz-layout{display:flex;flex-direction:column;gap:16px}
+        .ecg12-quiz-layout-main,.ecg12-quiz-layout-expanded{flex:1 1 auto;width:100%;min-width:0}
+        .ecg12-quiz-display .ecg12-canvas-wrap{position:relative;width:100%;height:360px;border-radius:14px;overflow:hidden;border:1px solid rgba(148,163,184,.35);background:transparent}
+        .ecg12-quiz-display .ecg12-expanded-wrap{height:260px}
+        .ecg12-quiz-display .ecg12-canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+        .ecg-quiz-measure-hint{font-size:.85rem;color:var(--muted-2);margin-top:6px;opacity:.85}
+        .ecg-quiz-meta{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+        .ecg-quiz-question{font-weight:600;margin:0;font-size:1rem}
+        .ecg-quiz-choices{display:flex;flex-direction:column;gap:8px}
+        .ecg-quiz-choice{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:var(--surface-2,#f4f6fb);cursor:pointer;font-weight:600}
+        .ecg-quiz-choice-input{display:flex;align-items:center;gap:10px}
+        .ecg-quiz-choice input{margin:0}
+        .ecg-quiz-choice.correct{border-color:rgba(34,197,94,.7);background:rgba(34,197,94,.12)}
+        .ecg-quiz-choice.incorrect{border-color:rgba(239,68,68,.7);background:rgba(239,68,68,.12)}
+        .ecg-quiz-choice-expl{font-size:.9rem;color:#b91c1c;display:none;font-weight:500}
+        .ecg-quiz-choice-expl.active{display:block}
+        .ecg-quiz-choice input:disabled{cursor:not-allowed}
+        .ecg-quiz-actions{display:flex;gap:12px;flex-wrap:wrap}
+        .ecg-quiz-actions button{border-radius:12px}
+        .ecg-quiz-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+        .ecg-quiz-nav button{border-radius:10px;border:1px solid rgba(148,163,184,.35);background:var(--surface-2,#f4f6fb);padding:6px 10px;font-weight:600;color:var(--muted);cursor:pointer;min-width:36px}
+        .ecg-quiz-nav button.active{border-color:var(--primary);color:var(--primary);background:var(--primary-50,rgba(37,99,235,0.08))}
+        .ecg-quiz-nav button.correct{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.8);color:#15803d}
+        .ecg-quiz-nav button.needs-review{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.8);color:#b91c1c}
+        .ecg-quiz-summary{margin-top:16px;border:1px solid rgba(148,163,184,.35);border-radius:16px;padding:16px;background:var(--surface-2,#f8fafc)}
+        .ecg-quiz-summary h4{margin:0 0 8px;font-size:1rem}
+        .ecg-quiz-summary ul{margin:0;padding-left:18px}
+        .ecg-quiz-summary li{margin-bottom:4px}
+        .ecg-quiz-feedback{font-weight:600;font-size:.95rem;color:var(--muted)}
+        .ecg-quiz-feedback.success{color:#15803d}
+        .ecg-quiz-feedback.error{color:#b91c1c}
+        @media (max-width: 900px){
+            .ecg-quiz-header{flex-direction:column}
+        }
 
         @media (max-width: 1000px) {
             #ecg12Module .ecg12-grid {
@@ -2801,6 +2840,7 @@
             <div class="ekg-mode-toggle">
                 <button type="button" id="showSingleLeadBtn" class="active">Single lead</button>
                 <button type="button" id="show12LeadBtn">12 lead</button>
+                <button type="button" id="showQuizBtn">EKG Quiz</button>
             </div>
             <div id="singleLeadEcgContainer" class="single-lead-card">
                 <h3>Single-Lead Rhythm Simulator</h3>
@@ -2842,9 +2882,9 @@
                     </div>
                     <div class="single-lead-display">
                         <div class="single-lead-canvas">
-                            <canvas id="ecgBackground"></canvas>
-                            <canvas id="ecgTrace"></canvas>
-                            <canvas id="ecgOverlay"></canvas>
+                            <canvas id="singleLeadBigBackground"></canvas>
+                            <canvas id="singleLeadBigTrace"></canvas>
+                            <canvas id="singleLeadBigOverlay"></canvas>
                         </div>
                         <div class="single-lead-legend">
                             <span><span class="swatch" style="background:#1f2937;"></span>Default</span>
@@ -2996,6 +3036,54 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            <div id="ecgQuizSection" class="ecg-quiz-section" style="display:none;">
+                <div class="ecg-quiz-header">
+                    <div>
+                        <h3>ECG Rhythm Quiz</h3>
+                        <p class="muted-text" style="margin:4px 0 0;">Study the static 12-lead snapshot and pick the rhythm diagnosis.</p>
+                    </div>
+                    <div class="ecg-quiz-header-meta">
+                        <span>25 mm/s</span>
+                        <span>10 mm/mV</span>
+                    </div>
+                </div>
+                <div id="ecgQuizPaper" class="ecg-quiz-paper">
+                    <div id="ecgQuiz12LeadHost" class="ecg12-quiz-display">
+                        <div class="ecg12-quiz-layout">
+                            <div class="ecg12-quiz-layout-main">
+                                <div class="ecg12-canvas-wrap" id="ecgQuizGridWrap">
+                                    <canvas id="ecgQuizBackground"></canvas>
+                                    <canvas id="ecgQuizTrace"></canvas>
+                                    <canvas id="ecgQuizOverlay"></canvas>
+                                </div>
+                            </div>
+                            <div class="ecg12-quiz-layout-expanded">
+                                <div class="ecg12-expanded-header">
+                                    Expanded Lead: <span id="ecgQuizActiveLead">II</span>
+                                </div>
+                                <div class="ecg12-canvas-wrap ecg12-expanded-wrap">
+                                    <canvas id="ecgQuizBigBackground"></canvas>
+                                    <canvas id="ecgQuizBigTrace"></canvas>
+                                    <canvas id="ecgQuizBigOverlay"></canvas>
+                                </div>
+                                <div class="ecg-quiz-measure-hint">
+                                    Measure tool active: click & drag on the expanded lead to capture intervals. Hold Shift to keep marks, double-click a label to remove it.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ecg-quiz-meta" id="ecgQuizMeta">Speed: 25 mm/s • Gain: 10 mm/mV • ECG ID: ————</div>
+                </div>
+                <div id="ecgQuizNav" class="ecg-quiz-nav"></div>
+                <p class="ecg-quiz-question">What is the rhythm?</p>
+                <div id="ecgQuizChoices" class="ecg-quiz-choices"></div>
+                <div class="ecg-quiz-actions">
+                    <button type="button" id="ecgQuizSubmitBtn" class="btn btn-primary">Submit Answer</button>
+                    <button type="button" id="ecgQuizNextBtn" class="btn btn-ghost" disabled>Next ECG</button>
+                </div>
+                <div id="ecgQuizFeedback" class="ecg-quiz-feedback">Select the rhythm that matches this printout.</div>
+                <div id="ecgQuizSummary" class="ecg-quiz-summary" style="display:none;"></div>
             </div>
         </div>
 
@@ -3426,6 +3514,183 @@ const coronaryMap = {
         let currentPathology = 'normal';
         let loadedPathology = 'normal'; // Tracks which pathology card was selected
         let currentEkgMode = 'single';
+        const RHYTHM_LABELS = {
+            sinus: 'Normal sinus rhythm',
+            afib: 'Atrial fibrillation',
+            vtach: 'Ventricular tachycardia',
+            mvtach: 'Monomorphic ventricular tachycardia',
+            pvtach: 'Polymorphic ventricular tachycardia',
+            avb1: '1st-degree AV block',
+            avb2_mobitz1: '2nd-degree AV block (Mobitz I)',
+            avb2_mobitz2: '2nd-degree AV block (Mobitz II)',
+            avb3: '3rd-degree AV block (complete heart block)'
+        };
+        let ecgQuizInitialized = false;
+        let ecgQuizSim = null;
+        let ecgQuizSession = null;
+        let ecgQuizRhythmPool = [];
+        const ecgQuizElements = {};
+
+        function updateQuizExpandedLeadLabel() {
+            if (!ecgQuizSim || !ecgQuizElements.activeLeadLabel) return;
+            const lead = typeof ecgQuizSim.getSelectedLead === 'function' ? ecgQuizSim.getSelectedLead() : 'II';
+            ecgQuizElements.activeLeadLabel.textContent = lead || 'II';
+        }
+
+        function resizeQuizCanvases() {
+            if (!ecgQuizSim) return;
+            const wrap = ecgQuizElements.gridWrap || ecgQuizElements.host;
+            if (wrap) {
+                const pxPerMm = ecgQuizSim.pixelPerMm || 4;
+                const baseWidthPx = 250 * pxPerMm;
+                const wrapWidth = wrap.clientWidth || wrap.offsetWidth || baseWidthPx;
+                if (baseWidthPx && wrapWidth) {
+                    const scale = Math.max(0.6, Math.min(1.4, wrapWidth / baseWidthPx));
+                    ecgQuizSim.viewScale = scale;
+                }
+                ecgQuizSim.scrollContainer = wrap;
+            }
+            ecgQuizSim.handleResize?.();
+        }
+
+        function scheduleQuizResize() {
+            if (!ecgQuizSim) return;
+            window.requestAnimationFrame(resizeQuizCanvases);
+        }
+
+        function getRhythmInsight(key) {
+            return RHYTHM_INSIGHTS[key] || DEFAULT_RHYTHM_INSIGHT;
+        }
+
+        function resetQuizHighlights() {
+            if (!ecgQuizSim) return;
+            ecgQuizSim.setHighlights?.({ P: false, QRS: false, T: false });
+            ecgQuizSim.setIntervalHighlights?.({ PR: false, QRSd: false, QT: false, RR: false });
+            ecgQuizSim.setSelectedLead?.('II');
+            ecgQuizSim.setHighlightedLeads?.([]);
+        }
+
+        function applyQuizInsightHighlight(key) {
+            if (!ecgQuizSim) return;
+            const insight = getRhythmInsight(key);
+            const highlightConfig = { P: false, QRS: false, T: false, ...insight.highlights };
+            const intervalConfig = { PR: false, QRSd: false, QT: false, RR: false, ...insight.intervals };
+            ecgQuizSim.setHighlights?.(highlightConfig);
+            ecgQuizSim.setIntervalHighlights?.(intervalConfig);
+            if (insight.leadRegions) {
+                ecgQuizSim.setHighlightedLeads?.(insight.leadRegions);
+            } else {
+                ecgQuizSim.setHighlightedLeads?.([]);
+            }
+            if (insight.focusLead) {
+                ecgQuizSim.setSelectedLead?.(insight.focusLead);
+            }
+            ecgQuizSim.drawTrace?.();
+            ecgQuizSim.drawExpandedTrace?.();
+            ecgQuizSim.drawReadoutOverlay?.();
+        }
+
+        const DEFAULT_RHYTHM_INSIGHT = {
+            incorrect: 'Take another look at the morphology and intervals. Which leads best showcase the abnormality you picked?',
+            success: 'Great pickup! These leads highlight the key abnormality for this rhythm.',
+            highlights: { P: false, QRS: false, T: false },
+            intervals: { PR: false, QRSd: false, QT: false, RR: false },
+            focusLead: 'II',
+            extraLeads: ['II']
+        };
+
+        const RHYTHM_INSIGHTS = {
+            afib: {
+                incorrect: 'Ask yourself: do you see organized P waves or an undulating baseline? Check the irregular R–R spacing carefully.',
+                success: 'Notice the fibrillatory baseline and irregular R–R spacing best seen in leads II and V1.',
+                highlights: { P: false, QRS: true, T: false },
+                intervals: { RR: true },
+                focusLead: 'II',
+                extraLeads: ['II','V1'],
+                leadRegions: ['II','V1']
+            },
+            avb1: {
+                incorrect: 'Focus on the PR interval. Is every P followed by a QRS with a delayed conduction?',
+                success: 'Observe the prolonged PR interval across leads II and V5 highlighting first-degree block.',
+                highlights: { P: true, QRS: true, T: false },
+                intervals: { PR: true },
+                focusLead: 'II',
+                extraLeads: ['II','V5'],
+                leadRegions: ['II','V5']
+            },
+            avb2_mobitz1: {
+                incorrect: 'Do the PR intervals progressively lengthen before a beat drops? Track sequential PR segments.',
+                success: 'Watch the PR interval gradually lengthen then drop in lead II—classic Wenckebach.',
+                highlights: { P: true, QRS: true, T: false },
+                intervals: { PR: true, RR: true },
+                focusLead: 'II',
+                extraLeads: ['II'],
+                leadRegions: ['II']
+            },
+            avb2_mobitz2: {
+                incorrect: 'Are PR intervals constant with intermittent dropped beats? Check leads II and V1 carefully.',
+                success: 'Constant PR intervals with intermittent dropped QRS complexes are clear in II and V1.',
+                highlights: { P: true, QRS: true, T: false },
+                intervals: { PR: true, RR: true },
+                focusLead: 'II',
+                extraLeads: ['II','V1'],
+                leadRegions: ['II','V1']
+            },
+            avb3: {
+                incorrect: 'Is atrial activity dissociated from ventricular beats? Compare P waves to QRS timing.',
+                success: 'Notice AV dissociation and escape rhythm best seen in II and V1.',
+                highlights: { P: true, QRS: true, T: false },
+                intervals: { RR: true },
+                focusLead: 'II',
+                extraLeads: ['II','V1'],
+                leadRegions: ['II','V1']
+            },
+            mvtach: {
+                incorrect: 'Does the rhythm look wide-complex with extreme axis? Check chest leads for monomorphic VT clues.',
+                success: 'Wide, regular complexes with AV dissociation stand out in V1–V4.',
+                highlights: { P: false, QRS: true, T: false },
+                intervals: { RR: true },
+                focusLead: 'V1',
+                extraLeads: ['V1','V2','V3'],
+                leadRegions: ['V1','V2','V3','V4']
+            },
+            pvtach: {
+                incorrect: 'Are the QRS morphologies changing beat-to-beat? Look at V1–V4 carefully.',
+                success: 'Polymorphic wide-complex tachycardia is best appreciated in V1–V4.',
+                highlights: { P: false, QRS: true, T: false },
+                intervals: { RR: true },
+                focusLead: 'V2',
+                extraLeads: ['V1','V2','V3','V4'],
+                leadRegions: ['V1','V2','V3','V4']
+            },
+            stemi_inferior: {
+                incorrect: 'Do you see ST elevations in the inferior leads? Compare II, III, and aVF against reciprocal changes.',
+                success: 'Inferior ST elevation is prominent in leads II, III, and aVF with reciprocal depression elsewhere.',
+                highlights: { P: false, QRS: true, T: true },
+                intervals: { },
+                focusLead: 'III',
+                extraLeads: ['II','III','aVF'],
+                leadRegions: ['II','III','aVF']
+            },
+            stemi_anterior: {
+                incorrect: 'Look at the precordial leads V1–V4 for ST elevation and loss of R-wave progression.',
+                success: 'Anterior ST elevation is obvious in V1–V4 with reciprocal depression inferiorly.',
+                highlights: { P: false, QRS: true, T: true },
+                intervals: { },
+                focusLead: 'V3',
+                extraLeads: ['V1','V2','V3','V4'],
+                leadRegions: ['V1','V2','V3','V4']
+            },
+            stemi_lateral: {
+                incorrect: 'Check lateral limb and chest leads (I, aVL, V5–V6) for ST elevation.',
+                success: 'Leads I, aVL, V5–V6 show the lateral ST elevation pattern.',
+                highlights: { P: false, QRS: true, T: true },
+                intervals: { },
+                focusLead: 'V5',
+                extraLeads: ['I','aVL','V5','V6'],
+                leadRegions: ['I','aVL','V5','V6']
+            }
+        };
 
         function handleEkgResize() {
             const conductionPanel = document.getElementById('conduction-content');
@@ -3433,31 +3698,418 @@ const coronaryMap = {
 
             if (currentEkgMode === 'twelve') {
                 window.ecg12SimInstance?.handleResize?.();
+            } else if (currentEkgMode === 'quiz') {
+                scheduleQuizResize();
             } else {
                 window.ecgSimInstance?.handleResize?.();
             }
         }
 
+        function handleEcgQuizResize() {
+            const conductionPanel = document.getElementById('conduction-content');
+            if (!conductionPanel || !conductionPanel.classList.contains('active')) return;
+            if (!ecgQuizInitialized || !ecgQuizState) return;
+            scheduleQuizResize();
+        }
+
+        function initEcgQuizOnce() {
+            if (ecgQuizInitialized) return;
+            if (typeof window.Ecg12Simulator === 'undefined') return;
+            const paper = document.getElementById('ecgQuizPaper');
+            const choicesEl = document.getElementById('ecgQuizChoices');
+            const submitBtn = document.getElementById('ecgQuizSubmitBtn');
+            const nextBtn = document.getElementById('ecgQuizNextBtn');
+            const feedbackEl = document.getElementById('ecgQuizFeedback');
+            const metaEl = document.getElementById('ecgQuizMeta');
+            const host = document.getElementById('ecgQuiz12LeadHost');
+            const gridWrap = document.getElementById('ecgQuizGridWrap');
+            const bgCanvas = document.getElementById('ecgQuizBackground');
+            const traceCanvas = document.getElementById('ecgQuizTrace');
+            const overlayCanvas = document.getElementById('ecgQuizOverlay');
+            const bigBg = document.getElementById('ecgQuizBigBackground');
+            const bigTrace = document.getElementById('ecgQuizBigTrace');
+            const bigOverlay = document.getElementById('ecgQuizBigOverlay');
+            const activeLeadLabel = document.getElementById('ecgQuizActiveLead');
+            const nav = document.getElementById('ecgQuizNav');
+            const summaryEl = document.getElementById('ecgQuizSummary');
+            if (!paper || !choicesEl || !submitBtn || !nextBtn || !feedbackEl || !metaEl || !host || !bgCanvas || !traceCanvas || !gridWrap || !bigBg || !bigTrace) return;
+
+            ecgQuizInitialized = true;
+            ecgQuizElements.paper = paper;
+            ecgQuizElements.choices = choicesEl;
+            ecgQuizElements.submit = submitBtn;
+            ecgQuizElements.next = nextBtn;
+            ecgQuizElements.feedback = feedbackEl;
+            ecgQuizElements.meta = metaEl;
+            ecgQuizElements.host = host;
+            ecgQuizElements.gridWrap = gridWrap;
+            ecgQuizElements.activeLeadLabel = activeLeadLabel;
+            ecgQuizElements.nav = nav;
+            ecgQuizElements.summary = summaryEl;
+            if (summaryEl) {
+                summaryEl.innerHTML = '';
+                summaryEl.style.display = 'none';
+            }
+
+            ecgQuizSim = new window.Ecg12Simulator(
+                {
+                    backgroundCanvas: bgCanvas,
+                    traceCanvas: traceCanvas,
+                    overlayCanvas,
+                    bigBackgroundCanvas: bigBg,
+                    bigTraceCanvas: bigTrace,
+                    bigOverlayCanvas: bigOverlay
+                },
+                { displayTime: 10, heartRate: 75 }
+            );
+            window.ecgQuizSimInstance = ecgQuizSim;
+            if (typeof ecgQuizSim.setLoopingEnabled === 'function') {
+                ecgQuizSim.setLoopingEnabled(false);
+            }
+            ecgQuizSim.pause();
+            ecgQuizSim.scrollContainer = gridWrap;
+            ecgQuizSim.setMeasureToolEnabled?.(true);
+
+            submitBtn.addEventListener('click', handleQuizSubmit);
+            nextBtn.addEventListener('click', handleQuizNext);
+
+            gridWrap.addEventListener('scroll', () => ecgQuizSim?.drawReadoutOverlay?.());
+            traceCanvas.addEventListener('click', (event) => {
+                const lead = ecgQuizSim.getLeadAtEvent(event);
+                if (lead) {
+                    ecgQuizSim.setSelectedLead(lead);
+                    updateQuizExpandedLeadLabel();
+                }
+            });
+            traceCanvas.addEventListener('mousemove', (event) => {
+                const lead = ecgQuizSim.getLeadAtEvent(event);
+                ecgQuizSim.setHoverLead?.(lead || null);
+            });
+            traceCanvas.addEventListener('mouseleave', () => {
+                ecgQuizSim.setHoverLead?.(null);
+            });
+
+            const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+            if (mq) {
+                const handler = () => scheduleQuizResize();
+                if (mq.addEventListener) mq.addEventListener('change', handler);
+                else if (mq.addListener) mq.addListener(handler);
+            }
+
+            const themeObserver = new MutationObserver(() => {
+                scheduleQuizResize();
+            });
+            themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+            const rhythmList = typeof ecgQuizSim.getRhythmList === 'function' ? ecgQuizSim.getRhythmList() : [];
+            syncRhythmLabels(rhythmList);
+            ecgQuizRhythmPool = rhythmList.map(({ id }) => id).filter(Boolean);
+            if (!ecgQuizRhythmPool.length) {
+                ecgQuizRhythmPool = ['sinus'];
+            }
+
+            scheduleQuizResize();
+            updateQuizExpandedLeadLabel();
+            initQuizSession();
+        }
+
+        function initQuizSession(count = 5) {
+            const keys = getQuizRhythmKeys();
+            const questions = [];
+            for (let i = 0; i < count; i++) {
+                const correct = keys[Math.floor(Math.random() * keys.length)];
+                const distractors = shuffleList(keys.filter((k) => k !== correct)).slice(0, 4);
+                const choices = shuffleList([correct, ...distractors]);
+                const ecgId = Math.random().toString(16).slice(2, 8).toUpperCase();
+                questions.push({
+                    id: `q${i + 1}`,
+                    ecgId,
+                    choices,
+                    correct,
+                    status: 'unanswered',
+                    attempts: [],
+                    selected: null
+                });
+            }
+            ecgQuizSession = {
+                questions,
+                currentIndex: 0
+            };
+            if (ecgQuizElements.summary) {
+                ecgQuizElements.summary.innerHTML = '';
+                ecgQuizElements.summary.style.display = 'none';
+            }
+            renderQuizNav();
+            loadQuizQuestion(0);
+        }
+
+        function renderQuizNav() {
+            if (!ecgQuizElements.nav || !ecgQuizSession) return;
+            ecgQuizElements.nav.innerHTML = '';
+            ecgQuizSession.questions.forEach((question, idx) => {
+                const btn = document.createElement('button');
+                btn.textContent = idx + 1;
+                btn.dataset.index = idx;
+                btn.classList.toggle('active', idx === ecgQuizSession.currentIndex);
+                if (question.status === 'correct') {
+                    btn.classList.add('correct');
+                } else if (question.status === 'incorrect') {
+                    btn.classList.add('needs-review');
+                }
+                btn.addEventListener('click', () => loadQuizQuestion(idx));
+                ecgQuizElements.nav.appendChild(btn);
+            });
+        }
+
+        function loadQuizQuestion(index) {
+            if (!ecgQuizSim || !ecgQuizSession) return;
+            const question = ecgQuizSession.questions[index];
+            if (!question) return;
+            ecgQuizSession.currentIndex = index;
+            renderQuizNav();
+            resetQuizHighlights();
+            applyQuizRhythm(question.correct);
+            const ecgId = question.ecgId;
+            ecgQuizElements.feedback.textContent = 'Select the rhythm that matches this printout.';
+            ecgQuizElements.feedback.className = 'ecg-quiz-feedback';
+            if (ecgQuizElements.submit) ecgQuizElements.submit.disabled = question.status === 'correct';
+            if (ecgQuizElements.next) ecgQuizElements.next.disabled = question.status !== 'correct';
+            renderQuizChoices(question);
+            updateQuizMetaWithId(ecgId);
+        }
+
+        function getQuizRhythmKeys() {
+            if (ecgQuizRhythmPool && ecgQuizRhythmPool.length) {
+                return ecgQuizRhythmPool;
+            }
+            if (ecgQuizSim && typeof ecgQuizSim.getRhythmList === 'function') {
+                const rhythms = ecgQuizSim.getRhythmList();
+                syncRhythmLabels(rhythms);
+                ecgQuizRhythmPool = rhythms.map(({ id }) => id).filter(Boolean);
+            }
+            if (!ecgQuizRhythmPool.length) {
+                ecgQuizRhythmPool = ['sinus'];
+            }
+            return ecgQuizRhythmPool;
+        }
+
+        function renderQuizChoices(question) {
+            if (!ecgQuizElements.choices || !question) return;
+            ecgQuizElements.choices.innerHTML = '';
+            question.selected = null;
+            question.choices.forEach((key, index) => {
+                const optionId = `ecgQuizChoice_${index}`;
+                const label = RHYTHM_LABELS[key] || key;
+                const wrapper = document.createElement('label');
+                wrapper.className = 'ecg-quiz-choice';
+                const inputRow = document.createElement('div');
+                inputRow.className = 'ecg-quiz-choice-input';
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = 'ecg-quiz-choice';
+                input.id = optionId;
+                input.value = key;
+                input.checked = question.status === 'correct' && question.correct === key;
+                input.disabled = question.status === 'correct';
+                input.addEventListener('change', () => {
+                    question.selected = key;
+                    if (ecgQuizElements.feedback) {
+                        ecgQuizElements.feedback.textContent = '';
+                        ecgQuizElements.feedback.className = 'ecg-quiz-feedback';
+                    }
+                });
+                const span = document.createElement('span');
+                span.textContent = label;
+                inputRow.appendChild(input);
+                inputRow.appendChild(span);
+                wrapper.appendChild(inputRow);
+                const expl = document.createElement('div');
+                expl.className = 'ecg-quiz-choice-expl';
+                wrapper.appendChild(expl);
+                wrapper.dataset.choiceKey = key;
+                ecgQuizElements.choices.appendChild(wrapper);
+            });
+        }
+
+        function applyQuizRhythm(key) {
+            if (!ecgQuizSim) return;
+            ecgQuizSim.setRhythm(key);
+            if (typeof ecgQuizSim.setLoopingEnabled === 'function') {
+                ecgQuizSim.setLoopingEnabled(false);
+            }
+            if (typeof ecgQuizSim.renderOnceAndFreeze === 'function') {
+                const maybePromise = ecgQuizSim.renderOnceAndFreeze();
+                if (maybePromise && typeof maybePromise.then === 'function') {
+                    maybePromise.then(() => updateQuizExpandedLeadLabel());
+                } else {
+                    updateQuizExpandedLeadLabel();
+                }
+            } else {
+                ecgQuizSim.pause();
+                ecgQuizSim.reset();
+                updateQuizExpandedLeadLabel();
+            }
+        }
+
+        function updateQuizMetaWithId(ecgId) {
+            if (!ecgQuizElements.meta) return;
+            ecgQuizElements.meta.textContent = `Speed: 25 mm/s • Gain: 10 mm/mV • ECG ID: ${ecgId}`;
+        }
+
+        function handleQuizSubmit() {
+            if (!ecgQuizSession) return;
+            const question = ecgQuizSession.questions[ecgQuizSession.currentIndex];
+            if (!question) return;
+            const selected = document.querySelector('input[name="ecg-quiz-choice"]:checked');
+            if (!selected) {
+                if (ecgQuizElements.feedback) {
+                    ecgQuizElements.feedback.textContent = 'Select an answer before submitting.';
+                    ecgQuizElements.feedback.className = 'ecg-quiz-feedback error';
+                }
+                return;
+            }
+            const chosen = selected.value;
+            const isCorrect = chosen === question.correct;
+            const wrapper = selected.closest('.ecg-quiz-choice');
+            const insight = getRhythmInsight(chosen);
+            if (!isCorrect) {
+                question.status = 'incorrect';
+                question.attempts.push(chosen);
+                wrapper?.classList.add('incorrect');
+                const expl = wrapper?.querySelector('.ecg-quiz-choice-expl');
+                if (expl) {
+                    expl.textContent = insight.incorrect;
+                    expl.classList.add('active');
+                }
+                selected.checked = false;
+                if (ecgQuizElements.feedback) {
+                    ecgQuizElements.feedback.textContent = 'Not quite — review the hint under your selection and try another option.';
+                    ecgQuizElements.feedback.className = 'ecg-quiz-feedback error';
+                }
+                return;
+            }
+            question.status = 'correct';
+            question.attempts.push(chosen);
+            document.querySelectorAll('input[name="ecg-quiz-choice"]').forEach((input) => {
+                input.disabled = true;
+                if (input.parentElement && input.closest('.ecg-quiz-choice')) {
+                    const choiceWrapper = input.closest('.ecg-quiz-choice');
+                    choiceWrapper.classList.remove('incorrect', 'correct');
+                    if (input.value === question.correct) {
+                        choiceWrapper.classList.add('correct');
+                    }
+                }
+            });
+            applyQuizInsightHighlight(chosen);
+            if (wrapper) {
+                const successExpl = wrapper.querySelector('.ecg-quiz-choice-expl');
+                if (successExpl) {
+                    successExpl.textContent = insight.success;
+                    successExpl.classList.add('active');
+                }
+            }
+            if (ecgQuizElements.feedback) {
+                ecgQuizElements.feedback.textContent = insight.success || 'Correct! Nice work.';
+                ecgQuizElements.feedback.className = 'ecg-quiz-feedback success';
+            }
+            if (ecgQuizElements.submit) ecgQuizElements.submit.disabled = true;
+            if (ecgQuizElements.next) ecgQuizElements.next.disabled = false;
+            handleQuizProgress();
+        }
+
+        function handleQuizNext() {
+            if (!ecgQuizSession) return;
+            let nextIndex = ecgQuizSession.currentIndex + 1;
+            if (nextIndex >= ecgQuizSession.questions.length) {
+                nextIndex = 0;
+            }
+            loadQuizQuestion(nextIndex);
+        }
+
+        function handleQuizProgress() {
+            if (!ecgQuizSession) return;
+            renderQuizNav();
+            const allCorrect = ecgQuizSession.questions.every((q) => q.status === 'correct');
+            if (!allCorrect) {
+                if (ecgQuizElements.summary) {
+                    ecgQuizElements.summary.innerHTML = '';
+                    ecgQuizElements.summary.style.display = 'none';
+                }
+                return;
+            }
+            showQuizSummary();
+        }
+
+        function showQuizSummary() {
+            if (!ecgQuizElements.summary || !ecgQuizSession) return;
+            const summary = ecgQuizElements.summary;
+            const total = ecgQuizSession.questions.length;
+            const correct = ecgQuizSession.questions.filter((q) => q.status === 'correct').length;
+            summary.innerHTML = '';
+            const header = document.createElement('h4');
+            header.textContent = `Quiz Summary: ${correct}/${total} correct`;
+            summary.appendChild(header);
+            const list = document.createElement('ul');
+            ecgQuizSession.questions.forEach((q, idx) => {
+                const li = document.createElement('li');
+                const rhythmLabel = RHYTHM_LABELS[q.correct] || q.correct;
+                li.textContent = q.status === 'correct'
+                    ? `Q${idx + 1}: ${rhythmLabel} — Correct`
+                    : `Q${idx + 1}: ${rhythmLabel} — Needs review`;
+                list.appendChild(li);
+            });
+            summary.appendChild(list);
+            summary.style.display = 'block';
+        }
+
+        function shuffleList(list) {
+            const copy = [...list];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function syncRhythmLabels(list) {
+            if (!Array.isArray(list)) return;
+            list.forEach((entry) => {
+                if (!entry || !entry.id) return;
+                RHYTHM_LABELS[entry.id] = entry.label || entry.id;
+            });
+        }
+
         window.addEventListener('resize', () => {
             window.requestAnimationFrame(handleEkgResize);
+            window.requestAnimationFrame(handleEcgQuizResize);
         });
 
         function initSingleLeadSimulatorOnce() {
             if (window.ecgSimInstance) return;
-            if (typeof window.EcgSimulator === 'undefined') return;
+            if (typeof window.Ecg12Simulator === 'undefined') return;
 
-            const bgCanvas = document.getElementById('ecgBackground');
-            const traceCanvas = document.getElementById('ecgTrace');
-            const overlayCanvas = document.getElementById('ecgOverlay');
-            if (!bgCanvas || !traceCanvas) return;
+            const bigBg = document.getElementById('singleLeadBigBackground');
+            const bigTrace = document.getElementById('singleLeadBigTrace');
+            const bigOverlay = document.getElementById('singleLeadBigOverlay');
+            if (!bigBg || !bigTrace || !bigOverlay) return;
 
-            const sim = new window.EcgSimulator(bgCanvas, traceCanvas, overlayCanvas, { displayTime: 10, heartRate: 75, speed: 25 });
+            const hiddenBg = document.createElement('canvas');
+            const hiddenTrace = document.createElement('canvas');
+            const hiddenOverlay = document.createElement('canvas');
+
+            const sim = new window.Ecg12Simulator(
+                {
+                    backgroundCanvas: hiddenBg,
+                    traceCanvas: hiddenTrace,
+                    overlayCanvas: hiddenOverlay,
+                    bigBackgroundCanvas: bigBg,
+                    bigTraceCanvas: bigTrace,
+                    bigOverlayCanvas: bigOverlay
+                },
+                { displayTime: 10, heartRate: 75 }
+            );
+            sim.setSelectedLead('II');
             window.ecgSimInstance = sim;
-
-            const wrap = document.querySelector('#singleLeadEcgContainer .single-lead-canvas');
-            if (wrap) {
-                wrap.addEventListener('scroll', () => sim.drawReadoutOverlay());
-            }
 
             const heartRateInput = document.getElementById('ecgHeartRate');
             const rhythmSelect = document.getElementById('rhythmPreset');
@@ -3471,14 +4123,32 @@ const coronaryMap = {
             const pauseBtn = document.getElementById('ecgPause');
             const resetBtn = document.getElementById('ecgReset');
 
-            const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+            const populateRhythms = () => {
+                if (!rhythmSelect || !sim.getRhythmList) return;
+                const rhythms = sim.getRhythmList();
+                syncRhythmLabels(rhythms);
+                rhythmSelect.innerHTML = '';
+                rhythms.forEach(({ id, label }) => {
+                    const opt = document.createElement('option');
+                    opt.value = id;
+                    opt.textContent = label;
+                    rhythmSelect.appendChild(opt);
+                });
+                rhythmSelect.value = sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus';
+            };
+
+            const clampHeartRateValue = (value) => {
+                const clampRange = sim.getHeartRateClamp ? sim.getHeartRateClamp() : { min: 40, max: 180 };
+                return Math.max(clampRange.min, Math.min(clampRange.max, value));
+            };
 
             const commitHeartRate = () => {
                 if (!heartRateInput) return;
                 const raw = parseInt(heartRateInput.value || '75', 10);
-                const target = clamp(Number.isFinite(raw) ? raw : 75, 40, 180);
-                sim.setHeartRate(target);
-                heartRateInput.value = target;
+                const sanitized = Number.isFinite(raw) ? raw : 75;
+                const target = clampHeartRateValue(sanitized);
+                const applied = sim.setHeartRate ? sim.setHeartRate(target) : target;
+                heartRateInput.value = applied;
             };
 
             heartRateInput?.addEventListener('change', commitHeartRate);
@@ -3486,6 +4156,8 @@ const coronaryMap = {
 
             rhythmSelect?.addEventListener('change', () => {
                 sim.setRhythm(rhythmSelect.value);
+                commitHeartRate();
+                sim.setSelectedLead('II');
             });
 
             const updateHighlights = () => {
@@ -3501,6 +4173,7 @@ const coronaryMap = {
                 };
                 sim.setHighlights(highlights);
                 sim.setIntervalHighlights(intervals);
+                sim.drawExpandedTrace?.();
             };
 
             [highlightP, highlightQRS, highlightT, highlightPR, highlightQRSDur, highlightQT].forEach((input) => {
@@ -3509,13 +4182,19 @@ const coronaryMap = {
 
             playBtn?.addEventListener('click', () => sim.play());
             pauseBtn?.addEventListener('click', () => sim.pause());
-            resetBtn?.addEventListener('click', () => sim.reset());
+            resetBtn?.addEventListener('click', () => {
+                sim.reset();
+                sim.setSelectedLead('II');
+                updateHighlights();
+            });
 
+            populateRhythms();
+            commitHeartRate();
             updateHighlights();
             requestAnimationFrame(() => {
                 sim.handleResize?.();
-                sim.drawGrid?.();
-                sim.drawTrace?.();
+                sim.drawExpandedTrace?.();
+                sim.play?.();
             });
         }
 
@@ -3627,6 +4306,7 @@ const coronaryMap = {
             const populateRhythms = () => {
                 if (!rhythmSelect || !sim.getRhythmList) return;
                 const rhythms = sim.getRhythmList();
+                syncRhythmLabels(rhythms);
                 rhythmSelect.innerHTML = '';
                 rhythms.forEach(({id,label}) => {
                     const opt = document.createElement('option');
@@ -3801,15 +4481,29 @@ const coronaryMap = {
         document.addEventListener('DOMContentLoaded', () => {
             const show12Btn = document.getElementById('show12LeadBtn');
             const showSingleBtn = document.getElementById('showSingleLeadBtn');
+            const showQuizBtn = document.getElementById('showQuizBtn');
             const ecg12Module = document.getElementById('ecg12Module');
             const singleLeadContainer = document.getElementById('singleLeadEcgContainer');
+            const ecgQuizSection = document.getElementById('ecgQuizSection');
+
+            const clearActive = () => {
+                show12Btn?.classList.remove('active');
+                showSingleBtn?.classList.remove('active');
+                showQuizBtn?.classList.remove('active');
+            };
+
+            const hideAllSections = () => {
+                if (singleLeadContainer) singleLeadContainer.style.display = 'none';
+                if (ecg12Module) ecg12Module.style.display = 'none';
+                if (ecgQuizSection) ecgQuizSection.style.display = 'none';
+            };
 
             const activate12Lead = () => {
                 if (currentEkgMode === 'twelve') return;
                 currentEkgMode = 'twelve';
+                clearActive();
                 show12Btn?.classList.add('active');
-                showSingleBtn?.classList.remove('active');
-                if (singleLeadContainer) singleLeadContainer.style.display = 'none';
+                hideAllSections();
                 if (ecg12Module) ecg12Module.style.display = '';
                 initEcg12Once();
                 window.ecg12SimInstance?.handleResize?.();
@@ -3818,27 +4512,37 @@ const coronaryMap = {
             const activateSingleLead = () => {
                 if (currentEkgMode === 'single') return;
                 currentEkgMode = 'single';
+                clearActive();
                 showSingleBtn?.classList.add('active');
-                show12Btn?.classList.remove('active');
+                hideAllSections();
                 if (singleLeadContainer) singleLeadContainer.style.display = '';
-                if (ecg12Module) ecg12Module.style.display = 'none';
                 initSingleLeadSimulatorOnce();
                 window.ecgSimInstance?.handleResize?.();
             };
 
+            const activateQuiz = () => {
+                if (currentEkgMode === 'quiz') return;
+                currentEkgMode = 'quiz';
+                clearActive();
+                showQuizBtn?.classList.add('active');
+                hideAllSections();
+                if (ecgQuizSection) ecgQuizSection.style.display = '';
+                initEcgQuizOnce();
+                scheduleQuizResize();
+            };
+
             show12Btn?.addEventListener('click', activate12Lead);
             showSingleBtn?.addEventListener('click', activateSingleLead);
+            showQuizBtn?.addEventListener('click', activateQuiz);
 
+            hideAllSections();
             if (singleLeadContainer) {
                 singleLeadContainer.style.display = '';
             }
-            if (ecg12Module) {
-                ecg12Module.style.display = 'none';
-            }
             initSingleLeadSimulatorOnce();
             currentEkgMode = 'single';
+            clearActive();
             showSingleBtn?.classList.add('active');
-            show12Btn?.classList.remove('active');
         });
 
         // Wiggers diagram change descriptions for each pathology
@@ -5112,6 +5816,8 @@ const coronaryMap = {
                     initSingleLeadSimulatorOnce();
                     requestAnimationFrame(() => window.ecgSimInstance?.handleResize?.());
                 }
+                initEcgQuizOnce();
+                requestAnimationFrame(() => ecgQuizSim?.handleResize?.());
             }
         }
 
@@ -7880,6 +8586,67 @@ function resetASQuestion(qName) {
     document.querySelector(`#${qName}-container .reset-btn`).style.display = 'none';
 }
 
+(function () {
+    const STORAGE_KEY = 'theme';
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const modes = ['system', 'light', 'dark'];
+
+    function sanitize(value) {
+        return modes.includes(value) ? value : 'system';
+    }
+
+    function applyTheme(value) {
+        if (value === 'system') {
+            delete root.dataset.theme;
+        } else {
+            root.dataset.theme = value;
+        }
+    }
+
+    function labelFor(value) {
+        return 'Theme: ' + value.charAt(0).toUpperCase() + value.slice(1);
+    }
+
+    function updateLabel(value) {
+        if (!btn) return;
+        btn.textContent = labelFor(value);
+    }
+
+    function getCurrent() {
+        return sanitize(localStorage.getItem(STORAGE_KEY) || 'system');
+    }
+
+    function setTheme(value) {
+        localStorage.setItem(STORAGE_KEY, value);
+        applyTheme(value);
+        updateLabel(value);
+    }
+
+    function cycleTheme() {
+        const current = getCurrent();
+        const idx = modes.indexOf(current);
+        const next = modes[(idx + 1) % modes.length];
+        setTheme(next);
+    }
+
+    const initial = getCurrent();
+    applyTheme(initial);
+    updateLabel(initial);
+
+    if (btn) {
+        btn.addEventListener('click', cycleTheme);
+    }
+
+    media.addEventListener('change', () => {
+        if (getCurrent() === 'system') {
+            applyTheme('system');
+            updateLabel('system');
+        }
+    });
+})();
+
 </script>
 
 <!-- ============================================ -->
@@ -8335,72 +9102,10 @@ function resetASQuestion(qName) {
         </div>
     </div>
 </body>
-
+<script src="assets/ai-tutor-tab.js"></script>
 <script>
-(function () {
-  const STORAGE_KEY = 'theme';
-  const root = document.documentElement;
-  const btn = document.getElementById('themeToggle');
-  const media = window.matchMedia('(prefers-color-scheme: dark)');
-  const modes = ['system', 'light', 'dark'];
-
-  function sanitize(value) {
-    return modes.includes(value) ? value : 'system';
+  if (!window.__aiTutorTabInitialized) {
+    console.warn('[AI Tutor] ai-tutor-tab.js did not initialize. Check script path and console errors.');
   }
-
-  function applyTheme(value) {
-    if (value === 'system') {
-      delete root.dataset.theme;
-    } else {
-      root.dataset.theme = value;
-    }
-  }
-
-  function labelFor(value) {
-    return 'Theme: ' + value.charAt(0).toUpperCase() + value.slice(1);
-  }
-
-  function updateLabel(value) {
-    if (!btn) return;
-    if (value === 'system') {
-      btn.textContent = labelFor(value);
-    } else {
-      btn.textContent = labelFor(value);
-    }
-  }
-
-  function getCurrent() {
-    return sanitize(localStorage.getItem(STORAGE_KEY) || 'system');
-  }
-
-  function setTheme(value) {
-    localStorage.setItem(STORAGE_KEY, value);
-    applyTheme(value);
-    updateLabel(value);
-  }
-
-  function cycleTheme() {
-    const current = getCurrent();
-    const idx = modes.indexOf(current);
-    const next = modes[(idx + 1) % modes.length];
-    setTheme(next);
-  }
-
-  const initial = getCurrent();
-  applyTheme(initial);
-  updateLabel(initial);
-
-  if (btn) {
-    btn.addEventListener('click', cycleTheme);
-  }
-
-  media.addEventListener('change', () => {
-    if (getCurrent() === 'system') {
-      applyTheme('system');
-      updateLabel('system');
-    }
-  });
-})();
 </script>
-<script src="./assets/ai-tutor-tab.js"></script>
 </html>

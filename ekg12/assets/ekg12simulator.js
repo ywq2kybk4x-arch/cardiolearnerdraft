@@ -322,6 +322,9 @@ class Ecg12Simulator {
     this.simulatedTimeMs = 0;
     this.lastFrameTime = 0;
     this.sweepStartTime = 0;
+    this.shouldLoopSweep = true;
+    this.singleRunState = null;
+    this.highlightedLeads = new Set();
 
     this.intervals = { ...BASE_INTERVALS };
     const initialPreset = this.getPresetForId(this.currentRhythm);
@@ -402,6 +405,18 @@ class Ecg12Simulator {
     this.highlights = { ...this.highlights, ...cfg };
   }
 
+  setHighlightedLeads(leads) {
+    if (!this.highlightedLeads) this.highlightedLeads = new Set();
+    this.highlightedLeads.clear();
+    if (Array.isArray(leads)) {
+      leads.forEach((lead) => {
+        const key = normLead(lead);
+        if (key) this.highlightedLeads.add(key);
+      });
+    }
+    this.drawTrace?.();
+  }
+
   setIntervalHighlights(cfg) {
     this.intervalHighlights = { ...this.intervalHighlights, ...cfg };
   }
@@ -422,6 +437,57 @@ class Ecg12Simulator {
     this.axisDeg = this.axisDegFromMode(normalized);
     this.drawTrace();
     this.drawExpandedTrace();
+  }
+
+  setLoopingEnabled(looping = true) {
+    this.shouldLoopSweep = looping !== false;
+  }
+
+  isLoopingEnabled() {
+    return this.shouldLoopSweep;
+  }
+
+  cancelSingleRun(resolve = false) {
+    if (!this.singleRunState) return;
+    const pending = this.singleRunState;
+    this.singleRunState = null;
+    if (resolve && typeof pending.resolve === 'function') {
+      try {
+        pending.resolve();
+      } catch (err) {
+        console.warn('[Ecg12Simulator] Error resolving single-run promise', err);
+      }
+    }
+  }
+
+  computeSweepDurationMs() {
+    const pxPerMm = this.pixelPerMm || PX_PER_MM_12;
+    const msPerPixel = 1000 / (this.config.speed * pxPerMm);
+    const width = this.renderWidth || (this.traceCanvas ? this.traceCanvas.clientWidth : 0);
+    if (width > 0 && Number.isFinite(msPerPixel) && msPerPixel > 0) {
+      return width * msPerPixel;
+    }
+    return Math.max(1000, (this.config.displayTime || 10) * 1000);
+  }
+
+  renderOnceAndFreeze() {
+    if (!this.traceCanvas) return Promise.resolve();
+    this.cancelSingleRun(true);
+    this.pause();
+    this.setLoopingEnabled(false);
+    this.simulatedTimeMs = 0;
+    this.sweepStartTime = 0;
+    this.drawTrace();
+    this.drawExpandedTrace();
+    const durationMs = Math.max(1, this.computeSweepDurationMs());
+    return new Promise((resolve) => {
+      this.singleRunState = {
+        active: true,
+        targetMs: durationMs,
+        resolve
+      };
+      this.play();
+    });
   }
 
   getAxisMode() {
@@ -711,6 +777,7 @@ class Ecg12Simulator {
   }
 
   reset() {
+    this.cancelSingleRun();
     this.simulatedTimeMs = 0;
     this.sweepStartTime = 0;
     this.drawTrace();
@@ -723,8 +790,22 @@ class Ecg12Simulator {
     const dt = timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
     this.simulatedTimeMs += dt;
+    const singleRunActive = this.singleRunState && this.singleRunState.active;
+    const targetMs = singleRunActive ? this.singleRunState.targetMs : 0;
+    if (singleRunActive && this.simulatedTimeMs >= targetMs) {
+      this.simulatedTimeMs = targetMs;
+    }
     this.drawTrace();
     this.drawExpandedTrace();
+    if (singleRunActive && this.simulatedTimeMs >= targetMs) {
+      const resolver = this.singleRunState.resolve;
+      this.singleRunState = null;
+      this.pause();
+      if (typeof resolver === 'function') {
+        resolver();
+      }
+      return;
+    }
     requestAnimationFrame(this.tick);
   }
 
@@ -853,17 +934,24 @@ class Ecg12Simulator {
     const h = this.renderHeight || this.traceCanvas.clientHeight || 0;
     ctx.clearRect(0, 0, w, h);
 
+    if (!this.highlightedLeads) this.highlightedLeads = new Set();
+
     const pxPerMm = this.pixelPerMm;
     const msPerPixel = 1000 / (this.config.speed * pxPerMm);
     this._lastBigMsPerPixel = msPerPixel;
     const windowMs = w * msPerPixel;
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
-    if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
-      this.sweepStartTime = this.simulatedTimeMs;
-      elapsedInSweep = 0;
+    if (this.shouldLoopSweep) {
+      if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
+        this.sweepStartTime = this.simulatedTimeMs;
+        elapsedInSweep = 0;
+      }
+    } else {
+      elapsedInSweep = clamp(elapsedInSweep, 0, windowMs);
     }
     const sweepProgress = Math.min(elapsedInSweep / windowMs, 1);
     const xMax = Math.max(1, Math.floor(sweepProgress * (w - 1)));
+    const sweepCursorVisible = this.shouldLoopSweep || (this.singleRunState && this.singleRunState.active);
 
     this.viewports.forEach((vp) => {
       const leadLabel = vp.leadLabel;
@@ -893,6 +981,12 @@ class Ecg12Simulator {
       ctx.fillStyle = 'rgba(15,23,42,0.8)';
       ctx.fillText(leadLabel, labelX, labelY);
       ctx.textBaseline = 'alphabetic';
+
+      if (this.highlightedLeads && this.highlightedLeads.has(leadKey)) {
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(vp.x + 2, vp.y + 2, vp.width - 4, vp.height - 4);
+      }
 
       if (this.debugLeadModelOverlay) {
         const dbgGain = this.getLeadDebugGain(leadKey);
@@ -942,12 +1036,14 @@ class Ecg12Simulator {
 
       ctx.stroke();
 
-      ctx.strokeStyle = '#16a34a';
-      ctx.beginPath();
-      const sweepX = vp.x + Math.min(xMax, vp.width - 1) + 0.5;
-      ctx.moveTo(sweepX, vp.y);
-      ctx.lineTo(sweepX, vp.y + vp.height);
-      ctx.stroke();
+      if (sweepCursorVisible) {
+        ctx.strokeStyle = '#16a34a';
+        ctx.beginPath();
+        const sweepX = vp.x + Math.min(xMax, vp.width - 1) + 0.5;
+        ctx.moveTo(sweepX, vp.y);
+        ctx.lineTo(sweepX, vp.y + vp.height);
+        ctx.stroke();
+      }
       ctx.restore();
     });
     this.drawReadoutOverlay();
@@ -964,9 +1060,13 @@ class Ecg12Simulator {
     const msPerPixel = 1000 / (this.config.speed * pxPerMm);
     const windowMs = (this.renderWidth || w) * msPerPixel;
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
-    if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
-      this.sweepStartTime = this.simulatedTimeMs;
-      elapsedInSweep = 0;
+    if (this.shouldLoopSweep) {
+      if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
+        this.sweepStartTime = this.simulatedTimeMs;
+        elapsedInSweep = 0;
+      }
+    } else {
+      elapsedInSweep = clamp(elapsedInSweep, 0, windowMs);
     }
     const sweepProgress = Math.min(elapsedInSweep / windowMs, 1);
     const xMax = Math.max(1, Math.floor(sweepProgress * ((this.renderWidth || w) - 1)));
@@ -1002,11 +1102,14 @@ class Ecg12Simulator {
     }
     ctx.stroke();
 
-    ctx.strokeStyle = '#16a34a';
-    ctx.beginPath();
-    ctx.moveTo(xMax + 0.5, 0);
-    ctx.lineTo(xMax + 0.5, h);
-    ctx.stroke();
+    const sweepCursorVisible = this.shouldLoopSweep || (this.singleRunState && this.singleRunState.active);
+    if (sweepCursorVisible) {
+      ctx.strokeStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.moveTo(xMax + 0.5, 0);
+      ctx.lineTo(xMax + 0.5, h);
+      ctx.stroke();
+    }
 
     if (this.showCalibrationPulse) {
       this.drawCalibrationPulse(ctx, baselineY, msPerPixel, overlayTopY, h);
@@ -1317,6 +1420,19 @@ class Ecg12Simulator {
       qrsMs: Math.round(this.intervals.qrsDurationMs),
       qtMs: Math.round(this.intervals.qtIntervalMs)
     };
+  }
+
+  destroy() {
+    this.pause();
+    this.cancelSingleRun();
+    window.removeEventListener('resize', this.handleResize);
+    [this.bigTraceCanvas, this.bigOverlayCanvas].forEach((canvas) => {
+      if (!canvas) return;
+      canvas.removeEventListener('mousemove', this.handleBigMouseMove);
+      canvas.removeEventListener('mouseleave', this.handleBigMouseLeave);
+      canvas.removeEventListener('click', this.handleBigClick);
+      canvas.removeEventListener('dblclick', this.handleBigDoubleClick);
+    });
   }
 
   roundedRectPath(ctx, x, y, width, height, radius) {

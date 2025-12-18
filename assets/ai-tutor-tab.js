@@ -27,7 +27,6 @@
   top: 50%;
   right: 12px;
   transform: translateY(-50%);
-  pointer-events: auto;
   background: var(--surface, #111827);
   color: var(--text-on-surface, #f8fafc);
   border: none;
@@ -35,13 +34,13 @@
   padding: 12px 18px;
   font-weight: 700;
   font-size: 0.95rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 #${ROOT_ID} .ai-tab:hover {
   transform: translateY(-50%) scale(1.03);
-  box-shadow: 0 14px 34px rgba(0,0,0,0.3);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
 }
 :root[data-theme="light"] #${ROOT_ID} .ai-tab {
   background: #f8fafc;
@@ -56,19 +55,6 @@
     -webkit-text-fill-color: #0f172a !important;
     border: 1px solid rgba(15, 23, 42, 0.15);
   }
-}
-#${ROOT_ID} .ai-panel {
-  background: var(--surface, #0f172a);
-  color: var(--text-on-surface, #f8fafc);
-}
-html[data-theme="light"] #${ROOT_ID} .ai-panel {
-  background: #f8fafc;
-  color: #0f172a;
-  border-left: 1px solid rgba(15, 23, 42, 0.15);
-}
-#${ROOT_ID}.${OPEN_CLASS} .ai-tab {
-  opacity: 0;
-  pointer-events: none;
 }
 #${ROOT_ID} .ai-overlay {
   position: fixed;
@@ -89,11 +75,18 @@ html[data-theme="light"] #${ROOT_ID} .ai-panel {
   width: min(40vw, 520px);
   min-width: 300px;
   height: 100vh;
-  box-shadow: -12px 0 30px rgba(0,0,0,0.35);
+  background: var(--surface, #0f172a);
+  color: var(--text-on-surface, #f8fafc);
+  box-shadow: -12px 0 30px rgba(0, 0, 0, 0.35);
   transform: translateX(100%);
   transition: transform 0.35s ease;
   display: flex;
   flex-direction: column;
+}
+html[data-theme="light"] #${ROOT_ID} .ai-panel {
+  background: #f8fafc;
+  color: #0f172a;
+  border-left: 1px solid rgba(15, 23, 42, 0.15);
 }
 #${ROOT_ID}.${OPEN_CLASS} .ai-panel {
   transform: translateX(0);
@@ -122,8 +115,9 @@ html[data-theme="light"] #${ROOT_ID} .ai-panel {
 #${ROOT_ID} .ai-panel-body {
   flex: 1;
   min-height: 0;
+  padding: 0;
 }
-#${ROOT_ID} iframe {
+#${ROOT_ID} .ai-panel-body iframe {
   width: 100%;
   height: 100%;
   border: 0;
@@ -189,17 +183,6 @@ html[data-theme="light"] #${ROOT_ID} .ai-panel {
         const root = document.createElement('div');
         root.id = ROOT_ID;
 
-        const tab = document.createElement('button');
-        tab.className = 'ai-tab';
-        tab.type = 'button';
-        tab.textContent = 'AI Tutor';
-        tab.addEventListener('click', () => openPanel(root));
-        applyAiTabTheme(tab);
-        const mq = window.matchMedia('(prefers-color-scheme: light)');
-        mq.addEventListener?.('change', () => applyAiTabTheme(tab));
-        const obs = new MutationObserver(() => applyAiTabTheme(tab));
-        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
         const overlay = document.createElement('div');
         overlay.className = 'ai-overlay';
         overlay.addEventListener('click', () => closePanel(root));
@@ -229,21 +212,57 @@ html[data-theme="light"] #${ROOT_ID} .ai-panel {
         const iframe = document.createElement('iframe');
         iframe.src = PLAYLAB_EMBED_URL;
         iframe.allow = 'clipboard-write';
-
         body.appendChild(iframe);
+
         panel.appendChild(header);
         panel.appendChild(body);
+
+        const tab = document.createElement('button');
+        tab.className = 'ai-tab';
+        tab.type = 'button';
+        tab.textContent = 'AI Tutor';
+        tab.addEventListener('click', () => openPanel(root));
+        applyAiTabTheme(tab);
 
         root.appendChild(tab);
         root.appendChild(overlay);
         root.appendChild(panel);
 
         document.body.appendChild(root);
+
+        const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+        mq?.addEventListener?.('change', () => applyAiTabTheme(tab));
+        const obs = new MutationObserver(() => applyAiTabTheme(tab));
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', buildUi);
-    } else {
+    function initTutorTab() {
         buildUi();
+        if (!document.getElementById(ROOT_ID)) {
+            console.error('[AI Tutor] Failed to initialize: #ai-tutor-root missing after build.');
+            return;
+        }
     }
+
+    function safeInitTutorTab() {
+        try {
+            initTutorTab();
+        } catch (err) {
+            console.error('[AI Tutor] Initialization error:', err);
+        }
+    }
+
+    function runTutorInit() {
+        if (!document.body || document.readyState === 'loading') {
+            const onReady = () => {
+                document.removeEventListener('DOMContentLoaded', onReady);
+                safeInitTutorTab();
+            };
+            document.addEventListener('DOMContentLoaded', onReady);
+        } else {
+            safeInitTutorTab();
+        }
+    }
+
+    runTutorInit();
 })();
