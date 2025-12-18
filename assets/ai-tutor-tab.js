@@ -43,13 +43,19 @@
   transform: translateY(-50%) scale(1.03);
   box-shadow: 0 14px 34px rgba(0,0,0,0.3);
 }
-#${ROOT_ID} .ai-tab {
-  color: #f8fafc;
-}
-html[data-theme="light"] #${ROOT_ID} .ai-tab {
+:root[data-theme="light"] #${ROOT_ID} .ai-tab {
   background: #f8fafc;
-  color: #0f172a;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
   border: 1px solid rgba(15, 23, 42, 0.15);
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] #${ROOT_ID} .ai-tab {
+    background: #f8fafc;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    border: 1px solid rgba(15, 23, 42, 0.15);
+  }
 }
 #${ROOT_ID} .ai-panel {
   background: var(--surface, #0f172a);
@@ -135,6 +141,25 @@ html[data-theme="light"] #${ROOT_ID} .ai-panel {
         document.head.appendChild(style);
     }
 
+    function applyAiTabTheme(tab) {
+        if (!tab) return;
+        const theme = document.documentElement.getAttribute('data-theme') || 'system';
+        const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        const isLight = theme === 'light' || (theme === 'system' && prefersLight);
+
+        if (isLight) {
+            tab.style.background = '#f8fafc';
+            tab.style.color = '#0f172a';
+            tab.style.webkitTextFillColor = '#0f172a';
+            tab.style.border = '1px solid rgba(15, 23, 42, 0.15)';
+        } else {
+            tab.style.background = 'var(--surface, #111827)';
+            tab.style.color = 'var(--text-on-surface, #f8fafc)';
+            tab.style.webkitTextFillColor = 'var(--text-on-surface, #f8fafc)';
+            tab.style.border = 'none';
+        }
+    }
+
     function closePanel(root) {
         if (!root) return;
         root.classList.remove(OPEN_CLASS);
@@ -169,6 +194,11 @@ html[data-theme="light"] #${ROOT_ID} .ai-panel {
         tab.type = 'button';
         tab.textContent = 'AI Tutor';
         tab.addEventListener('click', () => openPanel(root));
+        applyAiTabTheme(tab);
+        const mq = window.matchMedia('(prefers-color-scheme: light)');
+        mq.addEventListener?.('change', () => applyAiTabTheme(tab));
+        const obs = new MutationObserver(() => applyAiTabTheme(tab));
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
         const overlay = document.createElement('div');
         overlay.className = 'ai-overlay';

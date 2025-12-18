@@ -314,6 +314,21 @@
             box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
         }
 
+        @media (prefers-color-scheme: light) {
+            :root[data-theme="system"] #ai-content,
+            :root[data-theme="system"] #ai-content * {
+                color: var(--text);
+            }
+            :root[data-theme="system"] #ai-tab-btn,
+            :root[data-theme="system"] #ai-tab-btn *,
+            :root[data-theme="system"] #ai-tab-btn.active,
+            :root[data-theme="system"] #ai-tab-btn[aria-selected="true"],
+            :root[data-theme="system"] #ai-tutor-root .ai-tab,
+            :root[data-theme="system"] #ai-tutor-root .ai-tab * {
+                color: var(--text) !important;
+            }
+        }
+
         .input, .select, .textarea, input[type="number"], select {
             width: 100%;
             border-radius: var(--radius-md);
