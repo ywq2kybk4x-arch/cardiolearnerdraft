@@ -1572,6 +1572,11 @@
             max-height: 550px !important;
             min-height: 500px;
         }
+        #pvQuizChart {
+            max-height: 550px !important;
+            min-height: 500px;
+            width: 100% !important;
+        }
 
         /* 3D model viewer */
         .model-3d-grid {
@@ -2773,7 +2778,7 @@
                             <div class="chip" id="quiz-chip-co">CO: <strong><span id="quizCODisplay">4.9</span> L/min</strong></div>
                             <div class="chip" id="quiz-chip-ef">EF: <strong><span id="quizEFDisplay">58</span>%</strong></div>
                         </div>
-                        <canvas id="pvQuizChart" style="height: 550px; display: block; box-sizing: border-box; width: 748px;"></canvas>
+                    <canvas id="pvQuizChart" style="height: 550px; display: block; box-sizing: border-box; width: 100%;"></canvas>
                         <div style="margin-top: 10px; font-size: 0.9em; color: #2c3e50;">
                             <strong>Tips:</strong> Increase EDV for volume overload (MR/AR), decrease EDV for poor filling (MS/HFpEF). Raise peak pressure for AS/HCM; drop it for septic shock. Increase ESV for weak systolic function (HFrEF, cardiogenic shock).
                         </div>
@@ -4581,15 +4586,34 @@ const coronaryMap = {
             return { preload, afterload, contractility, heartRate };
         }
 
-        // Quiz targets (approximate physiological expectations)
+        function computeQuizTargetFromSimulatorPreset(pathologyKey) {
+            const preset = pathologyPresets[pathologyKey];
+            if (!preset) return null;
+
+            const edv = preset.preload;
+            const strokeVolume = calculateStrokeVolume(edv, preset.afterload, preset.contractility, pathologyKey);
+            const clampedSV = Math.min(strokeVolume, edv - 10);
+            const esv = Math.max(10, edv - clampedSV);
+
+            const rawSystolic = 100 + (preset.afterload - 1200) * 0.05 + preset.contractility * 25;
+            const systolic = Math.round(rawSystolic / 5) * 5;
+
+            return {
+                edv: Math.round(edv),
+                esv: Math.round(esv),
+                systolic
+            };
+        }
+
+        // Quiz targets derived from the same preset/model as the interactive simulator
         const quizTargets = {
-            aorticStenosis: { edv: 120, esv: 70, systolic: 180, width: 'narrow', desc: 'Pressure overload: high peak pressure, reduced SV (narrow loop).' },
-            aorticRegurg: { edv: 180, esv: 60, systolic: 150, width: 'wide', desc: 'Volume overload: huge EDV and width, lower diastolic pressure.' },
-            mitralStenosis: { edv: 90, esv: 50, systolic: 120, width: 'narrow', desc: 'Impaired filling: lower EDV, narrow loop, normal systolic function.' },
-            mitralRegurg: { edv: 170, esv: 60, systolic: 130, width: 'wide', desc: 'Volume overload with regurgitant flow: wider loop, slightly lower effective afterload.' },
-            hfref: { edv: 150, esv: 100, systolic: 110, width: 'wide', desc: 'Systolic failure: high ESV, widened loop with lower peak pressure.' },
-            hfpef: { edv: 100, esv: 50, systolic: 150, width: 'narrow', desc: 'Stiff ventricle: lower EDV, preserved pressure, narrower loop.' },
-            septicShock: { edv: 140, esv: 21, systolic: 90, width: 'moderate', desc: 'Low SVR: low pressure, variable width, often near-normal volumes early.' },
+            aorticStenosis: { ...(computeQuizTargetFromSimulatorPreset('aorticStenosis') || {}), width: 'narrow', desc: 'Pressure overload: high peak pressure, reduced SV (narrow loop).' },
+            aorticRegurg: { ...(computeQuizTargetFromSimulatorPreset('aorticRegurg') || {}), width: 'wide', desc: 'Volume overload: huge EDV and width, lower diastolic pressure.' },
+            mitralStenosis: { ...(computeQuizTargetFromSimulatorPreset('mitralStenosis') || {}), width: 'narrow', desc: 'Impaired filling: lower EDV, narrow loop, normal systolic function.' },
+            mitralRegurg: { ...(computeQuizTargetFromSimulatorPreset('mitralRegurg') || {}), width: 'wide', desc: 'Volume overload with regurgitant flow: wider loop, slightly lower effective afterload.' },
+            hfref: { ...(computeQuizTargetFromSimulatorPreset('hfref') || {}), width: 'wide', desc: 'Systolic failure: high ESV, widened loop with lower peak pressure.' },
+            hfpef: { ...(computeQuizTargetFromSimulatorPreset('hfpef') || {}), width: 'narrow', desc: 'Stiff ventricle: lower EDV, preserved pressure, narrower loop.' },
+            septicShock: { ...(computeQuizTargetFromSimulatorPreset('septicShock') || {}), width: 'moderate', desc: 'Low SVR: low pressure, variable width, often near-normal volumes early.' },
             cardiogenicShock: { edv: 150, esv: 110, systolic: 90, width: 'narrow', desc: 'Severely depressed contractility: very high ESV, low pressure, narrow loop.' }
         };
 
@@ -6565,21 +6589,23 @@ const coronaryMap = {
             labelEl.textContent = QUIZ_SLIDER_LABELS[idx];
         }
 
-        function getQuizValues(pathologyKey) {
-            const preloadIdx = getQuizSliderIndex('preloadSlider');
-            const afterloadIdx = getQuizSliderIndex('afterloadSlider');
-            const contractilityIdx = getQuizSliderIndex('inotropySlider');
+	        function getQuizValues(pathologyKey) {
+	            const preloadIdx = getQuizSliderIndex('preloadSlider');
+	            const afterloadIdx = getQuizSliderIndex('afterloadSlider');
+	            const contractilityIdx = getQuizSliderIndex('inotropySlider');
+	            const heartRateSlider = document.getElementById('heartRate');
+	            const liveHeartRate = heartRateSlider ? parseFloat(heartRateSlider.value) : 70;
 
-            // If all sliders are set to \"No change\", return the global normal loop
-            // so the red quiz loop exactly matches the gray normal reference.
-            if (preloadIdx === 1 && afterloadIdx === 1 && contractilityIdx === 1) {
-                const edv = 120;
-                const esv = 50;
-                const systolic = 125;
-                const afterload = QUIZ_AFTERLOAD_VALUES[1]; // 1200
-                const contractility = QUIZ_CONTRACTILITY_FACTORS[1]; // 1.0
-                return { edv, esv, systolic, afterload, contractility };
-            }
+	            // If all sliders are set to \"No change\", return the global normal loop
+	            // so the red quiz loop exactly matches the gray normal reference.
+	            if (preloadIdx === 1 && afterloadIdx === 1 && contractilityIdx === 1) {
+	                const edv = 120;
+	                const esv = 50;
+	                const systolic = 125;
+	                const afterload = QUIZ_AFTERLOAD_VALUES[1]; // 1200
+	                const contractility = QUIZ_CONTRACTILITY_FACTORS[1]; // 1.0
+	                return { edv, esv, systolic, afterload, contractility, heartRate: pathologyPresets.normal?.heartRate ?? 70 };
+	            }
 
             const matchGuidance = () => {
                 const guidance = PATHOLOGY_FEEDBACK[pathologyKey];
@@ -6592,27 +6618,29 @@ const coronaryMap = {
                 return Object.entries(guidance.expected).every(([param, expected]) => selections[param] === expected);
             };
 
-            const afterload = QUIZ_AFTERLOAD_VALUES[afterloadIdx];
-            const contractility = QUIZ_CONTRACTILITY_FACTORS[contractilityIdx];
+	            const afterload = QUIZ_AFTERLOAD_VALUES[afterloadIdx];
+	            const contractility = QUIZ_CONTRACTILITY_FACTORS[contractilityIdx];
 
-            if (matchGuidance() && quizTargets[pathologyKey]) {
-                const target = quizTargets[pathologyKey];
-                return {
-                    edv: target.edv,
-                    esv: target.esv,
-                    systolic: target.systolic,
-                    afterload,
-                    contractility: (pathologyPresets[pathologyKey]?.contractility ?? contractility)
-                };
-            }
+	            if (matchGuidance() && quizTargets[pathologyKey]) {
+	                const target = quizTargets[pathologyKey];
+	                const preset = pathologyPresets[pathologyKey];
+	                return {
+	                    edv: target.edv,
+	                    esv: target.esv,
+	                    systolic: target.systolic,
+	                    afterload: preset?.afterload ?? afterload,
+	                    contractility: preset?.contractility ?? contractility,
+	                    heartRate: preset?.heartRate ?? liveHeartRate
+	                };
+	            }
 
-            const edv = QUIZ_PRELOAD_EDV[preloadIdx];
-            const systolic = QUIZ_AFTERLOAD_PRESSURE[afterloadIdx];
-            let esv = QUIZ_CONTRACTILITY_ESV[contractilityIdx];
-            esv = Math.min(esv, edv - 5);
-            esv = Math.max(15, esv);
-            return { edv, esv, systolic, afterload, contractility };
-        }
+	            const edv = QUIZ_PRELOAD_EDV[preloadIdx];
+	            const systolic = QUIZ_AFTERLOAD_PRESSURE[afterloadIdx];
+	            let esv = QUIZ_CONTRACTILITY_ESV[contractilityIdx];
+	            esv = Math.min(esv, edv - 5);
+	            esv = Math.max(15, esv);
+	            return { edv, esv, systolic, afterload, contractility, heartRate: liveHeartRate };
+	        }
 
         function buildSimpleLoop(edv, esv, systolic) {
             const diastolic = 8;
@@ -6742,31 +6770,29 @@ const coronaryMap = {
             setChipState('quiz-chip-ef', normalEF >= 55 && normalEF <= 70);
         }
 
-        function updateQuizChart() {
-            if (answerOverlayVisible) {
-                hideAnswerOverlay();
-            }
-            if (!pvQuizChart) return;
-            const pathologyKey = document.getElementById('quizPathology').value;
-            const { edv, esv, systolic, afterload, contractility } = getQuizValues(pathologyKey);
-            const user = buildSimpleLoop(edv, esv, systolic);
-            const normal = buildSimpleLoop(120, 50, 125);
-            pvQuizChart.data.datasets[0].data = user;
-            pvQuizChart.data.datasets[1].data = normal;
+	        function updateQuizChart() {
+	            if (answerOverlayVisible) {
+	                hideAnswerOverlay();
+	            }
+	            if (!pvQuizChart) return;
+	            const pathologyKey = document.getElementById('quizPathology').value;
+	            const { edv, esv, systolic, afterload, contractility, heartRate } = getQuizValues(pathologyKey);
+	            const user = buildSimpleLoop(edv, esv, systolic);
+	            const normal = buildSimpleLoop(120, 50, 125);
+	            pvQuizChart.data.datasets[0].data = user;
+	            pvQuizChart.data.datasets[1].data = normal;
             pvQuizChart.options.scales.x.max = Math.max(180, edv + 20);
             pvQuizChart.options.scales.y.max = Math.max(150, systolic + 20);
             pvQuizChart.update('none');
             const setText = (id, val) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = val;
-            };
-            // Derive preload/afterload/contractility/HR in quiz from current sliders
-            const preload = edv;
-            const heartRateSlider = document.getElementById('heartRate');
-            const heartRate = heartRateSlider ? parseFloat(heartRateSlider.value) : 70;
-            const sv = Math.max(edv - esv, 10);
-            const co = (sv * heartRate) / 1000;
-            const ef = (sv / preload) * 100;
+	            };
+	            // Derive preload/afterload/contractility/HR in quiz from current sliders
+	            const preload = edv;
+	            const sv = Math.max(edv - esv, 10);
+	            const co = (sv * heartRate) / 1000;
+	            const ef = (sv / preload) * 100;
 
             lastQuizStats = { preload, afterload, contractility, hr: heartRate, sv, co, ef };
 
