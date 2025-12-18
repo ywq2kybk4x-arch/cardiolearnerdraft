@@ -1652,11 +1652,14 @@ class Ecg12Simulator {
     let idx = 0;
     while (cycleStart < durationMs) {
       const step = pattern[idx % pattern.length];
+      const conducted = !!step.conducted;
       const rTime = cycleStart + step.pr + this.intervals.qrsDurationMs / 2;
       this.addBeatToSchedule(schedule, {
         rTime,
         pr: step.pr,
-        hasQRS: step.conducted
+        hasP: conducted,
+        hasQRS: conducted,
+        hasT: conducted
       });
       cycleStart += baseRrMs;
       idx++;

@@ -1037,8 +1037,9 @@ class EcgSimulator {
       if (t >= durationMs) break;
       this.addBeat({
         rTime: t + pr3 + this.intervals.qrsDurationMs / 2,
-        hasP: true,
+        hasP: false,
         hasQRS: false,
+        hasT: false,
         pr: pr3,
         qrs: this.intervals.qrsDurationMs,
         qt: this.intervals.qtIntervalMs

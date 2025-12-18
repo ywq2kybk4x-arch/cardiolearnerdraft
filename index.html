@@ -3885,9 +3885,12 @@ const coronaryMap = {
                     correct,
                     status: 'unanswered',
                     attempts: [],
-                    selected: null
+                    selected: null,
+                    feedbackText: 'Select the rhythm that matches this printout.',
+                    feedbackClass: 'ecg-quiz-feedback'
                 });
             }
+            resetQuizSessionState(questions);
             ecgQuizSession = {
                 questions,
                 currentIndex: 0
@@ -3898,6 +3901,18 @@ const coronaryMap = {
             }
             renderQuizNav();
             loadQuizQuestion(0);
+        }
+
+        function resetQuizSessionState(questions) {
+            if (!Array.isArray(questions)) return;
+            questions.forEach((q) => {
+                if (!q) return;
+                q.selected = null;
+                q.status = 'unanswered';
+                q.attempts = [];
+                q.feedbackText = q.feedbackText || 'Select the rhythm that matches this printout.';
+                q.feedbackClass = q.feedbackClass || 'ecg-quiz-feedback';
+            });
         }
 
         function renderQuizNav() {
@@ -3918,6 +3933,89 @@ const coronaryMap = {
             });
         }
 
+        function rehydrateQuestionUI(question) {
+            if (!question) return;
+
+            const selectedKey = question.selected;
+            const attempted = Array.isArray(question.attempts) ? question.attempts : [];
+            const cssEscape = (value) => {
+                if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+                    return CSS.escape(String(value));
+                }
+                return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+            };
+
+            if (ecgQuizElements.feedback) {
+                ecgQuizElements.feedback.textContent = question.feedbackText || '';
+                ecgQuizElements.feedback.className = question.feedbackClass || 'ecg-quiz-feedback';
+            }
+
+            if (ecgQuizElements.submit) {
+                ecgQuizElements.submit.disabled = question.status === 'correct';
+            }
+            if (ecgQuizElements.next) {
+                ecgQuizElements.next.disabled = question.status !== 'correct';
+            }
+
+            document.querySelectorAll('input[name="ecg-quiz-choice"]').forEach((input) => {
+                const choiceWrapper = input.closest('.ecg-quiz-choice');
+                if (choiceWrapper) {
+                    choiceWrapper.classList.remove('incorrect', 'correct');
+                    const expl = choiceWrapper.querySelector('.ecg-quiz-choice-expl');
+                    if (expl) {
+                        expl.textContent = '';
+                        expl.classList.remove('active');
+                    }
+                }
+
+                input.disabled = question.status === 'correct';
+                input.checked = !!selectedKey && input.value === selectedKey;
+            });
+
+            // Re-apply attempt markers + restore per-choice feedback for incorrect picks.
+            [...new Set(attempted)].forEach((key) => {
+                const input = document.querySelector(`input[name="ecg-quiz-choice"][value="${cssEscape(key)}"]`);
+                const wrapper = input?.closest('.ecg-quiz-choice');
+                if (!wrapper) return;
+                const expl = wrapper.querySelector('.ecg-quiz-choice-expl');
+                if (key === question.correct) {
+                    wrapper.classList.add('correct');
+                    if (expl && question.status === 'correct') {
+                        const insight = getRhythmInsight(key);
+                        expl.textContent = insight.success || '';
+                        expl.classList.toggle('active', !!expl.textContent);
+                    }
+                } else {
+                    wrapper.classList.add('incorrect');
+                    if (expl) {
+                        const insight = getRhythmInsight(key);
+                        expl.textContent = insight.incorrect || '';
+                        expl.classList.toggle('active', !!expl.textContent);
+                    }
+                }
+            });
+
+            // Restore the explanation under the current selection (if any).
+            if (selectedKey) {
+                const input = document.querySelector(`input[name="ecg-quiz-choice"][value="${cssEscape(selectedKey)}"]`);
+                const wrapper = input?.closest('.ecg-quiz-choice');
+                const expl = wrapper?.querySelector('.ecg-quiz-choice-expl');
+                const insight = getRhythmInsight(selectedKey);
+                if (expl) {
+                    if (question.status === 'correct') {
+                        expl.textContent = insight.success || '';
+                        expl.classList.toggle('active', !!expl.textContent);
+                    } else if (question.status === 'incorrect') {
+                        expl.textContent = insight.incorrect || '';
+                        expl.classList.toggle('active', !!expl.textContent);
+                    }
+                }
+                if (question.status === 'correct') {
+                    applyQuizInsightHighlight(selectedKey);
+                }
+            }
+        }
+
         function loadQuizQuestion(index) {
             if (!ecgQuizSim || !ecgQuizSession) return;
             const question = ecgQuizSession.questions[index];
@@ -3927,11 +4025,8 @@ const coronaryMap = {
             resetQuizHighlights();
             applyQuizRhythm(question.correct);
             const ecgId = question.ecgId;
-            ecgQuizElements.feedback.textContent = 'Select the rhythm that matches this printout.';
-            ecgQuizElements.feedback.className = 'ecg-quiz-feedback';
-            if (ecgQuizElements.submit) ecgQuizElements.submit.disabled = question.status === 'correct';
-            if (ecgQuizElements.next) ecgQuizElements.next.disabled = question.status !== 'correct';
             renderQuizChoices(question);
+            rehydrateQuestionUI(question);
             updateQuizMetaWithId(ecgId);
         }
 
@@ -3953,7 +4048,6 @@ const coronaryMap = {
         function renderQuizChoices(question) {
             if (!ecgQuizElements.choices || !question) return;
             ecgQuizElements.choices.innerHTML = '';
-            question.selected = null;
             question.choices.forEach((key, index) => {
                 const optionId = `ecgQuizChoice_${index}`;
                 const label = RHYTHM_LABELS[key] || key;
@@ -3966,10 +4060,12 @@ const coronaryMap = {
                 input.name = 'ecg-quiz-choice';
                 input.id = optionId;
                 input.value = key;
-                input.checked = question.status === 'correct' && question.correct === key;
+                input.checked = question.selected === key;
                 input.disabled = question.status === 'correct';
                 input.addEventListener('change', () => {
                     question.selected = key;
+                    question.feedbackText = '';
+                    question.feedbackClass = 'ecg-quiz-feedback';
                     if (ecgQuizElements.feedback) {
                         ecgQuizElements.feedback.textContent = '';
                         ecgQuizElements.feedback.className = 'ecg-quiz-feedback';
@@ -4023,9 +4119,12 @@ const coronaryMap = {
                     ecgQuizElements.feedback.textContent = 'Select an answer before submitting.';
                     ecgQuizElements.feedback.className = 'ecg-quiz-feedback error';
                 }
+                question.feedbackText = 'Select an answer before submitting.';
+                question.feedbackClass = 'ecg-quiz-feedback error';
                 return;
             }
             const chosen = selected.value;
+            question.selected = chosen;
             const isCorrect = chosen === question.correct;
             const wrapper = selected.closest('.ecg-quiz-choice');
             const insight = getRhythmInsight(chosen);
@@ -4038,11 +4137,12 @@ const coronaryMap = {
                     expl.textContent = insight.incorrect;
                     expl.classList.add('active');
                 }
-                selected.checked = false;
                 if (ecgQuizElements.feedback) {
                     ecgQuizElements.feedback.textContent = 'Not quite — review the hint under your selection and try another option.';
                     ecgQuizElements.feedback.className = 'ecg-quiz-feedback error';
                 }
+                question.feedbackText = 'Not quite — review the hint under your selection and try another option.';
+                question.feedbackClass = 'ecg-quiz-feedback error';
                 return;
             }
             question.status = 'correct';
@@ -4069,6 +4169,8 @@ const coronaryMap = {
                 ecgQuizElements.feedback.textContent = insight.success || 'Correct! Nice work.';
                 ecgQuizElements.feedback.className = 'ecg-quiz-feedback success';
             }
+            question.feedbackText = insight.success || 'Correct! Nice work.';
+            question.feedbackClass = 'ecg-quiz-feedback success';
             if (ecgQuizElements.submit) ecgQuizElements.submit.disabled = true;
             if (ecgQuizElements.next) ecgQuizElements.next.disabled = false;
             handleQuizProgress();
