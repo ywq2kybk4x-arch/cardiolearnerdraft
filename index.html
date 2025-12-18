@@ -47,6 +47,10 @@
             --ring: 0 0 0 2px rgba(37, 99, 235, 0.35);
             --container-max: 1260px;
             --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            --kc-bg: var(--surface, #ffffff);
+            --kc-text: var(--text, #0a0f1a);
+            --kc-border: rgba(15, 23, 42, 0.14);
+            --kc-shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
             color-scheme: light;
             transition: background-color 0.35s ease, color 0.35s ease;
             transition: color 0.35s ease, background-color 0.35s ease;
@@ -68,6 +72,10 @@
     --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.08);
     --shadow-md: 0 18px 35px rgba(15, 23, 42, 0.12);
     --ring: 0 0 0 2px rgba(37, 99, 235, 0.35);
+    --kc-bg: var(--surface, #ffffff);
+    --kc-text: var(--text, #0a0f1a);
+    --kc-border: rgba(15, 23, 42, 0.14);
+    --kc-shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
 }
 
 :root[data-theme="dark"] {
@@ -86,6 +94,10 @@
     --shadow-sm: 0 10px 25px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.55);
     --ring: 0 0 0 2px rgba(130, 170, 255, 0.45);
+    --kc-bg: rgba(15, 23, 42, 0.88);
+    --kc-text: rgba(248, 250, 252, 0.94);
+    --kc-border: rgba(148, 163, 184, 0.22);
+    --kc-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
 }
 
         @media (prefers-color-scheme: dark) {
@@ -105,6 +117,10 @@
                 --shadow-sm: 0 10px 25px rgba(0, 0, 0, 0.4);
                 --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.55);
                 --ring: 0 0 0 2px rgba(130, 170, 255, 0.45);
+                --kc-bg: rgba(15, 23, 42, 0.88);
+                --kc-text: rgba(248, 250, 252, 0.94);
+                --kc-border: rgba(148, 163, 184, 0.22);
+                --kc-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
             }
         }
 
@@ -125,6 +141,28 @@
                 --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.08);
                 --shadow-md: 0 18px 35px rgba(15, 23, 42, 0.12);
                 --ring: 0 0 0 2px rgba(37, 99, 235, 0.35);
+                --kc-bg: var(--surface, #ffffff);
+                --kc-text: var(--text, #0a0f1a);
+                --kc-border: rgba(15, 23, 42, 0.14);
+                --kc-shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root[data-theme="system"] {
+                --kc-bg: rgba(15, 23, 42, 0.88);
+                --kc-text: rgba(248, 250, 252, 0.94);
+                --kc-border: rgba(148, 163, 184, 0.22);
+                --kc-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root[data-theme="system"] {
+                --kc-bg: var(--surface, #ffffff);
+                --kc-text: var(--text, #0a0f1a);
+                --kc-border: rgba(15, 23, 42, 0.14);
+                --kc-shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
             }
         }
 
@@ -293,6 +331,38 @@
 
         .tab-content { display: none; }
         .tab-content.active { display: block !important; }
+
+        .key-concepts-card {
+            background: var(--kc-bg);
+            color: var(--kc-text);
+            border: 1px solid var(--kc-border);
+            border-radius: 18px;
+            box-shadow: var(--kc-shadow);
+            padding: 18px 20px;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .key-concepts-card * {
+            color: inherit;
+        }
+
+        .key-concepts-card h3,
+        .key-concepts-card h4 {
+            margin: 0 0 12px 0;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+        }
+
+        .key-concepts-card p,
+        .key-concepts-card li {
+            line-height: 1.5;
+            opacity: 0.96;
+        }
+
+        .key-concepts-card strong {
+            font-weight: 800;
+            opacity: 1;
+        }
 
         .ai-tab-panel {
             background: var(--surface, #fff);
@@ -5244,94 +5314,95 @@ const coronaryMap = {
             let infoHTML = '';
             let bannerHTML = '';
             const scrub = (txt) => txt ? txt.replace(/[📚🎯👆🏥🧠⚡🔴🟢💚⚠️]/g, '') : txt;
+            const wrapKeyConceptsCard = (content) => `<div class="key-concepts-card">${content}</div>`;
             
             switch(pathologyKey) {
                 case 'aorticStenosis':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Aortic Stenosis</h3>
                         <p><strong>Pathophysiology:</strong> Progressive narrowing of the aortic valve (normal area 3-4 cm², severe <1 cm²) creates a pressure gradient across the valve, forcing the LV to generate higher pressures.</p>
                         <p><strong>Compensatory Response:</strong> Concentric LV hypertrophy develops to normalize wall stress (Laplace's Law: Wall Stress = Pressure × Radius / 2 × Wall Thickness). This maintains cardiac output initially but increases myocardial oxygen demand.</p>
                         <p><strong>Clinical Progression:</strong> Classic triad of symptoms: <em>Angina</em> (increased O₂ demand with fixed supply), <em>Syncope</em> (inability to increase CO with exercise), and <em>Heart failure</em> (eventual LV dysfunction).</p>
                         <p><strong>PV Loop Changes:</strong> ↑ Peak systolic pressure (tall loop), prolonged ejection time, ↑ LVEDP. The afterload is significantly elevated - loop appears "stretched" vertically.</p>
                         <p><strong>Physical Exam:</strong> Crescendo-decrescendo systolic murmur at right upper sternal border, pulsus parvus et tardus, S4 gallop.</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: Aortic Stenosis</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
                     
                 case 'mitralRegurg':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Mitral Regurgitation</h3>
                         <p><strong>Pathophysiology:</strong> Incompetent mitral valve allows retrograde flow into the LA during systole. This creates a "pop-off" valve effect, paradoxically reducing effective afterload.</p>
                         <p><strong>Volume Overload:</strong> Both the LA and LV dilate to accommodate the regurgitant volume. Total stroke volume increases, but forward (effective) stroke volume decreases.</p>
                         <p><strong>Acute vs Chronic:</strong> Acute MR causes pulmonary edema (non-compliant LA). Chronic MR allows LA dilation and may be well-tolerated for years until LV dysfunction develops.</p>
                         <p><strong>PV Loop Changes:</strong> Loop shifted right (↑ EDV from volume overload), reduced isovolumetric contraction phase, lower peak systolic pressure due to "pop-off" effect.</p>
                         <p><strong>Physical Exam:</strong> Holosystolic murmur at apex radiating to axilla, S3 gallop, displaced PMI.</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: Mitral Regurgitation</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
                     
                 case 'aorticRegurg':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Aortic Regurgitation</h3>
                         <p><strong>Pathophysiology:</strong> Incompetent aortic valve allows diastolic backflow from the aorta into the LV. Regurgitant fraction can be >50% in severe AR. This creates combined volume AND pressure overload.</p>
                         <p><strong>Compensatory Response:</strong> Eccentric LV hypertrophy and dilation develop to accommodate the increased volume. The LV becomes massively dilated with markedly increased EDV.</p>
                         <p><strong>Wide Pulse Pressure:</strong> High systolic (increased stroke volume) + Low diastolic (runoff back into LV) = Wide pulse pressure. This causes the classic peripheral signs.</p>
                         <p><strong>PV Loop Changes:</strong> Significantly WIDENED loop (horizontally stretched), ↑ EDV, very low diastolic pressure. Effective forward stroke volume is reduced despite high total SV.</p>
                         <p><strong>Physical Exam:</strong> Decrescendo diastolic murmur at left sternal border, bounding pulses, head bobbing (de Musset), nail bed pulsations (Quincke), pistol shot femorals.</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: Aortic Regurgitation</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
 
                 case 'mitralStenosis':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Mitral Stenosis</h3>
                         <p><strong>Pathophysiology:</strong> Narrowed mitral valve (normal area 4-6 cm², severe <1 cm²) restricts blood flow from LA to LV during diastole. Most commonly caused by rheumatic heart disease.</p>
                         <p><strong>Hemodynamic Consequences:</strong> LA pressure rises to maintain flow across the stenotic valve → LA enlargement → pulmonary congestion → pulmonary HTN. The LV remains normal-sized but is UNDERFILLED.</p>
                         <p><strong>Tachycardia Intolerance:</strong> Symptoms worsen with ↑ HR because diastole shortens, leaving less time for blood to cross the stenotic valve. Exercise, fever, pregnancy all worsen symptoms.</p>
                         <p><strong>PV Loop Changes:</strong> NARROW loop (horizontally compressed), ↓ EDV due to impaired LV filling. LV contractility is preserved - the problem is upstream. Loop appears "squished."</p>
                         <p><strong>Physical Exam:</strong> Opening snap, low-pitched diastolic rumble at apex, loud S1. Atrial fibrillation is common (from LA enlargement).</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: Mitral Stenosis</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
                     
                 case 'hfref':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Heart Failure with Reduced EF (HFrEF)</h3>
                         <p><strong>Definition:</strong> EF < 40% with symptoms of heart failure. The fundamental problem is impaired myocardial contractility.</p>
                         <p><strong>Systolic Dysfunction:</strong> The heart cannot contract forcefully enough. Despite adequate preload, stroke volume is reduced. The end-systolic pressure-volume relationship (ESPVR) is shifted down and right.</p>
                         <p><strong>Neurohormonal Activation:</strong> RAAS and sympathetic nervous system activation initially maintain CO but ultimately worsen remodeling and function - a vicious cycle.</p>
                         <p><strong>PV Loop Changes:</strong> Loop shifted right and down. ↓ Stroke volume despite ↑ EDV. ↑ ESV (blood left behind). Lower peak systolic pressure. Reduced loop width.</p>
                         <p><strong>Treatment Targets:</strong> ACE-i/ARBs (reduce afterload/remodeling), Beta-blockers (reduce HR/remodeling), SGLT2i, Diuretics (reduce preload/congestion).</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: HFrEF</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
                     
                 case 'hfpef':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Heart Failure with Preserved EF (HFpEF)</h3>
                         <p><strong>Definition:</strong> EF ≥50% with symptoms of heart failure. The primary problem is diastolic dysfunction - impaired ventricular relaxation and filling.</p>
                         <p><strong>Pathophysiology:</strong> Stiff, non-compliant LV leads to elevated filling pressures for any given volume. Small changes in volume cause large pressure changes - the diastolic portion of PV loop is steep.</p>
                         <p><strong>Clinical Features:</strong> Exercise intolerance, pulmonary congestion with exertion. Often associated with HTN, obesity, diabetes, AF. "Flash pulmonary edema" with small volume shifts.</p>
                         <p><strong>PV Loop Changes:</strong> Steeper diastolic filling curve, ↑ LVEDP for same EDV. The loop appears shifted upward during diastole. Systolic function (top of loop) is preserved.</p>
                         <p><strong>Management Focus:</strong> Control blood pressure, manage volume status carefully, maintain sinus rhythm, treat comorbidities.</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: HFpEF</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
                     
                 case 'hcm':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Hypertrophic Cardiomyopathy (HCM)</h3>
                         <p><strong>Pathophysiology:</strong> Genetic mutations in sarcomeric proteins cause myocyte disarray and hypertrophy. Diastolic dysfunction is the primary hemodynamic problem - the stiff ventricle cannot fill properly.</p>
                         <p><strong>Dynamic LVOT Obstruction:</strong> In obstructive HCM (HOCM), systolic anterior motion (SAM) of the mitral valve creates LVOT obstruction. Obstruction WORSENS with ↓ preload or ↓ afterload.</p>
                         <p><strong>Paradoxical Responses:</strong> Valsalva/standing WORSEN obstruction (decrease preload). Squatting/handgrip IMPROVE it (increase preload/afterload). </p>
                         <p><strong>PV Loop Changes:</strong> Steep diastolic curve (poor compliance), ↑ LVEDP. In HOCM: characteristic "spike and dome" pattern during ejection due to dynamic obstruction. <strong> Note: It is difficult to accurately represent the HOCM PV loop spine-and-dome pattern. This graph is for general understanding. <strong> </p>
                         <p><strong>Management:</strong> Beta-blockers (↓ contractility, ↑ filling time), avoid dehydration/vasodilators, septal reduction therapy if severe obstruction.</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: HCM</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
                     
                 case 'tamponade':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Cardiac Tamponade</h3>
                         <p><strong>Pathophysiology:</strong> Pericardial fluid accumulation raises pericardial pressure, which compresses all cardiac chambers equally, preventing adequate ventricular filling. All chambers equilibrate in diastole.</p>
                         <p><strong>Beck's Triad:</strong> (1) Hypotension (low CO), (2) Elevated JVP (impaired venous return), (3) Muffled heart sounds (fluid insulation).</p>
@@ -5339,30 +5410,30 @@ const coronaryMap = {
                         <p><strong>PV Loop Changes:</strong> Dramatically ↓ EDV (cannot fill), ↓ stroke volume. Loop is small and shifted left. All cardiac volumes are reduced due to external compression.</p>
                         <p><strong>Emergency Treatment:</strong> Pericardiocentesis is life-saving! IV fluids temporarily improve preload. AVOID drugs that reduce preload (diuretics, nitrates) or HR (beta-blockers).</p>
                         <p><strong>Sinus Tachycardia:</strong> Sinus tachycardia occurs as a compensatory response because the fluid around the heart limits ventricular filling and stroke volume. To maintain cardiac output and blood pressure despite this reduced stroke volume, the body reflexively increases heart rate.</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: Cardiac Tamponade</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
                     
                 case 'septicShock':
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Septic Shock (Distributive)</h3>
                         <p><strong>Hemodynamic Phases:</strong> Early "warm shock": High CO, very low SVR, wide pulse pressure, warm extremities. Late "cold shock": myocardial depression, low CO, cold extremities.</p>
                         <p><strong>Vascular Dysfunction:</strong> NO and inflammatory mediators cause profound vasodilation and capillary leak, creating both relative hypovolemia (vasodilation) and absolute hypovolemia (third-spacing).</p>
                         <p><strong>Myocardial Depression:</strong> Circulating myocardial depressant factors and mitochondrial dysfunction reduce contractility despite catecholamine excess. This occurs in late/decompensated sepsis.</p>
                         <p><strong>PV Loop Changes (Early):</strong> ↓ Systolic pressure (low afterload from vasodilation), may have preserved or ↑ stroke volume initially. In late sepsis: reduced contractility shifts loop down.</p>
                         <p><strong>Management:</strong> Aggressive fluid resuscitation (30 mL/kg crystalloid), early vasopressors (norepinephrine first-line), source control, and antibiotics within 1 hour.</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Currently Viewing: Septic Shock</h3><p>Key concepts displayed above. Adjust sliders to explore hemodynamic changes.</p>`;
                     break;
                     
                 default:
-                    bannerHTML = `
+                    bannerHTML = wrapKeyConceptsCard(`
                         <h3>📚 Key Concepts - Normal Cardiac Physiology</h3>
                         <p><strong>Preload (EDV):</strong> End-diastolic volume - the initial stretching of cardiac myocytes. Clinically affected by venous return, blood volume, and atrial contraction. ↑ Preload = ↑ Stroke Volume (to a point).</p>
                         <p><strong>Afterload:</strong> The resistance the left ventricle must overcome to eject blood. Approximated by systemic vascular resistance (SVR). ↑ Afterload = ↓ Stroke Volume.</p>
                         <p><strong>Contractility (Inotropy):</strong> The intrinsic strength of cardiac muscle contraction, independent of preload/afterload. Enhanced by sympathetic stimulation and positive inotropes (dobutamine, digoxin).</p>
                         <p><strong>The PV Loop:</strong> Shows the relationship between LV pressure and volume throughout one cardiac cycle. Width = stroke volume. Height = pressure generated. Area ≈ stroke work.</p>
-                    `;
+                    `);
                     infoHTML = `<h3>📚 Normal Cardiac Physiology</h3><p>Adjust the sliders to explore how changes in preload, afterload, contractility, and heart rate affect cardiac function.</p>`;
             }
             
