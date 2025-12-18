@@ -3525,6 +3525,7 @@ const coronaryMap = {
             avb2_mobitz2: '2nd-degree AV block (Mobitz II)',
             avb3: '3rd-degree AV block (complete heart block)'
         };
+        const SINGLE_LEAD_STEMI_EXCLUSIONS = new Set(['stemi_inferior', 'stemi_anterior', 'stemi_lateral']);
         let ecgQuizInitialized = false;
         let ecgQuizSim = null;
         let ecgQuizSession = null;
@@ -4127,14 +4128,18 @@ const coronaryMap = {
                 if (!rhythmSelect || !sim.getRhythmList) return;
                 const rhythms = sim.getRhythmList();
                 syncRhythmLabels(rhythms);
+                const availableRhythms = rhythms.filter((entry) => !SINGLE_LEAD_STEMI_EXCLUSIONS.has(entry.id));
+                const choices = availableRhythms.length ? availableRhythms : rhythms;
                 rhythmSelect.innerHTML = '';
-                rhythms.forEach(({ id, label }) => {
+                choices.forEach(({ id, label }) => {
                     const opt = document.createElement('option');
                     opt.value = id;
                     opt.textContent = label;
                     rhythmSelect.appendChild(opt);
                 });
-                rhythmSelect.value = sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus';
+                const currentRhythm = sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus';
+                const inChoices = choices.some(({ id }) => id === currentRhythm);
+                rhythmSelect.value = inChoices ? currentRhythm : (choices[0]?.id || 'sinus');
             };
 
             const clampHeartRateValue = (value) => {
