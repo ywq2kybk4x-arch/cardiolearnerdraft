@@ -285,8 +285,10 @@ class EcgSimulator {
     for (const beat of this.beatSchedule) {
       if (beat.hasQRS) {
         consider('QRS', beat.rTime, beat.qrs);
-        const tCenter = beat.rTime + beat.qt * 0.6;
-        consider('T', tCenter, beat.qt * 0.25);
+        if (beat.hasT !== false) {
+          const tCenter = beat.rTime + beat.qt * 0.6;
+          consider('T', tCenter, beat.qt * 0.25);
+        }
       }
     }
 
@@ -598,6 +600,7 @@ class EcgSimulator {
         rTime: t + pr3 + this.intervals.qrsDurationMs / 2,
         hasP: true,
         hasQRS: false,
+        hasT: false,
         pr: pr3,
         qrs: this.intervals.qrsDurationMs,
         qt: this.intervals.qtIntervalMs
@@ -617,6 +620,7 @@ class EcgSimulator {
         rTime: t + fixedPr + this.intervals.qrsDurationMs / 2,
         hasP: true,
         hasQRS: conducted,
+        hasT: conducted,
         pr: fixedPr,
         qrs: this.intervals.qrsDurationMs,
         qt: this.intervals.qtIntervalMs
@@ -750,8 +754,10 @@ class EcgSimulator {
     for (const beat of this.beatSchedule) {
       if (beat.hasQRS && Math.abs(time - beat.rTime) <= beat.qrs * 2) {
         y += this.drawQRSComplex(time, beat.rTime, beat.qrs);
-        const tCenter = beat.rTime + beat.qt * 0.6;
-        y += this.drawTWave(time, tCenter, beat.qt * 0.3);
+        if (beat.hasT !== false) {
+          const tCenter = beat.rTime + beat.qt * 0.6;
+          y += this.drawTWave(time, tCenter, beat.qt * 0.3);
+        }
       }
     }
 

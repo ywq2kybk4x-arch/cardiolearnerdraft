@@ -51,6 +51,10 @@ class EcgSimulator {
 
     this.highlights = { P: false, QRS: false, T: false };
     this.intervalHighlights = { PR: false, QRSd: false, QT: false };
+    const globalIntervalDebug =
+      typeof window !== 'undefined' ? window.__ECG_INTERVAL_DEBUG : false;
+    this.intervalDebug = globalIntervalDebug === true || globalIntervalDebug === 'true';
+    this._intervalDebugTimestamps = {};
     this.isPlaying = false;
     this.simulatedTimeMs = 0;
     this.lastFrameTime = 0;
@@ -155,6 +159,25 @@ class EcgSimulator {
 
   setIntervalHighlights(cfg) {
     this.intervalHighlights = { ...this.intervalHighlights, ...cfg };
+    this.intervalDebugImmediate('setIntervalHighlights', {
+      cfg,
+      highlights: this.intervalHighlights
+    });
+  }
+
+  intervalDebugImmediate(label, info) {
+    if (!this.intervalDebug) return;
+    console.log('[EcgSimulator][IntervalDebug]', label, info);
+  }
+
+  intervalDebugLog(label, info) {
+    if (!this.intervalDebug) return;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const last = this._intervalDebugTimestamps[label] || 0;
+    const threshold = 500;
+    if (now - last < threshold) return;
+    this._intervalDebugTimestamps[label] = now;
+    console.log('[EcgSimulator][IntervalDebug]', label, info);
   }
 
   play() {
@@ -331,7 +354,9 @@ class EcgSimulator {
       const tCenter = (tStart + tEnd) / 2;
       const tWindow = Math.max(80, tEnd - tStart);
 
-      consider('T', tCenter, tWindow);
+      if (beat.hasT !== false) {
+        consider('T', tCenter, tWindow);
+      }
     }
 
     return closest.type;
@@ -606,12 +631,32 @@ class EcgSimulator {
     plotBottomY
   }) {
     const on = this.intervalHighlights;
-    if (!on.PR && !on.QRSd && !on.QT) return;
-    if (this.currentRhythm === 'mvtach' || this.currentRhythm === 'pvtach') return;
-    if (!this.beatSchedule || !this.beatSchedule.length) return;
+    if (!on.PR && !on.QRSd && !on.QT) {
+      this.intervalDebugLog('intervalOverlaySkip', { reason: 'highlights-off', highlights: on });
+      return;
+    }
+    if (this.currentRhythm === 'mvtach' || this.currentRhythm === 'pvtach') {
+      this.intervalDebugLog('intervalOverlaySkip', {
+        reason: 'excluded rhythm',
+        currentRhythm: this.currentRhythm
+      });
+      return;
+    }
+    if (!this.beatSchedule || !this.beatSchedule.length) {
+      this.intervalDebugLog('intervalOverlaySkip', { reason: 'no beats scheduled' });
+      return;
+    }
 
     const duration = this.rhythmDurationMs || 8000;
-    if (!duration || !msPerPixel || xMax <= 0) return;
+    if (!duration || !msPerPixel || xMax <= 0) {
+      this.intervalDebugLog('intervalOverlaySkip', {
+        reason: 'invalid geometry',
+        duration,
+        msPerPixel,
+        xMax
+      });
+      return;
+    }
 
     const tToX = (tMs) => (tMs - tWindowStart) / (msPerPixel * SCALE);
 
@@ -682,6 +727,9 @@ class EcgSimulator {
       ctx.restore();
     };
 
+    let prDrawn = 0;
+    let qrsDrawn = 0;
+    let qtDrawn = 0;
     const drawBracket = (key, tStart, tEnd, labelMs) => {
       const x1 = tToX(tStart);
       const x2 = tToX(tEnd);
@@ -735,13 +783,30 @@ class EcgSimulator {
 
         if (on.PR && prAllowedForBeat(beat)) {
           drawBracket('PR', prStart, qrsStart, Math.round(beat.pr));
+          prDrawn++;
         }
         if (on.QRSd && qrsAllowedForBeat(beat)) {
           drawBracket('QRSd', qrsStart, qrsEnd, Math.round(beat.qrs));
+          qrsDrawn++;
         }
         if (on.QT && qtAllowedForBeat(beat)) {
           drawBracket('QT', qtStart, qtEnd, Math.round(beat.qt));
+          qtDrawn++;
         }
+      }
+    }
+    if (this.intervalDebug) {
+      this.intervalDebugLog('intervalOverlayStats', {
+        highlights: on,
+        counts: { PR: prDrawn, QRSd: qrsDrawn, QT: qtDrawn },
+        window: [tWindowStart, tWindowEnd]
+      });
+      if (on.PR && prDrawn === 0) {
+        this.intervalDebugImmediate('intervalOverlayWarning', {
+          type: 'PR',
+          reason: 'no PR brackets rendered',
+          beats: this.beatSchedule.length
+        });
       }
     }
   }
@@ -784,6 +849,18 @@ class EcgSimulator {
     const qrsText = formatRange('QRS', qrsValues, this.intervals.qrsDurationMs);
     const qtText = formatRange('QT', qtValues, this.intervals.qtIntervalMs);
 
+    if (
+      this.intervalDebug &&
+      (this.intervalHighlights.PR || this.intervalHighlights.QRSd || this.intervalHighlights.QT)
+    ) {
+      this.intervalDebugLog('readoutSummary', {
+        highlights: this.intervalHighlights,
+        prValues,
+        qrsValues,
+        qtValues
+      });
+    }
+
     return {
       hrText: `HR ${hrBpm} bpm`,
       prText,
@@ -808,6 +885,17 @@ class EcgSimulator {
     const sc = this.scrollContainer || this.overlayCanvas.parentElement;
     const scrollLeft = sc ? sc.scrollLeft : 0;
     const viewW = sc ? sc.clientWidth : w;
+    if (
+      this.intervalDebug &&
+      (this.intervalHighlights.PR || this.intervalHighlights.QRSd || this.intervalHighlights.QT)
+    ) {
+      this.intervalDebugLog('drawReadoutOverlay', {
+        highlights: this.intervalHighlights,
+        scrollLeft,
+        viewW,
+        lines
+      });
+    }
 
     const SCALE = this.viewScale || 1;
     const fontSize = Math.max(10, Math.round(12 * SCALE));
@@ -1037,7 +1125,7 @@ class EcgSimulator {
       if (t >= durationMs) break;
       this.addBeat({
         rTime: t + pr3 + this.intervals.qrsDurationMs / 2,
-        hasP: false,
+        hasP: true,
         hasQRS: false,
         hasT: false,
         pr: pr3,
@@ -1066,7 +1154,7 @@ class EcgSimulator {
 
       this.addBeat({
         rTime: t + fixedPr + qrsHalf,
-        hasP: conducted,
+        hasP: true,
         hasQRS: conducted,
         hasT: conducted,
         pr: fixedPr,
@@ -1386,7 +1474,7 @@ class EcgSimulator {
       const dtT = time - tCenter;
       if (Math.abs(dtT) < Math.abs(nearestDtFromT)) nearestDtFromT = dtT;
 
-      const allowT = beat.hasT !== false;
+      const allowT = beat.hasT !== false && beat.hasQRS !== false;
       if (allowT && Math.abs(time - tCenter) <= tWidth * 2) {
         y += this.drawTWave(time, tCenter, tWidth);
       }

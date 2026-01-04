@@ -302,6 +302,10 @@ class Ecg12Simulator {
 
     this.highlights = { P: false, QRS: false, T: false };
     this.intervalHighlights = { PR: false, QRSd: false, QT: false, RR: false };
+    const globalIntervalDebug =
+      typeof window !== 'undefined' ? window.__ECG_INTERVAL_DEBUG : false;
+    this.intervalDebug = globalIntervalDebug === true || globalIntervalDebug === 'true';
+    this._intervalDebugTimestamps = {};
     this.measureToolEnabled = false;
     this.measurements = [];
     this.pendingMeasure = null;
@@ -422,6 +426,25 @@ class Ecg12Simulator {
 
   setIntervalHighlights(cfg) {
     this.intervalHighlights = { ...this.intervalHighlights, ...cfg };
+    this.intervalDebugImmediate('setIntervalHighlights', {
+      cfg,
+      highlights: this.intervalHighlights
+    });
+  }
+
+  intervalDebugImmediate(label, info) {
+    if (!this.intervalDebug) return;
+    console.log('[Ecg12Simulator][IntervalDebug]', label, info);
+  }
+
+  intervalDebugLog(label, info) {
+    if (!this.intervalDebug) return;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const last = this._intervalDebugTimestamps[label] || 0;
+    const threshold = 500;
+    if (now - last < threshold) return;
+    this._intervalDebugTimestamps[label] = now;
+    console.log('[Ecg12Simulator][IntervalDebug]', label, info);
   }
 
   setAxisDegrees(deg) {
@@ -1139,7 +1162,10 @@ class Ecg12Simulator {
 
   drawIntervalOverlays(ctx, params) {
     const on = this.intervalHighlights;
-    if (!on.PR && !on.QRSd && !on.QT && !on.RR) return;
+    if (!on.PR && !on.QRSd && !on.QT && !on.RR) {
+      this.intervalDebugLog('intervalOverlaySkip', { reason: 'no highlights', highlights: on });
+      return;
+    }
     const {
       tWindowStart,
       tWindowEnd,
@@ -1167,6 +1193,12 @@ class Ecg12Simulator {
       PR: shiftedTop + padTop + laneGap * 1.3,
       QRSd: shiftedTop + padTop + laneGap * 2.3,
       QT: shiftedTop + padTop + laneGap * 3.3
+    };
+    const counts = {
+      RR: 0,
+      PR: 0,
+      QRSd: 0,
+      QT: 0
     };
     const style = {
       RR: { stroke: '#7c3aed', fill: 'rgba(124,58,237,0.10)', fullLabel: (ms) => `RR ${ms} ms`, shortLabel: (ms) => `${ms} ms` },
@@ -1236,10 +1268,10 @@ class Ecg12Simulator {
     const drawBracket = (key, tStart, tEnd, label) => {
       const x1 = (tStart - tWindowStart) / msPerPixel;
       const x2 = (tEnd - tWindowStart) / msPerPixel;
-      if (x2 < 0 || x1 > xMax) return;
+      if (x2 < 0 || x1 > xMax) return false;
       const xx1 = Math.max(0, Math.min(xMax, x1));
       const xx2 = Math.max(0, Math.min(xMax, x2));
-      if (xx2 - xx1 <= 1) return;
+      if (xx2 - xx1 <= 1) return false;
       const y = lanes[key];
       ctx.save();
       ctx.lineWidth = 2;
@@ -1256,6 +1288,7 @@ class Ecg12Simulator {
       firstLabelShown[key] = true;
       ctx.restore();
       drawGuides(key, xx1, xx2, y - 10, tStart, tEnd);
+      return true;
     };
 
     const beats = this.beatSchedule || [];
@@ -1280,11 +1313,30 @@ class Ecg12Simulator {
         const qtEnd = qrsStart + beat.qt;
         const prStart = qrsStart - beat.pr;
 
-        if (on.RR) drawBracket('RR', rOcc, nextOcc, rrMs);
-        if (on.PR && beat.hasP && beat.pr > 0) drawBracket('PR', prStart, qrsStart, Math.round(beat.pr));
-        if (on.QRSd) drawBracket('QRSd', qrsStart, qrsEnd, Math.round(beat.qrs));
-        if (on.QT) drawBracket('QT', qrsStart, qtEnd, Math.round(beat.qt));
+        if (on.RR && drawBracket('RR', rOcc, nextOcc, rrMs)) counts.RR++;
+        if (on.PR && beat.hasP && beat.pr > 0 && drawBracket('PR', prStart, qrsStart, Math.round(beat.pr)))
+          counts.PR++;
+        if (on.QRSd && drawBracket('QRSd', qrsStart, qrsEnd, Math.round(beat.qrs))) counts.QRSd++;
+        if (on.QT && drawBracket('QT', qrsStart, qtEnd, Math.round(beat.qt))) counts.QT++;
       }
+    }
+    if (this.intervalDebug) {
+      this.intervalDebugLog('intervalOverlayStats', {
+        highlights: on,
+        counts,
+        window: [tWindowStart, tWindowEnd],
+        leadKey: overlayLeadKey
+      });
+      Object.entries(counts).forEach(([key, value]) => {
+        if (on[key] && value === 0) {
+          this.intervalDebugImmediate('intervalOverlayWarning', {
+            type: key,
+            reason: 'highlight enabled but no brackets rendered',
+            leadKey: overlayLeadKey,
+            window: [tWindowStart, tWindowEnd]
+          });
+        }
+      });
     }
   }
 
@@ -1390,6 +1442,18 @@ class Ecg12Simulator {
     const sc = this.scrollContainer || this.overlayCanvas.parentElement;
     const scrollLeft = sc ? sc.scrollLeft : 0;
     const viewW = sc ? sc.clientWidth : w;
+    if (
+      this.intervalDebug &&
+      (this.intervalHighlights.PR || this.intervalHighlights.QRSd || this.intervalHighlights.QT)
+    ) {
+      this.intervalDebugLog('drawReadoutOverlay', {
+        highlights: this.intervalHighlights,
+        scrollLeft,
+        viewW,
+        iv,
+        lines
+      });
+    }
     const fontSize = 12;
     ctx.font = `${fontSize}px "SFMono-Regular", Consolas, monospace`;
     ctx.textBaseline = 'top';
@@ -1657,7 +1721,7 @@ class Ecg12Simulator {
       this.addBeatToSchedule(schedule, {
         rTime,
         pr: step.pr,
-        hasP: conducted,
+        hasP: true,
         hasQRS: conducted,
         hasT: conducted
       });
@@ -1688,7 +1752,7 @@ class Ecg12Simulator {
       this.addBeatToSchedule(schedule, {
         rTime,
         pr: fixedPr,
-        hasP: conducted,
+        hasP: true,
         hasQRS: conducted,
         hasT: conducted
       });
@@ -2096,45 +2160,49 @@ class Ecg12Simulator {
         qrs += parts.q + parts.r + parts.s;
       }
 
-      const qrsStart = beat.rTime - beat.qrs / 2;
-      const tEnd = qrsStart + beat.qt;
-      const tStart = Math.max(beat.rTime + beat.qrs / 2 + 60, tEnd - this.intervals.tWaveDurationMs);
-      const tCenter = (tStart + tEnd) / 2;
+      if (beat.hasQRS) {
+        const qrsStart = beat.rTime - beat.qrs / 2;
+        const tEnd = qrsStart + beat.qt;
+        const tStart = Math.max(beat.rTime + beat.qrs / 2 + 60, tEnd - this.intervals.tWaveDurationMs);
+        const tCenter = (tStart + tEnd) / 2;
 
-      // --- T wave handling ---
-      // For STEMI elevation leads, suppress the separate T wave so ST blends into a single dome.
-      const isStElevationLead = hasStemi && stemiMultiplier > 0;
+        // --- T wave handling ---
+        // For STEMI elevation leads, suppress the separate T wave so ST blends into a single dome.
+        const isStElevationLead = hasStemi && stemiMultiplier > 0;
 
-      if (!isStElevationLead && Math.abs(time - tCenter) <= 160) {
-        const tScale = this.currentRhythm === 'afib' ? AFIB_T_SCALE : 1;
-        tWave += tScale * this.drawT(time, tCenter, 120);
-      }
-      const dtT = time - tCenter;
-      if (Math.abs(dtT) < Math.abs(nearestDtFromT)) nearestDtFromT = dtT;
+        if (beat.hasT !== false && !isStElevationLead && Math.abs(time - tCenter) <= 160) {
+          const tScale = this.currentRhythm === 'afib' ? AFIB_T_SCALE : 1;
+          tWave += tScale * this.drawT(time, tCenter, 120);
+        }
+        if (beat.hasT !== false) {
+          const dtT = time - tCenter;
+          if (Math.abs(dtT) < Math.abs(nearestDtFromT)) nearestDtFromT = dtT;
+        }
 
-      if (hasStemi) {
-        const qrsEnd = qrsStart + beat.qrs;
-        const stStart = qrsEnd;
-        const stEnd = tEnd; // extend through repolarization for a continuous dome
-        if (stEnd > stStart && time >= stStart && time <= stEnd) {
-          const mid = (stStart + stEnd) / 2;
-          const dist = Math.abs(time - mid);
-          if (dist < nearestStDist) {
-            const u = clamp((time - stStart) / ((stEnd - stStart) || 1), 0, 1);
+        if (hasStemi) {
+          const qrsEnd = qrsStart + beat.qrs;
+          const stStart = qrsEnd;
+          const stEnd = tEnd; // extend through repolarization for a continuous dome
+          if (stEnd > stStart && time >= stStart && time <= stEnd) {
+            const mid = (stStart + stEnd) / 2;
+            const dist = Math.abs(time - mid);
+            if (dist < nearestStDist) {
+              const u = clamp((time - stStart) / ((stEnd - stStart) || 1), 0, 1);
 
-            // Fast J-point rise (first ~8% of ST duration)
-            const jRise = smoothstep(0.0, 0.08, u);
+              // Fast J-point rise (first ~8% of ST duration)
+              const jRise = smoothstep(0.0, 0.08, u);
 
-            // Remain elevated through mid ST, then smooth decay into end of QT
-            const decay = 1 - smoothstep(0.55, 1.0, u);
+              // Remain elevated through mid ST, then smooth decay into end of QT
+              const decay = 1 - smoothstep(0.55, 1.0, u);
 
-            // Slight bulge so ST merges into a T-dome rather than staying flat
-            const bulge = 1 + 0.18 * Math.sin(Math.PI * clamp((u - 0.25) / 0.75, 0, 1));
+              // Slight bulge so ST merges into a T-dome rather than staying flat
+              const bulge = 1 + 0.18 * Math.sin(Math.PI * clamp((u - 0.25) / 0.75, 0, 1));
 
-            const shape = jRise * decay * bulge;
-            const stPx = (this.stemiStMv || STEMI_CONFIG.stMv) * MV_TO_PX_12 * stemiMultiplier;
-            st = stPx * shape;
-            nearestStDist = dist;
+              const shape = jRise * decay * bulge;
+              const stPx = (this.stemiStMv || STEMI_CONFIG.stMv) * MV_TO_PX_12 * stemiMultiplier;
+              st = stPx * shape;
+              nearestStDist = dist;
+            }
           }
         }
       }
@@ -2201,11 +2269,13 @@ class Ecg12Simulator {
     for (const beat of this.beatSchedule) {
       if (!isAfib && beat.hasP) consider('P', beat.rTime - beat.pr + 40, 90);
       consider('QRS', beat.rTime, beat.qrs);
-      const qrsStart = beat.rTime - beat.qrs / 2;
-      const tEnd = qrsStart + beat.qt;
-      const tStart = Math.max(beat.rTime + beat.qrs / 2 + 60, tEnd - this.intervals.tWaveDurationMs);
-      const tCenter = (tStart + tEnd) / 2;
-      consider('T', tCenter, Math.max(80, tEnd - tStart));
+      if (beat.hasQRS && beat.hasT !== false) {
+        const qrsStart = beat.rTime - beat.qrs / 2;
+        const tEnd = qrsStart + beat.qt;
+        const tStart = Math.max(beat.rTime + beat.qrs / 2 + 60, tEnd - this.intervals.tWaveDurationMs);
+        const tCenter = (tStart + tEnd) / 2;
+        consider('T', tCenter, Math.max(80, tEnd - tStart));
+      }
     }
     return closest.type;
   }

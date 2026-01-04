@@ -1813,7 +1813,132 @@
         .parameter-changes {
             margin-bottom: var(--s2);
         }
-        
+
+        .pathology-sort-bar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+            margin-bottom: 12px;
+            padding: 6px 0;
+            font-size: 0.95rem;
+            color: var(--muted-2);
+        }
+
+        .sort-label {
+            font-weight: 600;
+            color: #4b5563;
+            margin-right: 6px;
+        }
+
+        .filter-btn.sort-btn {
+            padding: 4px 10px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .filter-btn.sort-btn.active,
+        .filter-btn.sort-btn:focus-visible {
+            border-color: #6366f1;
+            background: #eef2ff;
+            color: #4338ca;
+        }
+
+        .parameter-item.highlight {
+            background: rgba(37, 99, 235, 0.08);
+            border-radius: 6px;
+            padding: 3px 4px;
+        }
+
+        .pathology-divider {
+            border-top: 1px solid var(--border);
+            margin: var(--s2) 0;
+        }
+
+        .pathology-tier-divider {
+            grid-column: 1 / -1;
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 6px 0;
+            margin: 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .pathology-tier-divider.high {
+            color: #b91c1c;
+            background: rgba(185, 28, 28, 0.08);
+        }
+
+        .pathology-tier-divider.normal {
+            color: #92400e;
+            background: rgba(251, 191, 36, 0.2);
+        }
+
+        .pathology-tier-divider.low {
+            color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.08);
+        }
+
+        .pathology-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+            margin-bottom: var(--s2);
+        }
+
+        .pathology-explanation {
+            margin: 0;
+            padding: var(--s3);
+            border-radius: var(--radius-lg);
+            box-shadow: none;
+            min-height: 110px;
+            font-size: 0.95em;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            justify-content: flex-start;
+            border: 1px solid transparent;
+        }
+
+        .pathology-explanation.high {
+            background: rgba(239, 71, 111, 0.12);
+            border-color: rgba(239, 71, 111, 0.4);
+            color: #7f1d1d;
+        }
+
+        .pathology-explanation.normal {
+            background: rgba(250, 204, 21, 0.15);
+            border-color: rgba(250, 204, 21, 0.45);
+            color: #92400e;
+        }
+
+        .pathology-explanation.low {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #1e3a8a;
+        }
+
+        .pathology-explanation strong {
+            font-size: 0.95em;
+            font-weight: 600;
+        }
+
+        .pathology-explanation span {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
         .parameter-item {
             display: flex;
             align-items: center;
@@ -2445,6 +2570,17 @@
         </div>
         
         <div id="pathologies-content" class="tab-content">
+            <div class="pathology-sort-bar" id="pathology-filter-control">
+                <span class="sort-label">Sort by</span>
+                <button type="button" class="filter-btn sort-btn" data-variable="">None</button>
+                <button type="button" class="filter-btn sort-btn" data-variable="Afterload">Afterload</button>
+                <button type="button" class="filter-btn sort-btn" data-variable="Contractility">Contractility</button>
+                <button type="button" class="filter-btn sort-btn" data-variable="Heart Rate">Heart Rate</button>
+                <button type="button" class="filter-btn sort-btn" data-variable="Preload">Preload</button>
+                <button type="button" class="filter-btn sort-btn" data-variable="Stroke Volume">Stroke Volume</button>
+                <button type="button" class="filter-btn sort-btn" data-variable="LV Compliance">LV Compliance</button>
+                <button type="button" class="filter-btn sort-btn" data-variable="LV Hypertrophy">LV Hypertrophy</button>
+            </div>
             <div class="pathology-grid">
                 <!-- Aortic Stenosis -->
                 <div class="pathology-card" data-pathology="aorticStenosis">
@@ -2456,16 +2592,28 @@
                                 <span>Afterload (LV pressure overload)</span>
                             </div>
                             <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Contractility initially, ↓ late</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Heart Rate (↔ or ↓; tachycardia poorly tolerated)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>LV Compliance (stiff, hypertrophied ventricle)</span>
+                            </div>
+                            <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑</span>
-                                <span>LV Hypertrophy</span>
+                                <span>Concentric LV Hypertrophy</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Preload (compensated early), ↓ late</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓</span>
                                 <span>Stroke Volume (late stage)</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-variable">↔</span>
-                                <span>Preload (compensated)</span>
                             </div>
                         </div>
                         <div class="pathology-description">
@@ -2480,21 +2628,43 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Total SV (forward + backward)</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Backward (LV to LA) flow</span>
-                            </div>
-                            <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Forward Stroke Volume (late stage)</span>
+                                <span>Effective Afterload (ejection into low-pressure LA)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Contractility initially, ↓ late</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Heart Rate (compensatory)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>LV Compliance (eccentric remodeling)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Eccentric LV Hypertrophy</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑↑</span>
                                 <span>Preload (volume overload)</span>
                             </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Total Stroke Volume (forward + backward)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>Forward Stroke Volume (late stage)</span>
+                            </div>
+                        </div>
+                        <div class="pathology-divider"></div>
+                        <div class="pathology-notes">
+                            <ul>
+                                <li>Backward (LV to LA) flow</li>
+                            </ul>
                         </div>
                         <div class="pathology-description">
                             Incompetent mitral valve allows backflow into the left atrium. This creates volume overload with increased preload but decreased forward cardiac output.
@@ -2508,29 +2678,43 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Total SV (forward + regurgitant (Aorta-LV))</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Backward (Aorta to LV) flow</span>
-                            </div>
-                            <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Forward Stroke Volume (late stage)</span>
+                                <span>Afterload (diastolic runoff into LV promotes forward flow)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Contractility initially, ↓ late</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Heart Rate (shortens diastole)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>LV Compliance</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Eccentric LV Hypertrophy</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑↑</span>
                                 <span>Preload (volume overload)</span>
                             </div>
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Afterload (runoff into LV and to promote forward flow)</span>
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Total Stroke Volume (forward + regurgitant)</span>
                             </div>
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-variable">↔</span>
-                                <span>Contractility (preserved initially)</span>
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>Forward Stroke Volume (late stage)</span>
                             </div>
+                        </div>
+                        <div class="pathology-divider"></div>
+                        <div class="pathology-notes">
+                            <ul>
+                                <li>Backward (Aorta to LV) flow</li>
+                            </ul>
                         </div>
                         <div class="pathology-description">
                             Incompetent aortic valve causes diastolic backflow into LV. Leads to eccentric hypertrophy and wide pulse pressure. Eventually causes LV dysfunction.
@@ -2544,10 +2728,6 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓↓</span>
-                                <span>Preload (impaired LV filling)</span>
-                            </div>
-                            <div class="parameter-item">
                                 <span class="parameter-arrow arrow-variable">↔</span>
                                 <span>Afterload (normal)</span>
                             </div>
@@ -2557,12 +2737,30 @@
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Stroke Volume</span>
+                                <span>Heart Rate preferred (tachycardia worsens filling)</span>
                             </div>
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑</span>
-                                <span>LA pressure &amp; size</span>
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>LV Compliance</span>
                             </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>LV Hypertrophy (none)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓↓</span>
+                                <span>Preload (impaired LV filling)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>Stroke Volume</span>
+                            </div>
+                        </div>
+                        <div class="pathology-divider"></div>
+                        <div class="pathology-notes">
+                            <ul>
+                                <li>↑ LA pressure &amp; size</li>
+                            </ul>
                         </div>
                         <div class="pathology-description">
                             Narrowed mitral valve restricts LV filling. LA pressure rises, leading to pulmonary congestion and atrial fibrillation. Common cause: rheumatic heart disease.
@@ -2576,8 +2774,24 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Afterload (neurohormonal vasoconstriction)</span>
+                            </div>
+                            <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓↓</span>
                                 <span>Contractility (systolic dysfunction)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Heart Rate (compensatory)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>LV Compliance (dilated ventricle)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Eccentric LV Hypertrophy</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑</span>
@@ -2586,10 +2800,6 @@
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓</span>
                                 <span>Stroke Volume</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Heart Rate (compensatory)</span>
                             </div>
                         </div>
                         <div class="pathology-description">
@@ -2604,8 +2814,8 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Lucitropy/Compliance (impaired filling)</span>
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Afterload (HTN common)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-variable">↔</span>
@@ -2613,11 +2823,23 @@
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Preload</span>
+                                <span>Heart Rate (poorly tolerated)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓↓</span>
+                                <span>LV Compliance (impaired relaxation)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑</span>
-                                <span>Afterload (HTN common)</span>
+                                <span>Concentric LV Hypertrophy</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Preload (elevated filling pressures)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>Stroke Volume (despite normal EF)</span>
                             </div>
                         </div>
                         <div class="pathology-description">
@@ -2632,21 +2854,39 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓↓</span>
-                                <span>Preload (reduced filling)</span>
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Afterload (↔ or ↑; dynamic LVOT obstruction)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑</span>
                                 <span>Contractility (hyperdynamic)</span>
                             </div>
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span class="parameter-arrow arrow-up">↑</span>
+                                <span>Heart Rate (worsens obstruction)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓↓</span>
                                 <span>LV Compliance</span>
                             </div>
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-variable">↔</span>
-                                <span>Outflow obstruction (if HOCM)</span>
+                                <span class="parameter-arrow arrow-up">↑↑</span>
+                                <span>Asymmetric LV Hypertrophy</span>
                             </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓↓</span>
+                                <span>Preload</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>Stroke Volume</span>
+                            </div>
+                        </div>
+                        <div class="pathology-divider"></div>
+                        <div class="pathology-notes">
+                            <ul>
+                                <li>Outflow obstruction (if HOCM)</li>
+                            </ul>
                         </div>
                         <div class="pathology-description">
                             Thickened myocardium with diastolic dysfunction. Despite increased contractility, stroke volume is reduced due to impaired filling and possible outflow obstruction.
@@ -2660,25 +2900,40 @@
                     <div class="pathology-content">
                         <div class="parameter-changes">
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑↑</span>
-                                <span>Pericardial space pressure</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓↓</span>
-                                <span>RV filling (compressed by pericardium)</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓↓</span>
-                                <span>Stroke Volume</span>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="parameter-arrow arrow-up">↑↑</span>
-                                <span>Heart Rate (compensatory)</span>
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Afterload (↔ or ↑; compensatory vasoconstriction)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-variable">↔</span>
                                 <span>Contractility (preserved)</span>
                             </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-up">↑↑</span>
+                                <span>Heart Rate</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓↓</span>
+                                <span>LV Compliance (external pericardial constraint)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>LV Hypertrophy (none)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓↓</span>
+                                <span>Preload (impaired filling)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓↓</span>
+                                <span>Stroke Volume</span>
+                            </div>
+                        </div>
+                        <div class="pathology-divider"></div>
+                        <div class="pathology-notes">
+                            <ul>
+                                <li>Pericardial space pressure</li>
+                                <li>RV filling (compressed by pericardium)</li>
+                            </ul>
                         </div>
                         <div class="pathology-description">
                             Pericardial fluid compresses the heart, severely restricting ventricular filling. This leads to equalization of diastolic pressures and decreased cardiac output.
@@ -2693,11 +2948,11 @@
                         <div class="parameter-changes">
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-down">↓↓</span>
-                                <span>Afterload (vasodilation)</span>
+                                <span>Afterload (systemic vasodilation)</span>
                             </div>
                             <div class="parameter-item">
-                                <span class="parameter-arrow arrow-down">↓</span>
-                                <span>Preload (relative hypovolemia)</span>
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Contractility (↔ early, ↓ late)</span>
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-up">↑↑</span>
@@ -2705,7 +2960,19 @@
                             </div>
                             <div class="parameter-item">
                                 <span class="parameter-arrow arrow-variable">↔</span>
-                                <span>Contractility (variable)</span>
+                                <span>LV Compliance</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>LV Hypertrophy (none)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-down">↓</span>
+                                <span>Preload (relative hypovolemia/venodilation)</span>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="parameter-arrow arrow-variable">↔</span>
+                                <span>Stroke Volume (↔/↑ early, ↓ late)</span>
                             </div>
                         </div>
                         <div class="pathology-description">
@@ -3291,7 +3558,7 @@ const coronaryMap = {
             miTerritory: 'Inferior MI',
             leads: 'II, III, aVF',
             keyStructures: 'Inferior LV wall, RV, AV node (most common supply)',
-            complications: 'Bradycardia, AV block, RV infarct → hypotension',
+            complications: 'Papillary muscle rupture → acute MR, pulmonary edema',
             highlightLeads: ['II', 'III', 'aVF']
         },
         LCX: {
@@ -3301,7 +3568,7 @@ const coronaryMap = {
             miTerritory: 'Lateral MI (± Posterior)',
             leads: 'I, aVL, V5–V6 (Posterior: V7–V9)',
             keyStructures: 'Lateral LV wall, papillary muscles',
-            complications: 'Papillary muscle rupture → acute MR, pulmonary edema',
+            complications: 'XXX',
             highlightLeads: ['I', 'aVL', 'V5', 'V6', 'V7', 'V8', 'V9']
         }
     };
@@ -9416,5 +9683,300 @@ function resetASQuestion(qName) {
   if (!window.__aiTutorTabInitialized) {
     console.warn('[AI Tutor] ai-tutor-tab.js did not initialize. Check script path and console errors.');
   }
+</script>
+<script>
+  (function () {
+    const variablePatterns = {
+      'Afterload': /Afterload/i,
+      'Contractility': /Contractility/i,
+      'Heart Rate': /Heart Rate/i,
+      'Preload': /Preload/i,
+      'Stroke Volume': /Stroke Volume/i,
+      'LV Compliance': /LV Compliance/i,
+      'LV Hypertrophy': /LV Hypertrophy/i
+    };
+
+    const VARIABLE_KEY_MAP = {
+      'Afterload': 'afterload',
+      'Contractility': 'contractility',
+      'Heart Rate': 'heartRate',
+      'Preload': 'preload',
+      'Stroke Volume': 'strokeVolume',
+      'LV Compliance': 'lvCompliance',
+      'LV Hypertrophy': 'lvHypertrophy'
+    };
+
+    const pathologyFilterExplanations = {
+      aorticStenosis: {
+        afterload: 'Calcific obstruction elevates LV afterload, so concentric hypertrophy preserves stroke volume until systolic failure.',
+        contractility: 'Contractility is maintained early but declines when hypertrophy can no longer compensate.',
+        heartRate: 'Tachycardia worsens ischemia, so the rate is kept normal or allowed to fall.',
+        lvCompliance: 'Hypertrophy stiffens the ventricle and lowers compliance.',
+        lvHypertrophy: 'Pressure overload drives concentric LV hypertrophy.',
+        preload: 'Preload remains stable early but drops once diastolic filling is impaired.',
+        strokeVolume: 'Stroke volume eventually falls as afterload outpaces contractility.'
+      },
+      mitralRegurg: {
+        afterload: 'Backward flow into the low-pressure LA lowers effective afterload, making ejection easier initially.',
+        contractility: 'Contractility holds up early in the volume-overloaded state but declines later.',
+        heartRate: 'Tachycardia helps maintain forward output despite regurgitant loss.',
+        lvCompliance: 'Eccentric remodeling increases LV compliance.',
+        lvHypertrophy: 'Chronic volume overload produces eccentric LV hypertrophy.',
+        preload: 'Regurgitant volume raises preload significantly.',
+        strokeVolume: 'Total stroke volume increases as the LV ejects both forward and backward.'
+      },
+      aorticRegurg: {
+        afterload: 'Diastolic runoff into the LV lowers net afterload during systole.',
+        contractility: 'Contractility is normal or increased until chronic volume stress depresses it.',
+        heartRate: 'Tachycardia shortens diastole to limit regurgitant filling.',
+        lvCompliance: 'Volume-overloaded LV stays compliant.',
+        lvHypertrophy: 'Chronic volume load causes eccentric hypertrophy.',
+        preload: 'Regurgitant backflow elevates preload dramatically.',
+        strokeVolume: 'Total stroke volume rises while forward output eventually drops.'
+      },
+      mitralStenosis: {
+        afterload: 'Afterload stays normal because systemic resistance is unchanged.',
+        contractility: 'Contractility remains preserved since the myocardium is healthy.',
+        heartRate: 'Slow heart rates prolong diastole, while tachycardia worsens filling.',
+        lvCompliance: 'LV compliance is relatively unchanged.',
+        lvHypertrophy: 'Hypertrophy is absent in pure mitral stenosis.',
+        preload: 'Impaired filling decreases preload.',
+        strokeVolume: 'Stroke volume drops because the LV cannot fill adequately.'
+      },
+      hfref: {
+        afterload: 'Neurohormonal vasoconstriction raises afterload, worsening systolic dysfunction.',
+        contractility: 'Systolic pump failure reduces contractility.',
+        heartRate: 'Tachycardia compensates for low stroke volume.',
+        lvCompliance: 'Dilation increases LV compliance.',
+        lvHypertrophy: 'Eccentric hypertrophy follows chronic dilation.',
+        preload: 'Fluid retention elevates preload and congestion.',
+        strokeVolume: 'Stroke volume falls because the failing ventricle cannot eject effectively.'
+      },
+      hfpef: {
+        afterload: 'Hypertensive stiffness raises afterload while the stiff ventricle struggles to fill.',
+        contractility: 'Systolic performance remains preserved.',
+        heartRate: 'Tachycardia shortens diastole and worsens filling.',
+        lvCompliance: 'Impaired relaxation sharply lowers compliance.',
+        lvHypertrophy: 'Concentric hypertrophy thickens the LV wall.',
+        preload: 'Elevated filling pressures raise preload.',
+        strokeVolume: 'Restricted filling decreases stroke volume despite normal EF.'
+      },
+      hcm: {
+        afterload: 'Dynamic LVOT obstruction raises effective afterload during systole.',
+        contractility: 'Hypercontractility is classic for HCM.',
+        heartRate: 'Higher rates worsen obstruction and reduce filling time.',
+        lvCompliance: 'A stiff septum causes severely impaired compliance.',
+        lvHypertrophy: 'Asymmetric septal hypertrophy defines the disease.',
+        preload: 'Poor filling and obstruction reduce preload.',
+        strokeVolume: 'Stroke volume falls because obstruction and low preload limit output.'
+      },
+      tamponade: {
+        afterload: 'Compensatory vasoconstriction keeps afterload near normal or slightly elevated.',
+        contractility: 'Contractility seems preserved but is constrained by poor filling.',
+        heartRate: 'Marked tachycardia compensates for limited stroke volume.',
+        lvCompliance: 'External compression reduces compliance.',
+        lvHypertrophy: 'Hypertrophy is absent in tamponade.',
+        preload: 'Pericardial pressure impairs filling and drops preload.',
+        strokeVolume: 'Stroke volume falls because the ventricles cannot fill.'
+      },
+      septicShock: {
+        afterload: 'Profound vasodilation lowers afterload—the defining feature of septic shock.',
+        contractility: 'Contractility is normal/high early then drops with myocardial depression.',
+        heartRate: 'Tachycardia counters hypotension from vasodilation.',
+        lvCompliance: 'LV compliance remains near normal acutely.',
+        lvHypertrophy: 'No hypertrophy is present during septic shock.',
+        preload: 'Relative hypovolemia and venodilation reduce preload.',
+        strokeVolume: 'Stroke volume may be normal or high early but falls later.'
+      }
+    };
+
+    const arrowScores = {
+      '↑↑': 5,
+      '↑': 4,
+      '→': 3,
+      '↔': 3,
+      '↓': 2,
+      '↓↓': 1
+    };
+
+    const tierOrder = ['high', 'normal', 'low'];
+    const tierLabelText = {
+      high: 'HIGH',
+      normal: 'NORMAL',
+      low: 'LOW'
+    };
+    const tierDisplayText = {
+      high: 'High',
+      normal: 'Normal',
+      low: 'Low'
+    };
+
+    const getTierFromArrow = (arrow) => {
+      if (arrow === '↑↑' || arrow === '↑') return 'high';
+      if (arrow === '→' || arrow === '↔') return 'normal';
+      if (arrow === '↓' || arrow === '↓↓') return 'low';
+      return 'normal';
+    };
+
+    const parseArrow = (text) => {
+      if (!text) return '';
+      const trimmed = text.trim();
+      if (trimmed.includes('↑↑')) return '↑↑';
+      if (trimmed.includes('↑')) return '↑';
+      if (trimmed.includes('↓↓')) return '↓↓';
+      if (trimmed.includes('↓')) return '↓';
+      if (trimmed.includes('→')) return '→';
+      if (trimmed.includes('↔')) return '↔';
+      return '';
+    };
+
+    const grid = document.querySelector('.pathology-grid');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+
+    if (!grid || !filterButtons.length) {
+      return;
+    }
+
+    const originalOrder = Array.from(grid.children);
+    const originalIndex = new Map(originalOrder.map((el, idx) => [el, idx]));
+
+    const cardEntries = new Map();
+    originalOrder.forEach((card) => {
+      const entries = [];
+      card.querySelectorAll('.parameter-item').forEach((item) => {
+        const arrowSpan = item.querySelector('.parameter-arrow');
+        const detailSpan = arrowSpan ? arrowSpan.nextElementSibling : null;
+        const detailText = detailSpan ? detailSpan.textContent : item.textContent;
+        const variable = Object.keys(variablePatterns).find((name) => variablePatterns[name].test(detailText)) || '';
+        entries.push({
+          element: item,
+          variable,
+          arrow: parseArrow(arrowSpan ? arrowSpan.textContent : '')
+        });
+      });
+      cardEntries.set(card, entries);
+    });
+
+    const highlightItems = (variable) => {
+      cardEntries.forEach((entries) => {
+        entries.forEach(({ element, variable: itemVar }) => {
+          element.classList.toggle('highlight', variable && itemVar === variable);
+        });
+      });
+    };
+
+    const setActiveButton = (variable) => {
+      filterButtons.forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.variable === variable);
+      });
+    };
+
+    const getScore = (card, variable) => {
+      const entries = cardEntries.get(card) || [];
+      for (const entry of entries) {
+        if (entry.variable === variable && entry.arrow) {
+          return arrowScores[entry.arrow] || 0;
+        }
+      }
+      return 0;
+    };
+
+    const getCardEntryForVariable = (card, variable) => {
+      const entries = cardEntries.get(card) || [];
+      return entries.find(({ variable: itemVar }) => itemVar === variable) || null;
+    };
+
+    const cleanupExtras = () => {
+      grid.querySelectorAll('.pathology-tier-divider, .pathology-explanation, .pathology-stack').forEach((divider) => divider.remove());
+    };
+
+    const createTierDivider = (tier, variable) => {
+      const divider = document.createElement('div');
+      divider.className = `pathology-tier-divider ${tier}`;
+      const label = tierLabelText[tier] || tierLabelText.normal;
+      divider.textContent = `${label} ${variable}`;
+      return divider;
+    };
+
+    const createExplanationBlock = (card, variable, tier) => {
+      const variableKey = VARIABLE_KEY_MAP[variable];
+      const pathologyKey = card.getAttribute('data-pathology');
+      const explanationsForPathology = pathologyFilterExplanations[pathologyKey];
+      const tierLabel = tierDisplayText[tier] || tierDisplayText.normal;
+      const fallback = `This pathology does not significantly alter ${variable.toLowerCase()}.`;
+      const detail = (explanationsForPathology && explanationsForPathology[variableKey]) || fallback;
+
+      const explanation = document.createElement('div');
+      explanation.className = 'pathology-explanation';
+      explanation.classList.add(tier);
+      const strong = document.createElement('strong');
+      strong.textContent = `${variable}: ${tierLabel}`;
+      const span = document.createElement('span');
+      span.textContent = detail;
+      explanation.appendChild(strong);
+      explanation.appendChild(span);
+      return explanation;
+    };
+
+    const applySort = (variable) => {
+      cleanupExtras();
+
+      if (!variable) {
+        originalOrder.forEach((card) => grid.appendChild(card));
+        highlightItems('');
+        setActiveButton('');
+        return;
+      }
+
+      highlightItems(variable);
+      setActiveButton(variable);
+
+      const sorted = [...originalOrder].sort((a, b) => {
+        const scoreA = getScore(a, variable);
+        const scoreB = getScore(b, variable);
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA;
+        }
+        return originalIndex.get(a) - originalIndex.get(b);
+      });
+
+      const tierGroups = {
+        high: [],
+        normal: [],
+        low: []
+      };
+
+      sorted.forEach((card) => {
+        const entry = getCardEntryForVariable(card, variable);
+        const arrow = entry ? entry.arrow : '';
+        const tier = getTierFromArrow(arrow);
+        tierGroups[tier].push(card);
+      });
+
+      const fragment = document.createDocumentFragment();
+      tierOrder.forEach((tier) => {
+        const group = tierGroups[tier];
+        if (!group.length) return;
+        fragment.appendChild(createTierDivider(tier, variable));
+        group.forEach((card) => {
+          const stack = document.createElement('div');
+          stack.className = 'pathology-stack';
+          stack.appendChild(card);
+          stack.appendChild(createExplanationBlock(card, variable, tier));
+          fragment.appendChild(stack);
+        });
+      });
+
+      grid.appendChild(fragment);
+    };
+
+    filterButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        applySort(button.dataset.variable);
+      });
+    });
+
+    applySort('');
+  })();
 </script>
 </html>
