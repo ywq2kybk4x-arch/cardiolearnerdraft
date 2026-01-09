@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="./assets/ekg-tutorial.css" rel="stylesheet">
     <script src="./assets/chart.js"></script>
     <script src="./assets/chartjs-plugin-annotation.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
@@ -1685,6 +1684,16 @@
             line-height: 1.55;
             font-size: 0.95em;
         }
+        .model-attribution {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+        .model-attribution a {
+            color: inherit;
+            text-decoration: underline;
+        }
 
         .coronary-button-row {
             display: flex;
@@ -3160,14 +3169,22 @@
                     </div>
                 </div>
             </div>
+            <div class="model-attribution">
+                <div><strong>3D Model Attribution</strong></div>
+                <div>
+                    Adapted from “<em>Proximaal CX Infarct Links Dominant + Afleidingen</em>” by
+                    <a href="https://www.umcg.nl" target="_blank" rel="noopener">E-learning UMCG (University Medical Center Groningen)</a>.
+                </div>
+                <div>
+                    Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>.
+                </div>
+                <div>Modifications were made for non-commercial educational use.</div>
+                <div>The original creator does not endorse this website.</div>
+            </div>
             <div class="ekg-mode-toggle">
-                <button type="button" id="showTutorialBtn">Tutorial</button>
                 <button type="button" id="showSingleLeadBtn" class="active">Single lead</button>
                 <button type="button" id="show12LeadBtn">12 lead</button>
                 <button type="button" id="showQuizBtn">EKG Quiz</button>
-            </div>
-            <div id="ekgTutorialSection" class="single-lead-card" style="display:none;">
-                <div id="ekgTutorialRoot"></div>
             </div>
             <div id="singleLeadEcgContainer" class="single-lead-card">
                 <h3>Single-Lead Rhythm Simulator</h3>
@@ -3178,8 +3195,7 @@
                             <select id="rhythmPreset">
                                 <option value="sinus" selected>Sinus Rhythm</option>
                                 <option value="afib">Atrial Fibrillation</option>
-                                <option value="mvtach">Monomorphic VT</option>
-                                <option value="pvtach">Polymorphic VT</option>
+                                <option value="pvtach">Monomorphic VT (polymorphic preset)</option>
                                 <option value="avb1">1° AV Block</option>
                                 <option value="avb2_mobitz1">2° AV Block (Mobitz I)</option>
                                 <option value="avb2_mobitz2">2° AV Block (Mobitz II)</option>
@@ -3824,7 +3840,6 @@ const coronaryMap = {
 
     <script src="./assets/ekgsimulatorcopy.js"></script>
     <script src="./ekg12/assets/ekg12simulator.js"></script>
-    <script src="./assets/ekg-tutorial.js"></script>
 
     <script>
         // Initialize charts
@@ -3848,13 +3863,28 @@ const coronaryMap = {
             afib: 'Atrial fibrillation',
             vtach: 'Ventricular tachycardia',
             mvtach: 'Monomorphic ventricular tachycardia',
-            pvtach: 'Polymorphic ventricular tachycardia',
+            pvtach: 'Monomorphic ventricular tachycardia',
+            mvtach_copy: 'Monomorphic ventricular tachycardia (12-lead copy)',
             avb1: '1st-degree AV block',
             avb2_mobitz1: '2nd-degree AV block (Mobitz I)',
             avb2_mobitz2: '2nd-degree AV block (Mobitz II)',
             avb3: '3rd-degree AV block (complete heart block)'
         };
-        const SINGLE_LEAD_STEMI_EXCLUSIONS = new Set(['stemi_inferior', 'stemi_anterior', 'stemi_lateral']);
+        const SINGLE_LEAD_STEMI_EXCLUSIONS = new Set(['stemi_inferior', 'stemi_anterior', 'stemi_lateral', 'mvtach']);
+        const SINGLE_LEAD_CUSTOM_RHYTHMS = {
+            mvtach_copy: {
+                label: 'Monomorphic Ventricular Tachycardia',
+                target: 'mvtach'
+            }
+        };
+        const mapSingleLeadChoiceToRhythm = (choiceId) =>
+            SINGLE_LEAD_CUSTOM_RHYTHMS[choiceId]?.target || choiceId;
+        const mapRhythmToSingleLeadChoice = (rhythmId) => {
+            const entry = Object.entries(SINGLE_LEAD_CUSTOM_RHYTHMS).find(
+                ([, cfg]) => cfg.target === rhythmId
+            );
+            return entry ? entry[0] : rhythmId;
+        };
         let ecgQuizInitialized = false;
         let ecgQuizSim = null;
         let ecgQuizSession = null;
@@ -3976,8 +4006,8 @@ const coronaryMap = {
                 leadRegions: ['II','V1']
             },
             mvtach: {
-                incorrect: 'Does the rhythm look wide-complex with extreme axis? Check chest leads for monomorphic VT clues.',
-                success: 'Wide, regular complexes with AV dissociation stand out in V1–V4.',
+                incorrect: 'Is this a fast, regular wide-complex tachycardia without visible P waves? Compare it to other wide-complex rhythms before locking in a ventricular origin below the AV node.',
+                success: 'Tall, identical QRS complexes (>120 ms) with deep S waves, a flat baseline, and a rate well above 150 bpm highlight a classic ventricular-paced monomorphic VT in V1–V4.',
                 highlights: { P: false, QRS: true, T: false },
                 intervals: { RR: true },
                 focusLead: 'V1',
@@ -3985,12 +4015,12 @@ const coronaryMap = {
                 leadRegions: ['V1','V2','V3','V4']
             },
             pvtach: {
-                incorrect: 'Are the QRS morphologies changing beat-to-beat? Look at V1–V4 carefully.',
-                success: 'Polymorphic wide-complex tachycardia is best appreciated in V1–V4.',
+                incorrect: 'Does the rhythm look wide-complex with extreme axis? Check chest leads for monomorphic VT clues.',
+                success: 'Wide, regular complexes with AV dissociation stand out in V1–V4.',
                 highlights: { P: false, QRS: true, T: false },
                 intervals: { RR: true },
-                focusLead: 'V2',
-                extraLeads: ['V1','V2','V3','V4'],
+                focusLead: 'V1',
+                extraLeads: ['V1','V2','V3'],
                 leadRegions: ['V1','V2','V3','V4']
             },
             stemi_inferior: {
@@ -4143,16 +4173,22 @@ const coronaryMap = {
             initQuizSession();
         }
 
-        function initQuizSession(count = 5) {
-            const keys = getQuizRhythmKeys();
-            const questions = [];
-            for (let i = 0; i < count; i++) {
-                const correct = keys[Math.floor(Math.random() * keys.length)];
-                const distractors = shuffleList(keys.filter((k) => k !== correct)).slice(0, 4);
+        function initQuizSession() {
+            const keys = shuffleList(getQuizRhythmKeys());
+            if (!keys.length) {
+                ecgQuizSession = {
+                    questions: [],
+                    currentIndex: 0
+                };
+                return;
+            }
+            const questions = keys.map((correct, index) => {
+                const otherKeys = shuffleList(keys.filter((k) => k !== correct));
+                const distractors = otherKeys.slice(0, 4);
                 const choices = shuffleList([correct, ...distractors]);
                 const ecgId = Math.random().toString(16).slice(2, 8).toUpperCase();
-                questions.push({
-                    id: `q${i + 1}`,
+                return {
+                    id: `q${index + 1}`,
                     ecgId,
                     choices,
                     correct,
@@ -4161,8 +4197,8 @@ const coronaryMap = {
                     selected: null,
                     feedbackText: 'Select the rhythm that matches this printout.',
                     feedbackClass: 'ecg-quiz-feedback'
-                });
-            }
+                };
+            });
             resetQuizSessionState(questions);
             ecgQuizSession = {
                 questions,
@@ -4556,12 +4592,19 @@ const coronaryMap = {
             const pauseBtn = document.getElementById('ecgPause');
             const resetBtn = document.getElementById('ecgReset');
 
+            let activeSingleLeadChoice = 'sinus';
+
             const populateRhythms = () => {
                 if (!rhythmSelect || !sim.getRhythmList) return;
                 const rhythms = sim.getRhythmList();
                 syncRhythmLabels(rhythms);
                 const availableRhythms = rhythms.filter((entry) => !SINGLE_LEAD_STEMI_EXCLUSIONS.has(entry.id));
-                const choices = availableRhythms.length ? availableRhythms : rhythms;
+                const baseChoices = availableRhythms.length ? availableRhythms : rhythms;
+                const customChoices = Object.entries(SINGLE_LEAD_CUSTOM_RHYTHMS).map(([id, cfg]) => ({
+                    id,
+                    label: cfg.label
+                }));
+                const choices = [...baseChoices, ...customChoices];
                 rhythmSelect.innerHTML = '';
                 choices.forEach(({ id, label }) => {
                     const opt = document.createElement('option');
@@ -4569,14 +4612,31 @@ const coronaryMap = {
                     opt.textContent = label;
                     rhythmSelect.appendChild(opt);
                 });
-                const currentRhythm = sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus';
-                const inChoices = choices.some(({ id }) => id === currentRhythm);
-                rhythmSelect.value = inChoices ? currentRhythm : (choices[0]?.id || 'sinus');
+                const candidate = activeSingleLeadChoice && choices.some(({ id }) => id === activeSingleLeadChoice)
+                    ? activeSingleLeadChoice
+                    : mapRhythmToSingleLeadChoice(sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus');
+                const finalChoice = choices.some(({ id }) => id === candidate)
+                    ? candidate
+                    : (choices[0]?.id || 'sinus');
+                rhythmSelect.value = finalChoice;
+                activeSingleLeadChoice = finalChoice;
+                syncSingleLeadHeartRateLock(mapSingleLeadChoiceToRhythm(finalChoice));
             };
 
             const clampHeartRateValue = (value) => {
                 const clampRange = sim.getHeartRateClamp ? sim.getHeartRateClamp() : { min: 40, max: 180 };
                 return Math.max(clampRange.min, Math.min(clampRange.max, value));
+            };
+
+            const syncSingleLeadHeartRateLock = (rhythmId) => {
+                if (!heartRateInput) return;
+                const isLocked = rhythmId === 'mvtach';
+                if (isLocked) {
+                    heartRateInput.value = '210';
+                    heartRateInput.disabled = true;
+                } else {
+                    heartRateInput.disabled = false;
+                }
             };
 
             const commitHeartRate = () => {
@@ -4592,7 +4652,11 @@ const coronaryMap = {
             heartRateInput?.addEventListener('blur', commitHeartRate);
 
             rhythmSelect?.addEventListener('change', () => {
-                sim.setRhythm(rhythmSelect.value);
+                const selectedChoice = rhythmSelect.value;
+                activeSingleLeadChoice = selectedChoice;
+                const rhythmId = mapSingleLeadChoiceToRhythm(selectedChoice);
+                syncSingleLeadHeartRateLock(rhythmId);
+                sim.setRhythm(rhythmId);
                 commitHeartRate();
                 sim.setSelectedLead('II');
             });
@@ -4703,6 +4767,25 @@ const coronaryMap = {
             heartRateInput?.addEventListener('change', commitHeartRate);
             heartRateInput?.addEventListener('blur', commitHeartRate);
 
+            const sync12LeadHeartRateLock = (rhythmId) => {
+                if (!heartRateInput) return;
+                const isLocked = rhythmId === 'mvtach';
+                if (isLocked) {
+                    heartRateInput.value = '210';
+                    heartRateInput.disabled = true;
+                } else {
+                    heartRateInput.disabled = false;
+                }
+            };
+
+            const update12LeadHeartRateDisplay = () => {
+                if (!heartRateInput || typeof sim.getHeartRate !== 'function') return;
+                const current = sim.getHeartRate();
+                if (typeof current === 'number') {
+                    heartRateInput.value = Math.round(current);
+                }
+            };
+
             const axisModeToQuadrant = {
                 normal:{leadI:'pos',avf:'pos'},
                 lad:{leadI:'pos',avf:'neg'},
@@ -4751,10 +4834,15 @@ const coronaryMap = {
                     opt.value = id; opt.textContent = label;
                     rhythmSelect.appendChild(opt);
                 });
-                rhythmSelect.value = sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus';
+                const currentRhythm = sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus';
+                rhythmSelect.value = currentRhythm;
+                sync12LeadHeartRateLock(currentRhythm);
+                update12LeadHeartRateDisplay();
                 rhythmSelect.addEventListener('change', () => {
                     sim.setRhythm(rhythmSelect.value);
+                    sync12LeadHeartRateLock(sim.getCurrentRhythm ? sim.getCurrentRhythm() : rhythmSelect.value);
                     rhythmSelect.value = sim.getCurrentRhythm ? sim.getCurrentRhythm() : rhythmSelect.value;
+                    update12LeadHeartRateDisplay();
                     highlightCoronaryForRhythm();
                 });
             };
@@ -4917,28 +5005,23 @@ const coronaryMap = {
         }
         
         document.addEventListener('DOMContentLoaded', () => {
-            let tutorialInitialized = false;
             const show12Btn = document.getElementById('show12LeadBtn');
             const showSingleBtn = document.getElementById('showSingleLeadBtn');
             const showQuizBtn = document.getElementById('showQuizBtn');
-            const showTutorialBtn = document.getElementById('showTutorialBtn');
             const ecg12Module = document.getElementById('ecg12Module');
             const singleLeadContainer = document.getElementById('singleLeadEcgContainer');
             const ecgQuizSection = document.getElementById('ecgQuizSection');
-            const tutorialSection = document.getElementById('ekgTutorialSection');
 
             const clearActive = () => {
                 show12Btn?.classList.remove('active');
                 showSingleBtn?.classList.remove('active');
                 showQuizBtn?.classList.remove('active');
-                showTutorialBtn?.classList.remove('active');
             };
 
             const hideAllSections = () => {
                 if (singleLeadContainer) singleLeadContainer.style.display = 'none';
                 if (ecg12Module) ecg12Module.style.display = 'none';
                 if (ecgQuizSection) ecgQuizSection.style.display = 'none';
-                if (tutorialSection) tutorialSection.style.display = 'none';
             };
 
             const activate12Lead = () => {
@@ -4974,26 +5057,9 @@ const coronaryMap = {
                 scheduleQuizResize();
             };
 
-            const activateTutorial = () => {
-                if (currentEkgMode === 'tutorial') return;
-                currentEkgMode = 'tutorial';
-                clearActive();
-                showTutorialBtn?.classList.add('active');
-                hideAllSections();
-                if (tutorialSection) tutorialSection.style.display = '';
-                if (!tutorialInitialized) {
-                    const mountEl = document.getElementById('ekgTutorialRoot');
-                    if (mountEl && typeof window.initEkgTutorial === 'function') {
-                        window.initEkgTutorial({ mountEl });
-                        tutorialInitialized = true;
-                    }
-                }
-            };
-
             show12Btn?.addEventListener('click', activate12Lead);
             showSingleBtn?.addEventListener('click', activateSingleLead);
             showQuizBtn?.addEventListener('click', activateQuiz);
-            showTutorialBtn?.addEventListener('click', activateTutorial);
 
             hideAllSections();
             if (singleLeadContainer) {

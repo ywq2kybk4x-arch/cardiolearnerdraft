@@ -1,6 +1,6 @@
 // ECG vertical scaling (physiologic)
 const MM_PER_MV = 10;
-const PX_PER_MM_Y = 3; // adjust so 5 mm ≈ one big box height on your grid
+const PX_PER_MM_Y = 4; // 10 mm = 1 mV on standard ECG paper
 const MV_TO_PX = MM_PER_MV * PX_PER_MM_Y;
 
 // Physiologic amplitudes
@@ -17,23 +17,44 @@ const QT_MIN_MS = 300;
 const QT_MAX_MS = 600;
 
 class EcgSimulator {
-  constructor(backgroundCanvas, traceCanvas, config = {}) {
+  constructor(backgroundCanvas, traceCanvas, overlayCanvasOrConfig = null, maybeConfig) {
     this.backgroundCanvas = backgroundCanvas;
     this.traceCanvas = traceCanvas;
     this.backgroundCtx = backgroundCanvas.getContext('2d');
     this.traceCtx = traceCanvas.getContext('2d');
 
+    let overlayCanvas = null;
+    let config = maybeConfig;
+
+    if (overlayCanvasOrConfig && typeof overlayCanvasOrConfig.getContext === 'function') {
+      overlayCanvas = overlayCanvasOrConfig;
+    } else {
+      config = overlayCanvasOrConfig || maybeConfig || {};
+    }
+
+    if (!config) config = {};
+
+    this.overlayCanvas = overlayCanvas || null;
+    this.overlayCtx = this.overlayCanvas ? this.overlayCanvas.getContext('2d') : null;
+    this.scrollContainer = this.overlayCanvas ? this.overlayCanvas.parentElement : null;
+
     this.pixelPerMm = PX_PER_MM_Y;
+    this.viewScale = 1.5;
     this.sampleIntervalMs = 6;
 
     this.config = {
-      displayTime: config.displayTime || 5,
+      displayTime: config.displayTime || 10,
       heartRate: config.heartRate || 75,
-      speed: config.speed || 25, // 25 or 50 mm/s
+      speed: config.speed || 25, // fixed at 25 mm/s
       autoplay: config.autoplay !== undefined ? config.autoplay : true
     };
 
     this.highlights = { P: false, QRS: false, T: false };
+    this.intervalHighlights = { PR: false, QRSd: false, QT: false };
+    const globalIntervalDebug =
+      typeof window !== 'undefined' ? window.__ECG_INTERVAL_DEBUG : false;
+    this.intervalDebug = globalIntervalDebug === true || globalIntervalDebug === 'true';
+    this._intervalDebugTimestamps = {};
     this.isPlaying = false;
     this.simulatedTimeMs = 0;
     this.lastFrameTime = 0;
@@ -55,6 +76,8 @@ class EcgSimulator {
     this.beatSchedule = [];
     this.atrialSchedule = [];
     this.rhythmDurationMs = 8000;
+    this._rhythmRrMs = 60000 / this.config.heartRate;
+    this._vtachConfig = null;
     this.waveAmpsPx = {
       p: AMP_P_PX,
       q: -AMP_QRS_PX * 0.25,
@@ -107,22 +130,59 @@ class EcgSimulator {
 
   setRhythm(rhythm) {
     this.currentRhythm = rhythm;
+    if (rhythm === 'mvtach' || rhythm === 'pvtach') {
+      this.config.heartRate = Math.max(this.config.heartRate, 150);
+    }
     this.regenerateRhythm();
     this.sweepStartTime = this.simulatedTimeMs;
   }
 
-  setDisplayTime(seconds) {
-    this.config.displayTime = Math.max(1, seconds);
+  setDisplayTime(/*seconds*/) {
+    // Locked to 10 seconds for the standard print strip
+    if (this.config.displayTime === 10) return;
+    this.config.displayTime = 10;
     this.sweepStartTime = this.simulatedTimeMs;
   }
 
   setSpeed(mmPerSecond) {
-    this.config.speed = mmPerSecond === 50 ? 50 : 25;
+    if (this.config.speed === 25) return;
+    // Locked at 25 mm/s
+    this.config.speed = 25;
     this.sweepStartTime = this.simulatedTimeMs;
   }
 
   setHighlights(highlightConfig) {
     this.highlights = { ...this.highlights, ...highlightConfig };
+  }
+
+  setOverlayCanvas(canvas) {
+    this.overlayCanvas = canvas || null;
+    this.overlayCtx = this.overlayCanvas ? this.overlayCanvas.getContext('2d') : null;
+    this.scrollContainer = this.overlayCanvas ? this.overlayCanvas.parentElement : null;
+    this.handleResize();
+  }
+
+  setIntervalHighlights(cfg) {
+    this.intervalHighlights = { ...this.intervalHighlights, ...cfg };
+    this.intervalDebugImmediate('setIntervalHighlights', {
+      cfg,
+      highlights: this.intervalHighlights
+    });
+  }
+
+  intervalDebugImmediate(label, info) {
+    if (!this.intervalDebug) return;
+    console.log('[EcgSimulator][IntervalDebug]', label, info);
+  }
+
+  intervalDebugLog(label, info) {
+    if (!this.intervalDebug) return;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const last = this._intervalDebugTimestamps[label] || 0;
+    const threshold = 500;
+    if (now - last < threshold) return;
+    this._intervalDebugTimestamps[label] = now;
+    console.log('[EcgSimulator][IntervalDebug]', label, info);
   }
 
   play() {
@@ -283,16 +343,55 @@ class EcgSimulator {
     }
 
     for (const beat of this.beatSchedule) {
-      if (beat.hasQRS) {
-        consider('QRS', beat.rTime, beat.qrs);
-        if (beat.hasT !== false) {
-          const tCenter = beat.rTime + beat.qt * 0.6;
-          consider('T', tCenter, beat.qt * 0.25);
-        }
+      if (!beat.hasQRS) continue;
+
+      consider('QRS', beat.rTime, beat.qrs);
+
+      const qrsStart = beat.rTime - beat.qrs / 2;
+      const qrsEnd = beat.rTime + beat.qrs / 2;
+
+      const tDur = this.intervals.tWaveDurationMs;
+      const minST = 60;
+
+      const tEnd = qrsStart + beat.qt;
+      const tStart = Math.max(qrsEnd + minST, tEnd - tDur);
+
+      const tCenter = (tStart + tEnd) / 2;
+      const tWindow = Math.max(80, tEnd - tStart);
+
+      if (beat.hasT !== false) {
+        consider('T', tCenter, tWindow);
       }
     }
 
     return closest.type;
+  }
+
+  fract(x) {
+    return x - Math.floor(x);
+  }
+
+  clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  lobe(phase, skew) {
+    const p = this.fract(phase);
+    const rise = this.clamp(skew, 0.05, 0.95);
+    if (p < rise) {
+      const u = p / rise;
+      return 0.5 - 0.5 * Math.cos(Math.PI * u);
+    }
+    const fall = 1 - rise;
+    const u = fall > 0 ? (p - rise) / fall : 1;
+    return 0.5 + 0.5 * Math.cos(Math.PI * Math.min(u, 1));
+  }
+
+  gauss(phase, mu, sigma) {
+    const delta = phase - mu;
+    const wrapped = delta - Math.round(delta);
+    const width = sigma || 0.001;
+    return Math.exp(-0.5 * Math.pow(wrapped / width, 2));
   }
 
   // ---------------------------
@@ -338,19 +437,27 @@ class EcgSimulator {
   drawTrace() {
     const ctx = this.traceCtx;
     const canvas = this.traceCanvas;
-    const w = canvas.width;
-    const h = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    const w = (canvas.width || this.renderWidth || canvas.clientWidth || 0) / dpr;
+    const h = (canvas.height || this.renderHeight || canvas.clientHeight || 0) / dpr;
     ctx.clearRect(0, 0, w, h);
 
-    const midY = h * 0.5;
-    // Shift trace upward to visually center within padded container
-    const verticalOffset = -60; // tweak between -55 and -70 if needed
+    const SCALE = this.viewScale || 1;
+    const logicalWidth = w / SCALE;
+    const logicalHeight = h / SCALE;
 
-    // Real-time mapping: ms per pixel based on true paper speed
-    const msPerPixel = 1000 / (this.config.speed * this.pixelPerMm); // e.g., 25 mm/s => 150 px per second
+    const OVERLAY_BAND_H = 96;
+    const INTERVAL_OVERLAY_SHIFT_Y = 24; // pixels (tunable)
+    const OVERLAY_TOP_PAD = 45;
+    const plotHeight = Math.max(60, logicalHeight - OVERLAY_BAND_H - OVERLAY_TOP_PAD);
+    const overlayTopY = plotHeight + OVERLAY_TOP_PAD;
+    const midY = plotHeight * 0.5;
+    const verticalOffset = 90;
+
+    const pxPerMmEffective = this.pixelPerMm * SCALE;
+    const msPerPixel = 1000 / (this.config.speed * pxPerMmEffective);
     const windowMs = w * msPerPixel;
 
-    // If we've completed a sweep, start over from the left
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
     if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
       this.sweepStartTime = this.simulatedTimeMs;
@@ -358,21 +465,24 @@ class EcgSimulator {
     }
 
     const sweepProgress = Math.min(elapsedInSweep / windowMs, 1);
-    const xMax = Math.max(1, Math.floor(sweepProgress * (w - 1)));
+    const sweepRange = Math.max(1, logicalWidth - 1);
+    const xMax = Math.max(1, Math.floor(sweepProgress * sweepRange));
 
-    // Sample first point at left edge
     const mV0 = this.getVoltageAtTimeMs(this.sweepStartTime);
     let prevX = 0;
     let prevY = midY + verticalOffset - mV0;
     let prevType = this.waveTypeAtTime(this.sweepStartTime);
 
+    ctx.save();
+    ctx.scale(SCALE, SCALE);
+
     ctx.beginPath();
     ctx.strokeStyle = this.colorForWave(prevType);
     ctx.moveTo(prevX, prevY);
 
-    // Draw ONLY up to the sweep head (xMax)
     for (let x = 1; x <= xMax; x++) {
-      const tMs = this.sweepStartTime + x * msPerPixel;
+      const physicalX = x * SCALE;
+      const tMs = this.sweepStartTime + physicalX * msPerPixel;
       const mV = this.getVoltageAtTimeMs(tMs);
       const y = midY + verticalOffset - mV;
       const type = this.waveTypeAtTime(tMs);
@@ -380,7 +490,6 @@ class EcgSimulator {
       if (type !== prevType) {
         ctx.lineTo(x, y);
         ctx.stroke();
-
         ctx.beginPath();
         ctx.strokeStyle = this.colorForWave(type);
         ctx.moveTo(x, y);
@@ -395,15 +504,44 @@ class EcgSimulator {
 
     ctx.stroke();
 
-    // Sweep marker at the front
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, overlayTopY + 0.5);
+    ctx.lineTo(logicalWidth, overlayTopY + 0.5);
+    ctx.stroke();
+    ctx.restore();
+
     ctx.save();
     ctx.strokeStyle = '#16a34a';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(xMax + 0.5, 0);
-    ctx.lineTo(xMax + 0.5, h);
+    ctx.lineTo(xMax + 0.5, logicalHeight);
     ctx.stroke();
     ctx.restore();
+
+    const tWindowStart = this.sweepStartTime;
+    const tWindowEnd = this.sweepStartTime + (xMax * msPerPixel * SCALE);
+
+    this.drawIntervalOverlays(ctx, {
+      tWindowStart,
+      tWindowEnd,
+      xMax,
+      msPerPixel,
+      SCALE,
+      overlayTopY,
+      overlayBandH: OVERLAY_BAND_H,
+      overlayShiftY: INTERVAL_OVERLAY_SHIFT_Y,
+      midY,
+      verticalOffset,
+      plotTopY: 0,
+      plotBottomY: overlayTopY
+    });
+
+    ctx.restore();
+    this.drawReadoutOverlay();
   }
 
   // ---------------------------
@@ -412,16 +550,19 @@ class EcgSimulator {
 
   handleResize() {
     const dpr = window.devicePixelRatio || 1;
-    const width = this.traceCanvas.clientWidth;
-    const height = this.traceCanvas.clientHeight;
-    this.renderWidth = width;
+    const height = this.traceCanvas.clientHeight || this.traceCanvas.offsetHeight || 300;
+    const REQUIRED_MM = 250;
+    const SCALE = this.viewScale || 1;
+    const requiredCssWidthPx = Math.round(REQUIRED_MM * this.pixelPerMm * SCALE);
+    this.renderWidth = requiredCssWidthPx;
     this.renderHeight = height;
 
-    [this.backgroundCanvas, this.traceCanvas].forEach((canvas) => {
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
+    [this.backgroundCanvas, this.traceCanvas, this.overlayCanvas].forEach((canvas) => {
+      if (!canvas) return;
+      canvas.style.width = `${requiredCssWidthPx}px`;
+      canvas.width = Math.floor(requiredCssWidthPx * dpr);
       canvas.style.height = `${height}px`;
+      canvas.height = Math.floor(height * dpr);
       const ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     });
@@ -433,44 +574,382 @@ class EcgSimulator {
   drawGrid() {
     const ctx = this.backgroundCtx;
     const canvas = this.backgroundCanvas;
-    const w = canvas.width;
-    const h = canvas.height;
-
+    const dpr = window.devicePixelRatio || 1;
+    const w = (canvas.width || this.renderWidth || canvas.clientWidth || 0) / dpr;
+    const h = (canvas.height || this.renderHeight || canvas.clientHeight || 0) / dpr;
     ctx.clearRect(0, 0, w, h);
 
+    const SCALE = this.viewScale || 1;
+    const logicalWidth = w / SCALE;
+    const logicalHeight = h / SCALE;
     const px = this.pixelPerMm;
     const big = px * 5;
-    const dpr = window.devicePixelRatio || 1;
+
+    ctx.save();
+    ctx.scale(SCALE, SCALE);
 
     // ---------- Small grid (1 mm) ----------
     ctx.strokeStyle = 'rgba(255, 180, 180, 0.25)';
-    ctx.lineWidth = 0.7 * dpr;
+    ctx.lineWidth = 0.7;
 
     ctx.beginPath();
-    for (let x = 0; x < w; x += px) {
+    for (let x = 0; x < logicalWidth; x += px) {
       ctx.moveTo(x + 0.5, 0);
-      ctx.lineTo(x + 0.5, h);
+      ctx.lineTo(x + 0.5, logicalHeight);
     }
-    for (let y = 0; y < h; y += px) {
+    for (let y = 0; y < logicalHeight; y += px) {
       ctx.moveTo(0, y + 0.5);
-      ctx.lineTo(w, y + 0.5);
+      ctx.lineTo(logicalWidth, y + 0.5);
     }
     ctx.stroke();
 
     // ---------- Large grid (5 mm) ----------
     ctx.strokeStyle = 'rgba(255, 120, 120, 0.45)';  // subtle large boxes
-    ctx.lineWidth = 1.2 * dpr;
+    ctx.lineWidth = 1.2;
 
     ctx.beginPath();
-    for (let x = 0; x < w; x += big) {
+    for (let x = 0; x < logicalWidth; x += big) {
       ctx.moveTo(x + 0.5, 0);
-      ctx.lineTo(x + 0.5, h);
+      ctx.lineTo(x + 0.5, logicalHeight);
     }
-    for (let y = 0; y < h; y += big) {
+    for (let y = 0; y < logicalHeight; y += big) {
       ctx.moveTo(0, y + 0.5);
-      ctx.lineTo(w, y + 0.5);
+      ctx.lineTo(logicalWidth, y + 0.5);
     }
     ctx.stroke();
+
+    ctx.restore();
+  }
+
+  drawIntervalOverlays(ctx, {
+    tWindowStart,
+    tWindowEnd,
+    xMax,
+    msPerPixel,
+    SCALE,
+    overlayTopY,
+    overlayBandH,
+    overlayShiftY = 0,
+    midY,
+    verticalOffset,
+    plotTopY = 0,
+    plotBottomY
+  }) {
+    const on = this.intervalHighlights;
+    if (!on.PR && !on.QRSd && !on.QT) {
+      this.intervalDebugLog('intervalOverlaySkip', { reason: 'highlights-off', highlights: on });
+      return;
+    }
+    if (this.currentRhythm === 'pvtach') {
+      this.intervalDebugLog('intervalOverlaySkip', {
+        reason: 'excluded rhythm',
+        currentRhythm: this.currentRhythm
+      });
+      return;
+    }
+    if (!this.beatSchedule || !this.beatSchedule.length) {
+      this.intervalDebugLog('intervalOverlaySkip', { reason: 'no beats scheduled' });
+      return;
+    }
+
+    const duration = this.rhythmDurationMs || 8000;
+    if (!duration || !msPerPixel || xMax <= 0) {
+      this.intervalDebugLog('intervalOverlaySkip', {
+        reason: 'invalid geometry',
+        duration,
+        msPerPixel,
+        xMax
+      });
+      return;
+    }
+
+    const tToX = (tMs) => (tMs - tWindowStart) / (msPerPixel * SCALE);
+
+    const padTop = 14;
+    const padBottom = 10;
+    const usableH = Math.max(40, overlayBandH - padTop - padBottom);
+    const laneGap = Math.floor(usableH / 3);
+
+    const shiftedTop = overlayTopY + overlayShiftY;
+    const lanes = {
+      PR: shiftedTop + padTop + laneGap * 0.3,
+      QRSd: shiftedTop + padTop + laneGap * 1.3,
+      QT: shiftedTop + padTop + laneGap * 2.3
+    };
+
+    const style = {
+      PR: { stroke: '#2563eb', fill: 'rgba(37,99,235,0.10)', label: (ms) => `PR ${ms} ms` },
+      QRSd: { stroke: '#d33f49', fill: 'rgba(211,63,73,0.10)', label: (ms) => `QRS ${ms} ms` },
+      QT: { stroke: '#2f855a', fill: 'rgba(47,133,90,0.10)', label: (ms) => `QT ${ms} ms` }
+    };
+
+    const BRACKET_H = 10;
+    const TEXT_PAD = 4;
+
+    const GUIDE_STYLE = {
+      PR: 'rgba(37,99,235,0.18)',
+      QRSd: 'rgba(211,63,73,0.18)',
+      QT: 'rgba(47,133,90,0.18)'
+    };
+    const guideLineWidth = 1;
+    const guideDash = [4, 4];
+
+    const yWaveAt = (tMs) => {
+      if (typeof midY !== 'number') return plotTopY + 2;
+      const v = this.getVoltageAtTimeMs(tMs);
+      const y = midY + (verticalOffset || 0) - v;
+      const bottomLimit = (typeof plotBottomY === 'number' ? plotBottomY : overlayTopY) - 2;
+      return Math.max((plotTopY || 0) + 2, Math.min(bottomLimit, y));
+    };
+
+    const drawGuidesToWave = (key, tStartRaw, tEndRaw, x1, x2, yBracketTop) => {
+      ctx.save();
+      ctx.strokeStyle = GUIDE_STYLE[key] || 'rgba(15,23,42,0.18)';
+      ctx.lineWidth = guideLineWidth;
+      ctx.setLineDash(guideDash);
+
+      const y1 = yWaveAt(tStartRaw);
+      ctx.beginPath();
+      ctx.moveTo(x1 + 0.5, yBracketTop);
+      ctx.lineTo(x1 + 0.5, y1);
+      ctx.stroke();
+
+      const y2 = yWaveAt(tEndRaw);
+      ctx.beginPath();
+      ctx.moveTo(x2 + 0.5, yBracketTop);
+      ctx.lineTo(x2 + 0.5, y2);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.fillStyle = GUIDE_STYLE[key] || 'rgba(15,23,42,0.25)';
+      ctx.beginPath();
+      ctx.arc(x1 + 0.5, y1, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x2 + 0.5, y2, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    };
+
+    let prDrawn = 0;
+    let qrsDrawn = 0;
+    let qtDrawn = 0;
+    const drawBracket = (key, tStart, tEnd, labelMs) => {
+      const x1 = tToX(tStart);
+      const x2 = tToX(tEnd);
+      if (x2 < 0 || x1 > xMax) return;
+      const xx1 = Math.max(0, Math.min(xMax, x1));
+      const xx2 = Math.max(0, Math.min(xMax, x2));
+      if (xx2 - xx1 <= 1) return;
+
+      const y = lanes[key];
+
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = style[key].stroke;
+      ctx.fillStyle = style[key].fill;
+
+      ctx.beginPath();
+      ctx.rect(xx1, y - BRACKET_H, xx2 - xx1, BRACKET_H);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = '12px Arial';
+      ctx.fillStyle = style[key].stroke;
+      ctx.fillText(style[key].label(labelMs), xx1, y - BRACKET_H - TEXT_PAD);
+
+      ctx.restore();
+
+      if ((xx2 - xx1) > 1) {
+        drawGuidesToWave(key, tStart, tEnd, xx1, xx2, y - BRACKET_H);
+      }
+    };
+
+    const prAllowedForBeat = (beat) => {
+      if (this.currentRhythm === 'afib' || this.currentRhythm === 'avb3') return false;
+      return beat.hasP !== false && beat.hasQRS !== false && beat.pr > 0;
+    };
+    const qrsAllowedForBeat = (beat) => beat.hasQRS !== false && beat.qrs > 0;
+    const qtAllowedForBeat = (beat) => beat.hasQRS !== false && beat.qt > 0;
+
+    for (const beat of this.beatSchedule) {
+      const t0 = beat.rTime;
+      const kStart = Math.floor((tWindowStart - t0) / duration) - 1;
+      const kEnd = Math.floor((tWindowEnd - t0) / duration) + 1;
+
+      for (let k = kStart; k <= kEnd; k++) {
+        const rOcc = t0 + k * duration;
+        const qrsStart = rOcc - beat.qrs / 2;
+        const qrsEnd = qrsStart + beat.qrs;
+        const prStart = qrsStart - beat.pr;
+        const qtStart = qrsStart;
+        const qtEnd = qrsStart + beat.qt;
+
+        if (on.PR && prAllowedForBeat(beat)) {
+          drawBracket('PR', prStart, qrsStart, Math.round(beat.pr));
+          prDrawn++;
+        }
+        if (on.QRSd && qrsAllowedForBeat(beat)) {
+          drawBracket('QRSd', qrsStart, qrsEnd, Math.round(beat.qrs));
+          qrsDrawn++;
+        }
+        if (on.QT && qtAllowedForBeat(beat)) {
+          drawBracket('QT', qtStart, qtEnd, Math.round(beat.qt));
+          qtDrawn++;
+        }
+      }
+    }
+    if (this.intervalDebug) {
+      this.intervalDebugLog('intervalOverlayStats', {
+        highlights: on,
+        counts: { PR: prDrawn, QRSd: qrsDrawn, QT: qtDrawn },
+        window: [tWindowStart, tWindowEnd]
+      });
+      if (on.PR && prDrawn === 0) {
+        this.intervalDebugImmediate('intervalOverlayWarning', {
+          type: 'PR',
+          reason: 'no PR brackets rendered',
+          beats: this.beatSchedule.length
+        });
+      }
+    }
+  }
+
+  getReadoutSummary() {
+    const beats = this.beatSchedule || [];
+    const hrBpm = Math.round(this.config.heartRate || 0);
+    const allowPR =
+      this.currentRhythm !== 'afib' &&
+      this.currentRhythm !== 'avb3' &&
+      this.currentRhythm !== 'mvtach' &&
+      this.currentRhythm !== 'pvtach';
+    const isAfib =
+      this.currentRhythm === 'afib' || this.currentRhythm === 'atrial_fibrillation';
+
+    const conductionBeats = beats.filter((beat) => beat && beat.hasQRS !== false);
+
+    const collectValues = (selector, filterFn = () => true) =>
+      conductionBeats.filter((beat) => filterFn(beat)).map((beat) => selector(beat)).filter((v) => typeof v === 'number' && v > 0);
+
+    const formatRange = (label, values, fallbackValue, allow = true) => {
+      if (!allow) return `${label} ——`;
+      if (values.length) {
+        const min = Math.round(Math.min(...values));
+        const max = Math.round(Math.max(...values));
+        return min === max ? `${label} ${min} ms` : `${label} ${min}–${max} ms`;
+      }
+      if (fallbackValue) {
+        const rounded = Math.round(fallbackValue);
+        return `${label} ${rounded} ms`;
+      }
+      return `${label} ——`;
+    };
+
+    const prValues = allowPR ? collectValues((beat) => beat.pr, (beat) => beat.hasP !== false && beat.pr > 0) : [];
+    const qrsValues = collectValues((beat) => beat.qrs);
+    const qtValues = collectValues((beat) => beat.qt);
+
+    const prText = isAfib ? 'PR —' : formatRange('PR', prValues, null, allowPR);
+    const qrsText = formatRange('QRS', qrsValues, this.intervals.qrsDurationMs);
+    const qtText = formatRange('QT', qtValues, this.intervals.qtIntervalMs);
+
+    if (
+      this.intervalDebug &&
+      (this.intervalHighlights.PR || this.intervalHighlights.QRSd || this.intervalHighlights.QT)
+    ) {
+      this.intervalDebugLog('readoutSummary', {
+        highlights: this.intervalHighlights,
+        prValues,
+        qrsValues,
+        qtValues
+      });
+    }
+
+    return {
+      hrText: `HR ${hrBpm} bpm`,
+      prText,
+      qrsText,
+      qtText
+    };
+  }
+
+  drawReadoutOverlay() {
+    if (!this.overlayCtx || !this.overlayCanvas) return;
+
+    const ctx = this.overlayCtx;
+    const w = this.renderWidth || this.overlayCanvas.clientWidth || 0;
+    const h = this.renderHeight || this.overlayCanvas.clientHeight || 0;
+    if (!w || !h) return;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const summary = this.getReadoutSummary();
+    const lines = [summary.hrText, summary.prText, summary.qrsText, summary.qtText];
+
+    const sc = this.scrollContainer || this.overlayCanvas.parentElement;
+    const scrollLeft = sc ? sc.scrollLeft : 0;
+    const viewW = sc ? sc.clientWidth : w;
+    if (
+      this.intervalDebug &&
+      (this.intervalHighlights.PR || this.intervalHighlights.QRSd || this.intervalHighlights.QT)
+    ) {
+      this.intervalDebugLog('drawReadoutOverlay', {
+        highlights: this.intervalHighlights,
+        scrollLeft,
+        viewW,
+        lines
+      });
+    }
+
+    const SCALE = this.viewScale || 1;
+    const fontSize = Math.max(10, Math.round(12 * SCALE));
+    ctx.font = `${fontSize}px "SFMono-Regular", Consolas, "Liberation Mono", monospace`;
+    ctx.textBaseline = 'top';
+
+    const lineHeight = fontSize + 2;
+    const padding = 10;
+
+    let maxWidth = 0;
+    for (const line of lines) {
+      maxWidth = Math.max(maxWidth, ctx.measureText(line).width);
+    }
+
+    const boxWidth = maxWidth + padding * 2;
+    const boxHeight = lines.length * lineHeight + padding * 2;
+    const margin = 12;
+
+    const x = Math.max(margin, scrollLeft + viewW - boxWidth - margin);
+    const y = margin;
+
+    const radius = 8;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    this.roundedRectPath(ctx, x, y, boxWidth, boxHeight, radius);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = '#0f172a';
+    for (let i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], x + padding, y + padding + i * lineHeight);
+    }
+  }
+
+  roundedRectPath(ctx, x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
   }
 
   colorForWave(waveType) {
@@ -488,8 +967,47 @@ class EcgSimulator {
     this.beatSchedule = [];
     this.atrialSchedule = [];
 
-    const durationMs = 8000;
+    const durationMs = (this.config.displayTime || 10) * 1000;
+    const isAfib =
+      this.currentRhythm === 'afib' || this.currentRhythm === 'atrial_fibrillation';
+
+    if (isAfib) {
+      this.initAfibNoise();
+      const meanRr = 60000 / this.config.heartRate;
+      let t = 0;
+      const randn = () => {
+        let u = 0;
+        let v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      };
+
+      while (t < durationMs) {
+        const rr = Math.max(350, Math.min(1800, meanRr * Math.exp(0.25 * randn())));
+        const qrs = this.intervals.qrsDurationMs;
+        const qt = this.intervals.qtIntervalMs;
+
+        this.addBeat({
+          rTime: t + qrs / 2,
+          hasP: false,
+          hasQRS: true,
+          pr: 0,
+          qrs,
+          qt
+        });
+
+        t += rr;
+      }
+
+      this.rhythmDurationMs = durationMs;
+      this.drawTrace();
+      return;
+    }
+
     const baseRrMs = 60000 / this.config.heartRate;
+    this._rhythmRrMs = baseRrMs;
+    this._vtachConfig = null;
 
     switch (this.currentRhythm) {
       case 'avb1':
@@ -507,8 +1025,11 @@ class EcgSimulator {
       case 'afib':
         this.generateAFib(durationMs);
         break;
-      case 'vtach':
-        this.generateVTach(durationMs);
+      case 'mvtach':
+        this.generateSingleLeadVentricularTach(durationMs);
+        break;
+      case 'pvtach':
+        this.generatePVTach(durationMs);
         break;
       case 'sinus':
       default:
@@ -517,12 +1038,26 @@ class EcgSimulator {
     }
 
     const lastBeat = this.beatSchedule[this.beatSchedule.length - 1];
-    this.rhythmDurationMs = lastBeat ? Math.max(durationMs, lastBeat.rTime + baseRrMs) : durationMs;
+    const cycleRrMs = this._rhythmRrMs || baseRrMs;
+    this.rhythmDurationMs = Math.max(
+      durationMs,
+      lastBeat ? lastBeat.rTime + cycleRrMs : 0
+    );
     this.drawTrace();
   }
 
-  addBeat({ rTime, hasP = true, hasQRS = true, pr = this.intervals.prIntervalMs, qrs = this.intervals.qrsDurationMs, qt = this.intervals.qtIntervalMs }) {
-    this.beatSchedule.push({ rTime, hasP, hasQRS, pr, qrs, qt });
+  addBeat({
+    rTime,
+    hasP = true,
+    hasQRS = true,
+    hasT = true,
+    pr = this.intervals.prIntervalMs,
+    qrs = this.intervals.qrsDurationMs,
+    qt = this.intervals.qtIntervalMs,
+    qrsScale = 1,
+    polarity = 1
+  }) {
+    this.beatSchedule.push({ rTime, hasP, hasQRS, hasT, pr, qrs, qt, qrsScale, polarity });
   }
 
   generateSinusRhythm(durationMs, baseRrMs) {
@@ -610,14 +1145,23 @@ class EcgSimulator {
   }
 
   generateSecondDegreeMobitzII(durationMs, baseRrMs) {
-    const fixedPr = Math.max(this.intervals.prIntervalMs, 180);
+    /*
+     * Mobitz II (unambiguous): constant PR on conducted beats with intermittent dropped QRS.
+     * A strict 2:1 pattern is ambiguous ("cannot tell Mobitz I vs II"), so we avoid dropping
+     * every other beat by using ≥3:2 / 4:3 conduction with small randomness.
+     */
+    const fixedPr = Math.max(this.intervals.prIntervalMs, 80);
+    const qrsHalf = this.intervals.qrsDurationMs / 2;
     let t = 0;
     let beatIndex = 0;
+    let nextDropAt = 3; // start 4:3 (drop the 4th P)
 
     while (t < durationMs) {
-      const conducted = beatIndex % 2 === 0;
+      const dropped = beatIndex === nextDropAt;
+      const conducted = !dropped;
+
       this.addBeat({
-        rTime: t + fixedPr + this.intervals.qrsDurationMs / 2,
+        rTime: t + fixedPr + qrsHalf,
         hasP: true,
         hasQRS: conducted,
         hasT: conducted,
@@ -625,9 +1169,69 @@ class EcgSimulator {
         qrs: this.intervals.qrsDurationMs,
         qt: this.intervals.qtIntervalMs
       });
+
+      if (dropped) {
+        // Mostly 4:3, sometimes 3:2, rarely 5:4. Never 2:1.
+        const spacingBase = Math.random() < 0.7 ? 4 : 3;
+        const spacing = spacingBase + (Math.random() < 0.15 ? 1 : 0);
+        nextDropAt += Math.max(3, spacing);
+      }
+
       t += baseRrMs;
       beatIndex++;
     }
+
+    if (typeof this.logMobitz2SelfCheck === 'function') {
+      this.logMobitz2SelfCheck();
+    }
+  }
+
+  logMobitz2SelfCheck() {
+    if (this.currentRhythm !== 'avb2_mobitz2') return;
+    const beats = Array.isArray(this.beatSchedule) ? this.beatSchedule : [];
+    if (!beats.length) return;
+
+    const sample = beats.slice(0, 12).map((beat, i) => {
+      const conducted = beat.hasQRS !== false;
+      const pCenter = (beat.rTime || 0) - (beat.pr || 0) + 40;
+      const pShown = beat.hasP !== false;
+      return {
+        i,
+        pCenter: pShown ? Math.round(pCenter) : null,
+        hasP: pShown,
+        hasQRS: conducted,
+        hasT: beat.hasT !== false,
+        pr: conducted ? Math.round(beat.pr || 0) : null
+      };
+    });
+
+    const conductedPr = beats.filter((b) => b.hasQRS !== false).map((b) => Math.round(b.pr || 0));
+    const uniquePr = [...new Set(conductedPr)].filter((v) => v > 0);
+    const pattern = beats.slice(0, 12).map((b) => (b.hasQRS !== false ? 1 : 0));
+    const alt1 = pattern.every((v, i) => v === (i % 2 === 0 ? 1 : 0));
+    const alt2 = pattern.every((v, i) => v === (i % 2 === 0 ? 0 : 1));
+
+    const dropIdx = beats
+      .map((b, i) => (b.hasQRS === false ? i : -1))
+      .filter((i) => i >= 0);
+    const gaps = [];
+    for (let j = 1; j < dropIdx.length; j++) {
+      gaps.push(dropIdx[j] - dropIdx[j - 1] - 1);
+    }
+
+    console.groupCollapsed('[EcgSimulator][Mobitz II self-check]');
+    sample.forEach((row) => {
+      console.log(
+        `#${row.i} P=${row.hasP ? `@${row.pCenter}ms` : 'off'} QRS=${row.hasQRS ? 'on' : 'off'} T=${row.hasT ? 'on' : 'off'} ${row.hasQRS ? `PR=${row.pr}ms` : '(dropped)'}`
+      );
+    });
+    console.assert(uniquePr.length <= 1, '[Mobitz II] PR should be constant on conducted beats.', uniquePr);
+    console.assert(!(alt1 || alt2), '[Mobitz II] Pattern looks like strict 2:1 block; expected ≥3:2 / 4:3.', pattern);
+    if (gaps.length) {
+      const minGap = Math.min(...gaps);
+      console.assert(minGap >= 2, '[Mobitz II] Expected ≥2 conducted beats between drops most of the time.', gaps);
+    }
+    console.groupEnd();
   }
 
   generateThirdDegreeAVBlock(durationMs) {
@@ -685,12 +1289,30 @@ class EcgSimulator {
     }
   }
 
-  generateVTach(durationMs) {
+  generateMVTach(durationMs, options = {}) {
+    const { polymorphic = false } = options;
+    const minRate = 150;
+    const rate = Math.max(this.config.heartRate || minRate, minRate);
+    const rrMs = 60000 / rate;
+    const qrsMs = Math.max(this.intervals.qrsDurationMs, polymorphic ? 150 : 170);
+    const config = { rate, rrMs, qrsMs, polymorphic };
+
+    if (polymorphic) {
+      Object.assign(config, this._seedPolymorphicTorsadesParameters());
+    }
+
+    this._rhythmRrMs = rrMs;
+    this._vtachConfig = config;
     this.beatSchedule = [];
     this.atrialSchedule = [];
+  }
 
-    const vtRate = Math.max(this.config.heartRate, 160);
-    const rrMs = 60000 / vtRate;
+  // Mirror the 12-lead VT beat timing for single-lead mvtach so the waveform matches.
+  generateSingleLeadVentricularTach(durationMs) {
+    const rate = Math.max(this.config.heartRate, 170);
+    const rrMs = 60000 / rate;
+    const qrsWidth = 160;
+    const qtWidth = Math.max(this.intervals.qtIntervalMs, 440);
 
     let t = 0;
     while (t < durationMs) {
@@ -698,12 +1320,36 @@ class EcgSimulator {
         rTime: t,
         hasP: false,
         hasQRS: true,
+        hasT: true,
         pr: 0,
-        qrs: 160,
-        qt: 300
+        qrs: qrsWidth,
+        qt: qtWidth,
+        polarity: 1
       });
       t += rrMs;
     }
+  }
+
+  _seedPolymorphicTorsadesParameters() {
+    // Tuned to resemble classic torsades strips with distinct envelope and axis timing.
+    return {
+      envPeriodSec: 3.6 + Math.random() * (4.8 - 3.6),
+      envPhaseRad: Math.random() * Math.PI * 2,
+
+      axisPeriodSec: 4.2 + Math.random() * (6.2 - 4.2),
+      axisPhaseRad: Math.random() * Math.PI * 2,
+
+      fmDepth: 0.06 + Math.random() * (0.11 - 0.06),
+      fmPhaseRad: Math.random() * Math.PI * 2,
+
+      // Mild morphology drift (keeps it from looking perfectly repeated)
+      morphPhaseRad: Math.random() * Math.PI * 2,
+      morphRateHz: 0.10 + Math.random() * 0.10
+    };
+  }
+
+  generatePVTach(durationMs) {
+    return this.generateMVTach(durationMs, { polymorphic: true });
   }
 
   drawPWave(tMs, centerMs, widthMs) {
@@ -712,14 +1358,21 @@ class EcgSimulator {
     return this.waveAmpsPx.p * Math.exp(-0.5 * Math.pow(delta / (sigma || 1), 2));
   }
 
-  drawQRSComplex(tMs, rTime, qrsWidthMs) {
+  drawQRSComplex(tMs, rTime, qrsWidthMs, qrsScale = 1, polarity = 1) {
     const qCenter = rTime - qrsWidthMs * 0.25;
     const sCenter = rTime + qrsWidthMs * 0.25;
     const sigma = qrsWidthMs / 10;
 
-    const q = this.waveAmpsPx.q * Math.exp(-0.5 * Math.pow((tMs - qCenter) / (sigma || 1), 2));
-    const r = this.waveAmpsPx.r * Math.exp(-0.5 * Math.pow((tMs - rTime) / (sigma || 1), 2));
-    const s = this.waveAmpsPx.s * Math.exp(-0.5 * Math.pow((tMs - sCenter) / (sigma || 1), 2));
+    const scale = Math.max(0.1, qrsScale || 1);
+    const pol = polarity === -1 ? -1 : 1;
+
+    const qAmp = this.waveAmpsPx.q * scale * pol;
+    const rAmp = this.waveAmpsPx.r * scale * pol;
+    const sAmp = this.waveAmpsPx.s * scale * pol;
+
+    const q = qAmp * Math.exp(-0.5 * Math.pow((tMs - qCenter) / (sigma || 1), 2));
+    const r = rAmp * Math.exp(-0.5 * Math.pow((tMs - rTime) / (sigma || 1), 2));
+    const s = sAmp * Math.exp(-0.5 * Math.pow((tMs - sCenter) / (sigma || 1), 2));
 
     return q + r + s;
   }
@@ -730,10 +1383,95 @@ class EcgSimulator {
     return this.waveAmpsPx.t * Math.exp(-0.5 * Math.pow(delta / (sigma || 1), 2));
   }
 
+  initAfibNoise() {
+    // Create stable “f-wave” components for this rhythm run.
+    // AFib f-waves often ~4–9 Hz with irregular morphology.
+    const n = 8;
+    const comps = [];
+    for (let i = 0; i < n; i++) {
+      const freq = 4 + Math.random() * 6; // 4–10 Hz
+      const phase = Math.random() * Math.PI * 2; // random phase
+      const weight = 0.4 + Math.random() * 0.9; // amplitude weight
+      comps.push({ freq, phase, weight });
+    }
+    this._afibNoise = comps;
+    this._afibNoiseDriftPhase = Math.random() * Math.PI * 2;
+  }
+
+  afibBaseline(tMs) {
+    const comps = this._afibNoise;
+    if (!comps || !comps.length) return 0;
+
+    const timeSec = tMs / 1000;
+
+    // Target fibrillatory amplitude ~0.10–0.18 mV (visually obvious but not huge)
+    // Convert mV -> px using MV_TO_PX.
+    const baseAmpPx = 0.14 * MV_TO_PX;
+
+    // Slow amplitude modulation to avoid “machine-like” regularity
+    const drift =
+      0.75 + 0.25 * Math.sin(2 * Math.PI * 0.25 * timeSec + (this._afibNoiseDriftPhase || 0));
+
+    // Sum of sinusoids -> “noisy” f-wave
+    let s = 0;
+    let wsum = 0;
+    for (const c of comps) {
+      s += c.weight * Math.sin(2 * Math.PI * c.freq * timeSec + c.phase);
+      wsum += c.weight;
+    }
+    if (wsum > 0) s /= wsum;
+
+    // Add a small higher-frequency roughness component
+    const rough =
+      0.25 * Math.sin(2 * Math.PI * 16.0 * timeSec + 1.3) +
+      0.2 * Math.sin(2 * Math.PI * 22.0 * timeSec + 2.1);
+
+    return baseAmpPx * drift * (0.85 * s + 0.15 * rough);
+  }
+
+  afibQrsBlanking(timeMsFromR) {
+    if (!Number.isFinite(timeMsFromR)) return 1;
+    const x = Math.abs(timeMsFromR);
+    const sigma = 25; // tighter than before
+    return 1 - Math.exp(-0.5 * (x / sigma) * (x / sigma));
+  }
+
+  afibTBlanking(timeMsFromT) {
+    if (!Number.isFinite(timeMsFromT)) return 1;
+    const x = Math.abs(timeMsFromT);
+    const sigma = 70;
+    const dip = Math.exp(-0.5 * (x / sigma) * (x / sigma));
+    return 1 - 0.55 * dip;
+  }
+
   getVoltageAtTimeMs(tMs) {
+    if (this.currentRhythm === 'mvtach') {
+      const win = typeof window !== 'undefined' ? window : null;
+      const sim12 = win && win.ecg12SimInstance;
+      const leadValue =
+        sim12 && typeof sim12.getLeadValueAtTimeMs === 'function'
+          ? sim12.getLeadValueAtTimeMs(tMs, 'II')
+          : Number.NaN;
+      if (Number.isFinite(leadValue)) {
+        return leadValue;
+      }
+    }
+
+    if (this.currentRhythm === 'pvtach') {
+      const config = this._vtachConfig || {};
+      const maxBpm = 250;
+      const bpm = Math.min(maxBpm, config.rate || Math.max(this.config.heartRate, 160));
+      const t = tMs / 1000;
+      return this.torsadesVoltage(t, config, bpm);
+    }
+
     const duration = this.rhythmDurationMs || 8000;
     const time = ((tMs % duration) + duration) % duration;
     let y = 0;
+    let nearestDtFromR = Infinity;
+    let nearestDtFromT = Infinity;
+    const isAfib =
+      this.currentRhythm === 'afib' || this.currentRhythm === 'atrial_fibrillation';
 
     if (this.currentRhythm === 'avb3') {
       for (const p of this.atrialSchedule) {
@@ -741,7 +1479,7 @@ class EcgSimulator {
           y += this.drawPWave(time, p.pTime, p.width);
         }
       }
-    } else {
+    } else if (!isAfib) {
       for (const beat of this.beatSchedule) {
         if (!beat.hasP) continue;
         const pCenter = beat.rTime - beat.pr + 40;
@@ -752,22 +1490,117 @@ class EcgSimulator {
     }
 
     for (const beat of this.beatSchedule) {
-      if (beat.hasQRS && Math.abs(time - beat.rTime) <= beat.qrs * 2) {
-        y += this.drawQRSComplex(time, beat.rTime, beat.qrs);
-        if (beat.hasT !== false) {
-          const tCenter = beat.rTime + beat.qt * 0.6;
-          y += this.drawTWave(time, tCenter, beat.qt * 0.3);
-        }
+      if (!beat.hasQRS) continue;
+
+      const dt = time - beat.rTime;
+      if (Math.abs(dt) < Math.abs(nearestDtFromR)) nearestDtFromR = dt;
+
+      // ---- QRS (only draw when we're near it) ----
+      if (Math.abs(dt) <= beat.qrs * 2) {
+        y += this.drawQRSComplex(
+          time,
+          beat.rTime,
+          beat.qrs,
+          beat.qrsScale || 1,
+          beat.polarity || 1
+        );
+      }
+
+      // ---- T wave (independent window; QT is measured QRS start -> T end) ----
+      const qrsStart = beat.rTime - beat.qrs / 2;
+      const qrsEnd = beat.rTime + beat.qrs / 2;
+
+      const tDur = this.intervals.tWaveDurationMs;
+      const minST = 60;
+
+      const tEnd = qrsStart + beat.qt;
+      const tStart = Math.max(qrsEnd + minST, tEnd - tDur);
+
+      const tCenter = (tStart + tEnd) / 2;
+      const tWidth = Math.max(80, tEnd - tStart);
+      const dtT = time - tCenter;
+      if (Math.abs(dtT) < Math.abs(nearestDtFromT)) nearestDtFromT = dtT;
+
+      const allowT = beat.hasT !== false && beat.hasQRS !== false;
+      if (allowT && Math.abs(time - tCenter) <= tWidth * 2) {
+        y += this.drawTWave(time, tCenter, tWidth);
       }
     }
 
-    if (this.currentRhythm === 'afib') {
-      const fRate = 400;
-      const omega = (2 * Math.PI * fRate) / 60000;
-      y += AMP_P_PX * 0.4 * Math.sin(omega * time) + AMP_P_PX * 0.2 * (Math.random() - 0.5);
+    if (isAfib) {
+      const blankQRS = this.afibQrsBlanking(nearestDtFromR);
+      const blankT = this.afibTBlanking(nearestDtFromT);
+      y += this.afibBaseline(time) * blankQRS * blankT;
     }
 
     return y;
+  }
+
+  torsadesVoltage(tSeconds, config, bpm) {
+    const p = config || {};
+
+    // Clamp VT rate to a realistic torsades range
+    const vtBpm = Math.max(160, Math.min(240, bpm || 200));
+    const baseFreq = vtBpm / 60; // Hz
+
+    // ---- Helpers (local; no global changes) ----
+    const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+    const smoothstep = (a, b, x) => {
+      const t = clamp((x - a) / (b - a), 0, 1);
+      return t * t * (3 - 2 * t);
+    };
+
+    // Deterministic “soft noise” from time (no RNG state; stable across frames)
+    const hash01 = (x) => {
+      const s = Math.sin(x * 127.1 + 311.7) * 43758.5453123;
+      return s - Math.floor(s);
+    };
+
+    // ---- Frequency modulation (slight wobble) ----
+    const fmDepth = p.fmDepth ?? 0.09;
+    const fmPhase = p.fmPhaseRad ?? 0;
+    const fmRate = 0.28; // Hz (slow)
+    const fm = fmDepth * Math.sin(2 * Math.PI * fmRate * tSeconds + fmPhase);
+
+    // Integrate phase with a tiny extra drift so it’s not metronomic
+    const drift = 0.015 * Math.sin(2 * Math.PI * 0.11 * tSeconds + 1.1);
+    const phase = 2 * Math.PI * (baseFreq * tSeconds + fm + drift);
+
+    // ---- Polymorphic VT “carrier” morphology ----
+    const h1 = Math.sin(phase);
+    const h3 = 0.55 * Math.sin(3 * phase + 0.35);
+    const h5 = 0.20 * Math.sin(5 * phase + 0.85);
+
+    const morphRate = p.morphRateHz ?? 0.16;
+    const morphPhase = p.morphPhaseRad ?? 0;
+    const morphMix = 0.18 * Math.sin(2 * Math.PI * morphRate * tSeconds + morphPhase);
+
+    const raw = (1.0 + morphMix) * h1 + (1.0 - morphMix) * h3 + h5;
+    const clipped = Math.tanh(raw * 1.35);
+
+    // ---- Waxing/waning amplitude envelope (torsades “twist”) ----
+    const envPeriod = p.envPeriodSec ?? 4.2;
+    const envPhase = p.envPhaseRad ?? 0;
+
+    const envSin = 0.5 + 0.5 * Math.sin((2 * Math.PI * tSeconds) / envPeriod + envPhase);
+    const shaped = smoothstep(0.08, 0.92, envSin);
+    const envelope = 0.18 + 0.82 * Math.pow(shaped, 1.15);
+
+    const n = hash01(Math.floor(tSeconds * 12.0));
+    const envJitter = 1.0 + 0.06 * (n - 0.5);
+    const envFinal = envelope * envJitter;
+
+    // ---- Rotating axis term (smooth polarity drift / “twisting of points”) ----
+    const axisPeriod = p.axisPeriodSec ?? 5.3;
+    const axisPhase = p.axisPhaseRad ?? 0;
+
+    const axisBase = Math.sin((2 * Math.PI * tSeconds) / axisPeriod + axisPhase);
+    const axis = 0.20 + 0.80 * axisBase;
+
+    // ---- Final amplitude scaling (in px, using existing AMP_QRS_PX) ----
+    const A = AMP_QRS_PX * 1.15;
+
+    return -(A * envFinal) * clipped * axis;
   }
 }
 

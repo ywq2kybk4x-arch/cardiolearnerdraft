@@ -235,9 +235,9 @@ const RHYTHM_PRESETS = {
   mvtach: {
     id: 'mvtach',
     label: 'Monomorphic Ventricular Tachycardia',
-    defaultHR: 180,
-    hrClamp: { min: 150, max: 220 },
-    intervals: { prIntervalMs: 0, qrsDurationMs: 160, qtIntervalMs: 440 }
+    defaultHR: 210,
+    hrClamp: { min: 170, max: 240 },
+    intervals: { prIntervalMs: 0, qrsDurationMs: 190, qtIntervalMs: 460 }
   },
   pvtach: {
     id: 'pvtach',
@@ -344,6 +344,7 @@ class Ecg12Simulator {
     this.viewports = [];
     this._leadConfigChecked = false;
     this._sampleCache = new Map();
+    this._pvtachParams = this._seedPolymorphicTorsadesParameters();
 
     this.handleResize = this.handleResize.bind(this);
     this.tick = this.tick.bind(this);
@@ -1645,13 +1646,16 @@ class Ecg12Simulator {
         this.generateVentricularTachBeats(schedule, durationMs, { polymorphic: false });
         break;
       case 'pvtach':
-        console.warn('[Ecg12Simulator] Polymorphic VT is approximated for the 12-lead view.');
-        this.generateVentricularTachBeats(schedule, durationMs, { polymorphic: true });
+        console.warn('[Ecg12Simulator] Polymorphic VT placeholder: no waveform generated yet.');
         break;
       case 'sinus':
       default:
         this.generateSinusBeats(schedule, durationMs);
         break;
+    }
+    // If pvtach is intentionally empty, return an empty schedule (flat baseline).
+    if (id === 'pvtach') {
+      return schedule;
     }
     if (!schedule.length) {
       console.warn('[Ecg12Simulator] Rhythm schedule was empty; falling back to sinus.');
@@ -1888,6 +1892,80 @@ class Ecg12Simulator {
     }
   }
 
+  _seedPolymorphicTorsadesParameters() {
+    return {
+      envPeriodSec: 3.6 + Math.random() * (4.8 - 3.6),
+      envPhaseRad: Math.random() * Math.PI * 2,
+
+      axisPeriodSec: 4.2 + Math.random() * (6.2 - 4.2),
+      axisPhaseRad: Math.random() * Math.PI * 2,
+
+      fmDepth: 0.06 + Math.random() * (0.11 - 0.06),
+      fmPhaseRad: Math.random() * Math.PI * 2,
+
+      morphPhaseRad: Math.random() * Math.PI * 2,
+      morphRateHz: 0.10 + Math.random() * 0.10
+    };
+  }
+
+  torsadesVoltage(tSeconds, config, bpm) {
+    const p = config || {};
+    const vtBpm = Math.max(160, Math.min(240, bpm || 200));
+    const baseFreq = vtBpm / 60;
+
+    const clampLocal = (v, a, b) => Math.min(Math.max(v, a), b);
+    const smoothstepLocal = (a, b, x) => {
+      const t = clampLocal((x - a) / ((b - a) || 1), 0, 1);
+      return t * t * (3 - 2 * t);
+    };
+
+    const hash01 = (x) => {
+      const s = Math.sin(x * 127.1 + 311.7) * 43758.5453123;
+      return s - Math.floor(s);
+    };
+
+    const fmDepth = p.fmDepth ?? 0.09;
+    const fmPhase = p.fmPhaseRad ?? 0;
+    const fmRate = 0.28;
+    const fm = fmDepth * Math.sin(2 * Math.PI * fmRate * tSeconds + fmPhase);
+
+    const drift = 0.015 * Math.sin(2 * Math.PI * 0.11 * tSeconds + 1.1);
+    const tightness = 2;
+    const phase = 2 * Math.PI * (baseFreq * tightness * tSeconds + fm + drift);
+
+    const h1 = Math.sin(phase);
+    const h3 = 0.55 * Math.sin(3 * phase + 0.35);
+    const h5 = 0.20 * Math.sin(5 * phase + 0.85);
+
+    const morphRate = p.morphRateHz ?? 0.16;
+    const morphPhase = p.morphPhaseRad ?? 0;
+    const morphMix = 0.08 * Math.sin(2 * Math.PI * morphRate * tSeconds + morphPhase);
+
+    const raw = (1.0 + morphMix) * h1 + (1.0 - morphMix) * h3 + h5;
+    const clipped = Math.tanh(raw * 1.35);
+    const smoothCarrier = Math.sin(phase + 0.25);
+    const smoothCarrier2 = Math.sin(phase + 0.65);
+    const smoothWave = 0.55 * clipped + 0.25 * smoothCarrier + 0.20 * smoothCarrier2;
+
+    const envPeriod = p.envPeriodSec ?? 4.2;
+    const envPhase = p.envPhaseRad ?? 0;
+    const envSin = 0.5 + 0.5 * Math.sin((2 * Math.PI * tSeconds) / envPeriod + envPhase);
+    const shaped = smoothstepLocal(0.08, 0.92, envSin);
+    const envelope = 0.18 + 0.82 * Math.pow(shaped, 1.15);
+
+    const n = hash01(Math.floor(tSeconds * 12.0));
+    const envJitter = 1.0 + 0.03 * (n - 0.5);
+    const envFinal = envelope * envJitter;
+
+    const axisPeriod = p.axisPeriodSec ?? 5.3;
+    const axisPhase = p.axisPhaseRad ?? 0;
+    const axisBase = Math.sin((2 * Math.PI * tSeconds) / axisPeriod + axisPhase);
+    const axis = 0.20 + 0.80 * axisBase;
+
+    const A = AMP_PX.R * 1.15;
+    return -(A * envFinal) * smoothWave * axis;
+  }
+
   getLeadVoltageAtTimeMs(tMs, leadId) {
     return this.getLeadValueAtTimeMs(tMs, leadId);
   }
@@ -1965,6 +2043,9 @@ class Ecg12Simulator {
 
   resetRandomness(extraSalt = 0) {
     this.initRhythmSeed(extraSalt);
+    if (this.currentRhythm === 'pvtach') {
+      this._pvtachParams = this._seedPolymorphicTorsadesParameters();
+    }
   }
 
   randomizeAfibPhases() {
@@ -2118,6 +2199,25 @@ class Ecg12Simulator {
   sampleWaveComponentsAtTime(tMs, leadKey = 'BASE') {
     const duration = this.rhythmDurationMs || 8000;
     const time = ((tMs % duration) + duration) % duration;
+    if (this.currentRhythm === 'pvtach') {
+      const params = this._pvtachParams || this._seedPolymorphicTorsadesParameters();
+      const bpm = this.config.heartRate || 210;
+      const total = this.torsadesVoltage(tMs / 1000, params, bpm);
+      const qrsParts = {
+        q: 0.22 * total,
+        r: 0.56 * total,
+        s: 0.22 * total
+      };
+      return {
+        total,
+        ST: 0,
+        baseline: 0,
+        P: 0,
+        QRS: total,
+        T: 0,
+        qrsParts
+      };
+    }
     let p = 0;
     let qrs = 0;
     let tWave = 0;
