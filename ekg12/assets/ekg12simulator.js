@@ -83,32 +83,6 @@ const BASE_INTERVALS = {
   tWaveDurationMs: 180
 };
 
-const RHYTHM_INTERVAL_EXPECTATIONS_12 = {
-  sinus: { constantRR: true, constantPR: true, constantQRS: true, toleranceMs: 5 },
-  avb1: { constantRR: true, constantPR: true, constantQRS: true, toleranceMs: 7 },
-  avb2_mobitz1: { constantRR: true, constantPR: false, constantQRS: true, toleranceMs: 12 },
-  avb2_mobitz2: { constantRR: false, constantPR: true, constantQRS: true, toleranceMs: 6 },
-  avb3: { constantRR: true, constantPR: false, constantQRS: true, toleranceMs: 10 },
-  afib: { constantRR: false, constantPR: false, constantQRS: false },
-  stemi_inferior: { constantRR: true, constantPR: true, constantQRS: true, toleranceMs: 6 },
-  stemi_anterior: { constantRR: true, constantPR: true, constantQRS: true, toleranceMs: 6 },
-  stemi_lateral: { constantRR: true, constantPR: true, constantQRS: true, toleranceMs: 6 },
-  mvtach: { constantRR: true, constantPR: false, constantQRS: true, toleranceMs: 5 },
-  pvtach: { constantRR: false, constantPR: false, constantQRS: false }
-};
-
-const computeAverage12 = (values = []) => {
-  if (!values.length) return 0;
-  return values.reduce((sum, v) => sum + v, 0) / values.length;
-};
-
-const computeRange12 = (values = []) => {
-  if (!values.length) return null;
-  return { min: Math.min(...values), max: Math.max(...values) };
-};
-
-const formatRhythmLabel12 = (id) => (id ? id.replace(/_/g, ' ') : 'rhythm');
-
 const AFIB_T_SCALE = 0.22; // 0.15–0.35 is a good tuning range
 const STEMI_CONFIG = { stMv: 0.25 };
 const STEMI_IDS = ['stemi_inferior', 'stemi_anterior', 'stemi_lateral'];
@@ -332,7 +306,6 @@ class Ecg12Simulator {
       typeof window !== 'undefined' ? window.__ECG_INTERVAL_DEBUG : false;
     this.intervalDebug = globalIntervalDebug === true || globalIntervalDebug === 'true';
     this._intervalDebugTimestamps = {};
-    this.intervalViolationMessage = null;
     this.measureToolEnabled = false;
     this.measurements = [];
     this.pendingMeasure = null;
@@ -1467,9 +1440,6 @@ class Ecg12Simulator {
     const iv = this.getIntervalReadout();
     const prLine = iv.prMs == null ? 'PR —' : `PR ${iv.prMs} ms`;
     const lines = [summary.hrText, summary.axisText, prLine, `QRS ${iv.qrsMs} ms`, `QT ${iv.qtMs} ms`];
-    if (this.intervalViolationMessage) {
-      lines.push(`⚠ ${this.intervalViolationMessage}`);
-    }
     const sc = this.scrollContainer || this.overlayCanvas.parentElement;
     const scrollLeft = sc ? sc.scrollLeft : 0;
     const viewW = sc ? sc.clientWidth : w;
@@ -1698,89 +1668,7 @@ class Ecg12Simulator {
         beat.pr = 0;
       });
     }
-    this.enforceScheduleIntervalExpectations(schedule, id);
     return schedule;
-  }
-
-  getIntervalExpectationForId(rhythmId) {
-    return RHYTHM_INTERVAL_EXPECTATIONS_12[rhythmId] || null;
-  }
-
-  enforceScheduleIntervalExpectations(schedule, rhythmId) {
-    const expectation = this.getIntervalExpectationForId(rhythmId);
-    this.intervalViolationMessage = null;
-    if (!expectation) return;
-
-    const tolerance = expectation.toleranceMs || 5;
-    const beats = Array.isArray(schedule) ? schedule : [];
-    const conductionBeats = beats.filter((beat) => beat && beat.hasQRS !== false);
-    if (!conductionBeats.length) return;
-
-    const violationParts = [];
-
-    if (expectation.constantPR) {
-      const prValues = conductionBeats
-        .map((beat) => beat.pr)
-        .filter((pr) => Number.isFinite(pr) && pr > 0);
-      if (prValues.length) {
-        const prRange = computeRange12(prValues);
-        if (prRange && prRange.max - prRange.min > tolerance) {
-          violationParts.push(`PR ${Math.round(prRange.min)}-${Math.round(prRange.max)} ms`);
-        }
-        const prAvg = computeAverage12(prValues);
-        conductionBeats.forEach((beat) => {
-          if (beat.pr > 0) beat.pr = prAvg;
-        });
-      }
-    }
-
-    if (expectation.constantQRS) {
-      const qrsValues = conductionBeats
-        .map((beat) => beat.qrs)
-        .filter((qrs) => Number.isFinite(qrs) && qrs > 0);
-      if (qrsValues.length) {
-        const qrsRange = computeRange12(qrsValues);
-        if (qrsRange && qrsRange.max - qrsRange.min > tolerance) {
-          violationParts.push(`QRS ${Math.round(qrsRange.min)}-${Math.round(qrsRange.max)} ms`);
-        }
-        const qrsAvg = computeAverage12(qrsValues);
-        conductionBeats.forEach((beat) => {
-          if (beat.qrs > 0) beat.qrs = qrsAvg;
-        });
-      }
-    }
-
-    if (expectation.constantRR && conductionBeats.length > 1) {
-      const sorted = conductionBeats.slice().sort((a, b) => (a.rTime || 0) - (b.rTime || 0));
-      const rrDiffs = [];
-      for (let i = 1; i < sorted.length; i++) {
-        const diff = (sorted[i].rTime || 0) - (sorted[i - 1].rTime || 0);
-        if (Number.isFinite(diff)) {
-          rrDiffs.push(diff);
-        }
-      }
-      if (rrDiffs.length) {
-        const rrRange = computeRange12(rrDiffs);
-        if (rrRange && rrRange.max - rrRange.min > tolerance) {
-          violationParts.push(`RR ${Math.round(rrRange.min)}-${Math.round(rrRange.max)} ms`);
-        }
-        const rrAvg = computeAverage12(rrDiffs);
-        const firstTime = sorted[0].rTime || 0;
-        sorted.forEach((beat, idx) => {
-          beat.rTime = firstTime + idx * rrAvg;
-        });
-      }
-    }
-
-    if (violationParts.length) {
-      const name = formatRhythmLabel12(rhythmId);
-      this.intervalViolationMessage = `${name}: ${violationParts.join('; ')} (stabilized)`;
-      console.warn('[Ecg12Simulator] Interval guardrails triggered:', this.intervalViolationMessage);
-    } else {
-      this.intervalViolationMessage = null;
-    }
-
-    schedule.sort((a, b) => (a.rTime || 0) - (b.rTime || 0));
   }
 
   addBeatToSchedule(schedule, beat) {
