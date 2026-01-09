@@ -16,6 +16,29 @@ const AMP_T_PX = AMP_T_MV * MV_TO_PX;
 const QT_MIN_MS = 300;
 const QT_MAX_MS = 600;
 
+const RHYTHM_INTERVAL_EXPECTATIONS = {
+  sinus: { constantRR: true, constantPR: true, constantQRS: true, toleranceMs: 5 },
+  avb1: { constantRR: true, constantPR: true, constantQRS: true, toleranceMs: 7 },
+  avb2_mobitz1: { constantRR: true, constantPR: false, constantQRS: true, toleranceMs: 12 },
+  avb2_mobitz2: { constantRR: false, constantPR: true, constantQRS: true, toleranceMs: 6 },
+  avb3: { constantRR: true, constantPR: false, constantQRS: true, toleranceMs: 10 },
+  afib: { constantRR: false, constantPR: false, constantQRS: false },
+  mvtach: { constantRR: true, constantPR: false, constantQRS: true, toleranceMs: 5 },
+  pvtach: { constantRR: false, constantPR: false, constantQRS: false }
+};
+
+const computeAverage = (values = []) => {
+  if (!values.length) return 0;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+};
+
+const computeRange = (values = []) => {
+  if (!values.length) return null;
+  return { min: Math.min(...values), max: Math.max(...values) };
+};
+
+const formatRhythmName = (id) => (id ? id.replace(/_/g, ' ') : 'rhythm');
+
 class EcgSimulator {
   constructor(backgroundCanvas, traceCanvas, overlayCanvasOrConfig = null, maybeConfig) {
     this.backgroundCanvas = backgroundCanvas;
@@ -78,6 +101,7 @@ class EcgSimulator {
     this.rhythmDurationMs = 8000;
     this._rhythmRrMs = 60000 / this.config.heartRate;
     this._vtachConfig = null;
+    this.intervalViolationMessage = null;
     this.waveAmpsPx = {
       p: AMP_P_PX,
       q: -AMP_QRS_PX * 0.25,
@@ -183,6 +207,88 @@ class EcgSimulator {
     if (now - last < threshold) return;
     this._intervalDebugTimestamps[label] = now;
     console.log('[EcgSimulator][IntervalDebug]', label, info);
+  }
+
+  getRhythmIntervalExpectation(rhythmId = this.currentRhythm) {
+    return RHYTHM_INTERVAL_EXPECTATIONS[rhythmId] || null;
+  }
+
+  enforceIntervalExpectations() {
+    const expectation = this.getRhythmIntervalExpectation();
+    this.intervalViolationMessage = null;
+    if (!expectation) return;
+
+    const tolerance = expectation.toleranceMs || 5;
+    const beats = Array.isArray(this.beatSchedule) ? this.beatSchedule : [];
+    const conductionBeats = beats.filter((beat) => beat && beat.hasQRS !== false);
+    if (!conductionBeats.length) return;
+
+    const violationParts = [];
+
+    if (expectation.constantPR) {
+      const prValues = conductionBeats
+        .map((beat) => beat.pr)
+        .filter((pr) => Number.isFinite(pr) && pr > 0);
+      if (prValues.length) {
+        const prRange = computeRange(prValues);
+        if (prRange && prRange.max - prRange.min > tolerance) {
+          violationParts.push(`PR ${Math.round(prRange.min)}-${Math.round(prRange.max)} ms`);
+        }
+        const prAvg = computeAverage(prValues);
+        conductionBeats.forEach((beat) => {
+          if (beat.pr > 0) beat.pr = prAvg;
+        });
+      }
+    }
+
+    if (expectation.constantQRS) {
+      const qrsValues = conductionBeats
+        .map((beat) => beat.qrs)
+        .filter((qrs) => Number.isFinite(qrs) && qrs > 0);
+      if (qrsValues.length) {
+        const qrsRange = computeRange(qrsValues);
+        if (qrsRange && qrsRange.max - qrsRange.min > tolerance) {
+          violationParts.push(`QRS ${Math.round(qrsRange.min)}-${Math.round(qrsRange.max)} ms`);
+        }
+        const qrsAvg = computeAverage(qrsValues);
+        conductionBeats.forEach((beat) => {
+          if (beat.qrs > 0) beat.qrs = qrsAvg;
+        });
+      }
+    }
+
+    if (expectation.constantRR && conductionBeats.length > 1) {
+      const sorted = conductionBeats.slice().sort((a, b) => (a.rTime || 0) - (b.rTime || 0));
+      const rrDiffs = [];
+      for (let i = 1; i < sorted.length; i++) {
+        const diff = (sorted[i].rTime || 0) - (sorted[i - 1].rTime || 0);
+        if (Number.isFinite(diff)) {
+          rrDiffs.push(diff);
+        }
+      }
+      if (rrDiffs.length) {
+        const rrRange = computeRange(rrDiffs);
+        if (rrRange && rrRange.max - rrRange.min > tolerance) {
+          violationParts.push(`RR ${Math.round(rrRange.min)}-${Math.round(rrRange.max)} ms`);
+        }
+        const rrAvg = computeAverage(rrDiffs);
+        const firstTime = sorted[0].rTime || 0;
+        sorted.forEach((beat, idx) => {
+          beat.rTime = firstTime + idx * rrAvg;
+        });
+        this._rhythmRrMs = rrAvg;
+      }
+    }
+
+    if (violationParts.length) {
+      const name = formatRhythmName(this.currentRhythm);
+      this.intervalViolationMessage = `${name}: ${violationParts.join('; ')} (stabilized)`;
+      console.warn('[EcgSimulator] Interval guardrails triggered:', this.intervalViolationMessage);
+    } else {
+      this.intervalViolationMessage = null;
+    }
+
+    this.beatSchedule.sort((a, b) => (a.rTime || 0) - (b.rTime || 0));
   }
 
   play() {
@@ -886,6 +992,9 @@ class EcgSimulator {
 
     const summary = this.getReadoutSummary();
     const lines = [summary.hrText, summary.prText, summary.qrsText, summary.qtText];
+    if (this.intervalViolationMessage) {
+      lines.push(`⚠ ${this.intervalViolationMessage}`);
+    }
 
     const sc = this.scrollContainer || this.overlayCanvas.parentElement;
     const scrollLeft = sc ? sc.scrollLeft : 0;
@@ -1036,6 +1145,8 @@ class EcgSimulator {
         this.generateSinusRhythm(durationMs, baseRrMs);
         break;
     }
+
+    this.enforceIntervalExpectations();
 
     const lastBeat = this.beatSchedule[this.beatSchedule.length - 1];
     const cycleRrMs = this._rhythmRrMs || baseRrMs;
