@@ -78,94 +78,6 @@
     --kc-shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
 }
 
-:root[data-theme="dark"] {
-    color-scheme: dark;
-    --bg: #0b0f19;
-    --surface: #131a26;
-    --surface-2: #192232;
-    --surface-3: #222c3f;
-    --border: rgba(255, 255, 255, 0.08);
-    --text: #f2f5fb;
-    --muted: #9ca4b8;
-    --muted-2: #7b8399;
-    --primary: #82aaff;
-    --primary-50: rgba(130, 170, 255, 0.12);
-    --primary-600: #aec8ff;
-    --shadow-sm: 0 10px 25px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.55);
-    --ring: 0 0 0 2px rgba(130, 170, 255, 0.45);
-    --kc-bg: rgba(15, 23, 42, 0.88);
-    --kc-text: rgba(248, 250, 252, 0.94);
-    --kc-border: rgba(148, 163, 184, 0.22);
-    --kc-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
-}
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                color-scheme: dark;
-                --bg: #0b0f19;
-                --surface: #131a26;
-                --surface-2: #192232;
-                --surface-3: #222c3f;
-                --border: rgba(255, 255, 255, 0.08);
-                --text: #f2f5fb;
-                --muted: #9ca4b8;
-                --muted-2: #7b8399;
-                --primary: #82aaff;
-                --primary-50: rgba(130, 170, 255, 0.12);
-                --primary-600: #aec8ff;
-                --shadow-sm: 0 10px 25px rgba(0, 0, 0, 0.4);
-                --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.55);
-                --ring: 0 0 0 2px rgba(130, 170, 255, 0.45);
-                --kc-bg: rgba(15, 23, 42, 0.88);
-                --kc-text: rgba(248, 250, 252, 0.94);
-                --kc-border: rgba(148, 163, 184, 0.22);
-                --kc-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
-            }
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root:not([data-theme="dark"]) {
-                color-scheme: light;
-                --bg: #f5f6fb;
-                --surface: #ffffff;
-                --surface-2: #f4f6fb;
-                --surface-3: #eceff7;
-                --border: #e1e5ed;
-                --text: #0a0f1a;
-                --muted: #1f2937;
-                --muted-2: #475569;
-                --primary: #2563eb;
-                --primary-50: #eef4ff;
-                --primary-600: #1d4ed8;
-                --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.08);
-                --shadow-md: 0 18px 35px rgba(15, 23, 42, 0.12);
-                --ring: 0 0 0 2px rgba(37, 99, 235, 0.35);
-                --kc-bg: var(--surface, #ffffff);
-                --kc-text: var(--text, #0a0f1a);
-                --kc-border: rgba(15, 23, 42, 0.14);
-                --kc-shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
-            }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root[data-theme="system"] {
-                --kc-bg: rgba(15, 23, 42, 0.88);
-                --kc-text: rgba(248, 250, 252, 0.94);
-                --kc-border: rgba(148, 163, 184, 0.22);
-                --kc-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
-            }
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root[data-theme="system"] {
-                --kc-bg: var(--surface, #ffffff);
-                --kc-text: var(--text, #0a0f1a);
-                --kc-border: rgba(15, 23, 42, 0.14);
-                --kc-shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
-            }
-        }
-
         * {
             box-sizing: border-box;
         }
@@ -2233,7 +2145,7 @@
         #ecg12Module .ecg12-measure-hint{margin-top:10px;font-size:12px;color:var(--muted-2);background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:10px;display:none}
         #ecg12Module .ecg12-measure-hint.active{display:block}
         #ecg12Module .ecg12-buttons{display:flex;gap:10px}
-        #ecg12Module .ecg12-buttons button{flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface);font-weight:700;cursor:pointer;color:var(--text)}
+        #ecg12Module .ecg12-buttons button{flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);font-weight:700;cursor:pointer;color:var(--text)}
         #ecg12Module .ecg12-display{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0;box-shadow:var(--shadow-sm)}
         #ecg12Module .ecg12-canvas-wrap{position:relative;width:100%;height:360px;border:1px solid var(--border);border-radius:14px;overflow:auto;background:var(--surface-2)}
         #ecg12Module .ecg12-expanded-wrap{height:260px}
@@ -2254,7 +2166,7 @@
         .single-lead-section select,.single-lead-section input[type="number"]{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text)}
         .single-lead-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:.9rem}
         .single-lead-buttons{display:flex;gap:10px}
-        .single-lead-buttons button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-weight:600;cursor:pointer;color:var(--text)}
+        .single-lead-buttons button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);font-weight:600;cursor:pointer;color:var(--text)}
         .single-lead-canvas{position:relative;border:1px solid var(--border);border-radius:16px;height:320px;overflow:auto;background:var(--surface)}
         .single-lead-canvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
         .single-lead-display{display:flex;flex-direction:column;gap:12px}
@@ -2338,11 +2250,6 @@
             <div class="header-text">
                 <h1>Interactive Cardiac Physiology Simulator</h1>
                 <p>Explore cardiac hemodynamics and pathophysiology</p>
-            </div>
-            <div class="header-actions">
-                <button type="button" id="themeToggle" class="btn btn-ghost btn-compact" aria-label="Toggle theme">
-                    Theme: System
-                </button>
             </div>
         </div>
         
@@ -9227,67 +9134,6 @@ function resetASQuestion(qName) {
 
     document.querySelector(`#${qName}-container .reset-btn`).style.display = 'none';
 }
-
-(function () {
-    const STORAGE_KEY = 'theme';
-    const root = document.documentElement;
-    const btn = document.getElementById('themeToggle');
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const modes = ['system', 'light', 'dark'];
-
-    function sanitize(value) {
-        return modes.includes(value) ? value : 'system';
-    }
-
-    function applyTheme(value) {
-        if (value === 'system') {
-            delete root.dataset.theme;
-        } else {
-            root.dataset.theme = value;
-        }
-    }
-
-    function labelFor(value) {
-        return 'Theme: ' + value.charAt(0).toUpperCase() + value.slice(1);
-    }
-
-    function updateLabel(value) {
-        if (!btn) return;
-        btn.textContent = labelFor(value);
-    }
-
-    function getCurrent() {
-        return sanitize(localStorage.getItem(STORAGE_KEY) || 'system');
-    }
-
-    function setTheme(value) {
-        localStorage.setItem(STORAGE_KEY, value);
-        applyTheme(value);
-        updateLabel(value);
-    }
-
-    function cycleTheme() {
-        const current = getCurrent();
-        const idx = modes.indexOf(current);
-        const next = modes[(idx + 1) % modes.length];
-        setTheme(next);
-    }
-
-    const initial = getCurrent();
-    applyTheme(initial);
-    updateLabel(initial);
-
-    if (btn) {
-        btn.addEventListener('click', cycleTheme);
-    }
-
-    media.addEventListener('change', () => {
-        if (getCurrent() === 'system') {
-            applyTheme('system');
-            updateLabel('system');
-        }
-    });
-})();
 
 </script>
 
