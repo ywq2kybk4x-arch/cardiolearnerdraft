@@ -1629,13 +1629,43 @@
             line-height: 1.55;
             font-size: 0.95em;
         }
-        .model-attribution {
-            font-size: 0.85em;
-            color: #6b7280;
-            margin-top: 10px;
-            line-height: 1.4;
+        .model-credits {
+            margin-top: 14px;
+            color: #374151;
+            font-size: 0.9em;
+            line-height: 1.5;
         }
-        .model-attribution a {
+        .model-credits summary {
+            list-style: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: #111827;
+        }
+        .model-credits summary::-webkit-details-marker {
+            display: none;
+        }
+        .model-credits .info-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            border: 1px solid #9ca3af;
+            color: #4b5563;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            background: #ffffff;
+            flex: 0 0 auto;
+        }
+        .model-credits-content {
+            margin-top: 10px;
+            color: #4b5563;
+        }
+        .model-credits-content a {
             color: inherit;
             text-decoration: underline;
         }
@@ -3075,18 +3105,22 @@
                     </div>
                 </div>
             </div>
-            <div class="model-attribution">
-                <div><strong>3D Model Attribution</strong></div>
-                <div>
-                    Adapted from “<em>Proximaal CX Infarct Links Dominant + Afleidingen</em>” by
-                    <a href="https://www.umcg.nl" target="_blank" rel="noopener">E-learning UMCG (University Medical Center Groningen)</a>.
+            <details class="model-credits">
+                <summary>
+                    <span class="info-dot" aria-hidden="true">i</span>
+                    3D Model Credits
+                </summary>
+                <div class="model-credits-content">
+                    <div><strong>Title:</strong> Proximaal CX Infarct Links Dominant + Afleidingen</div>
+                    <div><strong>Creator:</strong> E-learning UMCG (University Medical Center Groningen)</div>
+                    <div><strong>License:</strong> Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)</div>
+                    <div><strong>License link:</strong> <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">https://creativecommons.org/licenses/by-nc-sa/4.0/</a></div>
+                    <div><strong>Source (original model):</strong> <a href="https://sketchfab.com/3d-models/proximaal-cx-infarct-links-dominant-afleidingen-ec342cd66a204bac82965ada84cdcaf1" target="_blank" rel="noopener">https://sketchfab.com/3d-models/proximaal-cx-infarct-links-dominant-afleidingen-ec342cd66a204bac82965ada84cdcaf1</a></div>
+                    <div><strong>Copyright:</strong> © E-learning UMCG</div>
+                    <div><strong>Modifications:</strong> Modified for educational use, including visual adjustments and integration into an interactive cardiology learning application.</div>
+                    <div><strong>Disclaimer:</strong> This material is provided "as is," without warranties of any kind. The licensor disclaims liability for any use of the material.</div>
                 </div>
-                <div>
-                    Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>.
-                </div>
-                <div>Modifications were made for non-commercial educational use.</div>
-                <div>The original creator does not endorse this website.</div>
-            </div>
+            </details>
             <div class="ekg-mode-toggle">
                 <button type="button" id="showSingleLeadBtn" class="active">Single lead</button>
                 <button type="button" id="show12LeadBtn">12 lead</button>
