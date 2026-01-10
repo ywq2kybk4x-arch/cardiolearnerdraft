@@ -240,9 +240,61 @@
             outline: none;
             box-shadow: var(--ring);
         }
+        .tab-button.locked {
+            background: rgba(148, 163, 184, 0.3);
+            border: 1px solid rgba(148, 163, 184, 0.6);
+        }
+        .tab-button.locked:hover {
+            background: rgba(148, 163, 184, 0.35);
+        }
 
         .tab-content { display: none; }
         .tab-content.active { display: block !important; }
+
+        .lock-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 9999;
+        }
+        .lock-overlay.active {
+            display: flex;
+        }
+        .lock-modal {
+            background: #ffffff;
+            color: #0f172a;
+            border-radius: 18px;
+            padding: 24px 28px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+            text-align: center;
+        }
+        .lock-modal h2 {
+            margin: 0 0 10px;
+            font-size: 1.35rem;
+        }
+        .lock-modal p {
+            margin: 0 0 18px;
+            line-height: 1.5;
+        }
+        .lock-modal .lock-dismiss {
+            border: none;
+            border-radius: 999px;
+            padding: 10px 18px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .lock-modal .lock-dismiss:focus-visible {
+            outline: none;
+            box-shadow: var(--ring);
+        }
 
         .key-concepts-card {
             background: var(--kc-bg);
@@ -274,41 +326,6 @@
         .key-concepts-card strong {
             font-weight: 800;
             opacity: 1;
-        }
-
-        .ai-tab-panel {
-            background: var(--surface, #fff);
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            border-radius: 18px;
-            padding: 24px;
-            min-height: 70vh;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .ai-tab-panel iframe {
-            flex: 1;
-            border: none;
-            border-radius: 12px;
-            width: 100%;
-            min-height: 60vh;
-            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root[data-theme="system"] #ai-content,
-            :root[data-theme="system"] #ai-content * {
-                color: var(--text);
-            }
-            :root[data-theme="system"] #ai-tab-btn,
-            :root[data-theme="system"] #ai-tab-btn *,
-            :root[data-theme="system"] #ai-tab-btn.active,
-            :root[data-theme="system"] #ai-tab-btn[aria-selected="true"],
-            :root[data-theme="system"] #ai-tutor-root .ai-tab,
-            :root[data-theme="system"] #ai-tutor-root .ai-tab * {
-                color: var(--text) !important;
-            }
         }
 
         .input, .select, .textarea, input[type="number"], select {
@@ -2283,7 +2300,6 @@
             <button class="tab-button" id="quiz-tab-btn">PV Loop Quiz</button>
             <button class="tab-button" id="conduction-tab-btn">Dyanamic EKG Viewer</button>
             <button class="tab-button" id="qbank-tab-btn">QBank</button>
-            <button class="tab-button" id="ai-tab-btn">AI Tutor</button>
         </div>
         
         <div id="simulator-content" class="tab-content active">
@@ -3388,17 +3404,11 @@
             <div id="qbank-alert" class="qbank-alert"></div>
         </div>
 
-        <div id="ai-content" class="tab-content">
-            <div class="ai-tab-panel">
-                <div>
-                    <h2 style="margin-bottom:8px;">AI Tutor Workspace</h2>
-                    <p class="muted-text" style="margin:0;">Chat with the embedded Playlab tutor, ask cardiology questions, or get walkthroughs without leaving the page.</p>
-                </div>
-                <iframe
-                    src="https://www.playlab.ai/embedded/cmja4zdbb13e0oh0ufrywx9hw"
-                    title="AI Tutor"
-                    allow="clipboard-write">
-                </iframe>
+        <div id="feature-lock-overlay" class="lock-overlay" role="dialog" aria-modal="true" aria-labelledby="feature-lock-title">
+            <div class="lock-modal">
+                <h2 id="feature-lock-title">Feature Locked</h2>
+                <p>These features will be unlocked and available for use after the midterm.</p>
+                <button type="button" class="lock-dismiss" id="feature-lock-dismiss">Got it</button>
             </div>
         </div>
 
@@ -6328,11 +6338,27 @@ const coronaryMap = {
             shock: { btn: 'shock-tab-btn', panel: 'shock-content' },
             quiz: { btn: 'quiz-tab-btn', panel: 'quiz-content' },
             conduction: { btn: 'conduction-tab-btn', panel: 'conduction-content' },
-            qbank: { btn: 'qbank-tab-btn', panel: 'qbank-content' },
-            ai: { btn: 'ai-tab-btn', panel: 'ai-content' }
+            qbank: { btn: 'qbank-tab-btn', panel: 'qbank-content' }
         };
+        const lockedTabs = new Set(['pathologies', 'shock', 'qbank']);
+        const lockOverlay = document.getElementById('feature-lock-overlay');
+        const lockDismiss = document.getElementById('feature-lock-dismiss');
+
+        function showFeatureLock() {
+            if (!lockOverlay) return;
+            lockOverlay.classList.add('active');
+        }
+
+        function hideFeatureLock() {
+            if (!lockOverlay) return;
+            lockOverlay.classList.remove('active');
+        }
 
         function activateTab(key) {
+            if (lockedTabs.has(key)) {
+                showFeatureLock();
+                return;
+            }
             Object.values(tabMap).forEach(({ btn, panel }) => {
                 document.getElementById(btn).classList.toggle('active', tabMap[key].btn === btn);
                 document.getElementById(panel).classList.toggle('active', tabMap[key].panel === panel);
@@ -6362,9 +6388,21 @@ const coronaryMap = {
         Object.entries(tabMap).forEach(([key, { btn }]) => {
             const el = document.getElementById(btn);
             if (el) {
+                if (lockedTabs.has(key)) {
+                    el.classList.add('locked');
+                }
                 el.addEventListener('click', () => activateTab(key));
             }
         });
+
+        if (lockDismiss) {
+            lockDismiss.addEventListener('click', hideFeatureLock);
+        }
+        if (lockOverlay) {
+            lockOverlay.addEventListener('click', (event) => {
+                if (event.target === lockOverlay) hideFeatureLock();
+            });
+        }
         
         // Add click handlers to pathology cards
         document.querySelectorAll('.pathology-card').forEach(card => {
@@ -9221,12 +9259,6 @@ function resetASQuestion(qName) {
 
     </div>
 </body>
-<script src="assets/ai-tutor-tab.js"></script>
-<script>
-  if (!window.__aiTutorTabInitialized) {
-    console.warn('[AI Tutor] ai-tutor-tab.js did not initialize. Check script path and console errors.');
-  }
-</script>
 <script>
   (function () {
     const variablePatterns = {
