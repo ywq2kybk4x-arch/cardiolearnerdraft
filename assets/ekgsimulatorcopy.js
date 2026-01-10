@@ -452,9 +452,15 @@ class EcgSimulator {
     const pxPerMmEffective = this.pixelPerMm * SCALE;
     const msPerPixel = 1000 / (this.config.speed * pxPerMmEffective);
     const windowMs = w * msPerPixel;
+    const duration = this.rhythmDurationMs || windowMs || 1;
 
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
-    if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
+    if (duration <= windowMs) {
+      // Align sweep to rhythm boundary to avoid mid-strip wraps in the R-R spacing.
+      const cycleStart = Math.floor(this.simulatedTimeMs / duration) * duration;
+      this.sweepStartTime = cycleStart;
+      elapsedInSweep = this.simulatedTimeMs - cycleStart;
+    } else if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
       this.sweepStartTime = this.simulatedTimeMs;
       elapsedInSweep = 0;
     }
@@ -962,9 +968,16 @@ class EcgSimulator {
     this.beatSchedule = [];
     this.atrialSchedule = [];
 
+    const baseRrMs = 60000 / this.config.heartRate;
+    const TARGET_DURATION_MS = 8000;
     const durationMs = (this.config.displayTime || 10) * 1000;
     const isAfib =
       this.currentRhythm === 'afib' || this.currentRhythm === 'atrial_fibrillation';
+    const isRegular =
+      this.currentRhythm === 'sinus' ||
+      this.currentRhythm === 'avb1' ||
+      this.currentRhythm === 'mvtach' ||
+      this.currentRhythm === 'vtach';
 
     if (isAfib) {
       this.initAfibNoise();
@@ -1000,41 +1013,48 @@ class EcgSimulator {
       return;
     }
 
-    const baseRrMs = 60000 / this.config.heartRate;
+    if (isRegular) {
+      const nBeats = Math.max(1, Math.ceil(TARGET_DURATION_MS / baseRrMs));
+      this.rhythmDurationMs = nBeats * baseRrMs;
+    }
+
+    const generationDurationMs = isRegular ? this.rhythmDurationMs : durationMs;
 
     switch (this.currentRhythm) {
       case 'avb1':
-        this.generateFirstDegreeAVBlock(durationMs, baseRrMs);
+        this.generateFirstDegreeAVBlock(generationDurationMs, baseRrMs);
         break;
       case 'avb2_mobitz1':
-        this.generateSecondDegreeMobitzI(durationMs, baseRrMs);
+        this.generateSecondDegreeMobitzI(generationDurationMs, baseRrMs);
         break;
       case 'avb2_mobitz2':
-        this.generateSecondDegreeMobitzII(durationMs, baseRrMs);
+        this.generateSecondDegreeMobitzII(generationDurationMs, baseRrMs);
         break;
       case 'avb3':
-        this.generateThirdDegreeAVBlock(durationMs);
+        this.generateThirdDegreeAVBlock(generationDurationMs);
         break;
       case 'afib':
-        this.generateAFib(durationMs);
+        this.generateAFib(generationDurationMs);
         break;
       case 'mvtach':
-        this.generateMVTach(durationMs);
+        this.generateMVTach(generationDurationMs);
         break;
       case 'pvtach':
-        this.generatePVTach(durationMs);
+        this.generatePVTach(generationDurationMs);
         break;
       case 'sinus':
       default:
-        this.generateSinusRhythm(durationMs, baseRrMs);
+        this.generateSinusRhythm(generationDurationMs, baseRrMs);
         break;
     }
 
-    const lastBeat = this.beatSchedule[this.beatSchedule.length - 1];
-    this.rhythmDurationMs = Math.max(
-      durationMs,
-      lastBeat ? lastBeat.rTime + baseRrMs : 0
-    );
+    if (!isRegular) {
+      const lastBeat = this.beatSchedule[this.beatSchedule.length - 1];
+      this.rhythmDurationMs = Math.max(
+        durationMs,
+        lastBeat ? lastBeat.rTime + baseRrMs : 0
+      );
+    }
     this.drawTrace();
   }
 
@@ -1055,8 +1075,10 @@ class EcgSimulator {
   generateSinusRhythm(durationMs, baseRrMs) {
     let t = 0;
     while (t < durationMs) {
+      const rTime = t + this.intervals.prIntervalMs + this.intervals.qrsDurationMs / 2;
+      if (rTime >= durationMs) break;
       this.addBeat({
-        rTime: t + this.intervals.prIntervalMs + this.intervals.qrsDurationMs / 2,
+        rTime,
         hasP: true,
         hasQRS: true,
         pr: this.intervals.prIntervalMs,
@@ -1071,8 +1093,10 @@ class EcgSimulator {
     const longPr = Math.max(this.intervals.prIntervalMs, 240);
     let t = 0;
     while (t < durationMs) {
+      const rTime = t + longPr + this.intervals.qrsDurationMs / 2;
+      if (rTime >= durationMs) break;
       this.addBeat({
-        rTime: t + longPr + this.intervals.qrsDurationMs / 2,
+        rTime,
         hasP: true,
         hasQRS: true,
         pr: longPr,

@@ -300,7 +300,7 @@ class Ecg12Simulator {
     this.debugLeadModel = false;
     this.debugLeadModelOverlay = false;
 
-    this.highlights = { P: false, QRS: false, T: false };
+    this.highlights = { P: false, QRS: false, T: false, Dropped: false };
     this.intervalHighlights = { PR: false, QRSd: false, QT: false, RR: false };
     const globalIntervalDebug =
       typeof window !== 'undefined' ? window.__ECG_INTERVAL_DEBUG : false;
@@ -967,9 +967,15 @@ class Ecg12Simulator {
     const msPerPixel = 1000 / (this.config.speed * pxPerMm);
     this._lastBigMsPerPixel = msPerPixel;
     const windowMs = w * msPerPixel;
+    const duration = this.rhythmDurationMs || windowMs || 1;
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
     if (this.shouldLoopSweep) {
-      if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
+      if (duration <= windowMs) {
+        // Align sweep to rhythm boundary to avoid mid-strip wraps in the R-R spacing.
+        const cycleStart = Math.floor(this.simulatedTimeMs / duration) * duration;
+        this.sweepStartTime = cycleStart;
+        elapsedInSweep = this.simulatedTimeMs - cycleStart;
+      } else if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
         this.sweepStartTime = this.simulatedTimeMs;
         elapsedInSweep = 0;
       }
@@ -1086,9 +1092,15 @@ class Ecg12Simulator {
     const pxPerMm = this.pixelPerMm;
     const msPerPixel = 1000 / (this.config.speed * pxPerMm);
     const windowMs = (this.renderWidth || w) * msPerPixel;
+    const duration = this.rhythmDurationMs || windowMs || 1;
     let elapsedInSweep = this.simulatedTimeMs - this.sweepStartTime;
     if (this.shouldLoopSweep) {
-      if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
+      if (duration <= windowMs) {
+        // Align sweep to rhythm boundary to avoid mid-strip wraps in the R-R spacing.
+        const cycleStart = Math.floor(this.simulatedTimeMs / duration) * duration;
+        this.sweepStartTime = cycleStart;
+        elapsedInSweep = this.simulatedTimeMs - cycleStart;
+      } else if (elapsedInSweep >= windowMs || elapsedInSweep < 0) {
         this.sweepStartTime = this.simulatedTimeMs;
         elapsedInSweep = 0;
       }
@@ -1163,7 +1175,10 @@ class Ecg12Simulator {
 
   drawIntervalOverlays(ctx, params) {
     const on = this.intervalHighlights;
-    if (!on.PR && !on.QRSd && !on.QT && !on.RR) {
+    const showDropped =
+      this.highlights.Dropped === true &&
+      (this.currentRhythm === 'avb2_mobitz1' || this.currentRhythm === 'avb2_mobitz2');
+    if (!on.PR && !on.QRSd && !on.QT && !on.RR && !showDropped) {
       this.intervalDebugLog('intervalOverlaySkip', { reason: 'no highlights', highlights: on });
       return;
     }
@@ -1181,20 +1196,25 @@ class Ecg12Simulator {
       leadKey
     } = params;
     const duration = this.rhythmDurationMs || 10000;
+    const baseRrMs = this.getCurrentRrMs();
     const overlayLeadKey = leadKey || this.selectedLeadKey || normLead(this.selectedLead);
     const baselineY = midY + (verticalOffset || 0);
-    const padTop = 14;
-    const padBottom = 10;
-    const usableH = Math.max(56, overlayBandH - padTop - padBottom);
+    const padTop = 8;
+    const padBottom = 8;
+    const usableH = Math.max(72, overlayBandH - padTop - padBottom);
     const laneCount = 4;
-    const laneGap = Math.floor(usableH / laneCount);
+    const laneGap = Math.max(20, Math.floor(usableH / laneCount));
     const shiftedTop = overlayTopY;
+    const laneStart = shiftedTop + padTop;
     const lanes = {
-      RR: shiftedTop + padTop + laneGap * 0.3,
-      PR: shiftedTop + padTop + laneGap * 1.3,
-      QRSd: shiftedTop + padTop + laneGap * 2.3,
-      QT: shiftedTop + padTop + laneGap * 3.3
+      RR: laneStart + laneGap * 0.5,
+      PR: laneStart + laneGap * 1.5,
+      QRSd: laneStart + laneGap * 2.5,
+      QT: laneStart + laneGap * 3.5
     };
+    const bracketH = 8;
+    const labelGap = 6;
+    const labelFontSize = Math.max(10, Math.min(12, Math.floor(laneGap * 0.55)));
     const counts = {
       RR: 0,
       PR: 0,
@@ -1208,6 +1228,7 @@ class Ecg12Simulator {
       QT: { stroke: '#2f855a', fill: 'rgba(47,133,90,0.10)', fullLabel: (ms) => `QT ${ms} ms`, shortLabel: (ms) => `${ms} ms` }
     };
     const firstLabelShown = { RR: false, PR: false, QRSd: false, QT: false };
+    const droppedStyle = { stroke: '#f59e0b', fill: 'rgba(245,158,11,0.12)' };
 
     const waveformY = (tMs) => {
       const v = this.getLeadVoltageAtTimeMs(tMs, overlayLeadKey);
@@ -1274,51 +1295,103 @@ class Ecg12Simulator {
       const xx2 = Math.max(0, Math.min(xMax, x2));
       if (xx2 - xx1 <= 1) return false;
       const y = lanes[key];
+      const labelY = y - bracketH - labelGap;
       ctx.save();
       ctx.lineWidth = 2;
       ctx.strokeStyle = style[key].stroke;
       ctx.fillStyle = style[key].fill;
       ctx.beginPath();
-      ctx.rect(xx1, y - 10, xx2 - xx1, 10);
+      ctx.rect(xx1, y - bracketH, xx2 - xx1, bracketH);
       ctx.fill();
       ctx.stroke();
-      ctx.font = '12px Arial';
+      ctx.font = `${labelFontSize}px Arial`;
+      ctx.textBaseline = 'bottom';
       ctx.fillStyle = style[key].stroke;
       const text = !firstLabelShown[key] ? style[key].fullLabel(label) : style[key].shortLabel(label);
-      ctx.fillText(text, xx1, y - 22);
+      ctx.fillText(text, xx1, labelY);
       firstLabelShown[key] = true;
       ctx.restore();
-      drawGuides(key, xx1, xx2, y - 10, tStart, tEnd);
+      drawGuides(key, xx1, xx2, y - bracketH, tStart, tEnd);
+      return true;
+    };
+
+    const drawDroppedBox = (tStart, tEnd) => {
+      const x1 = (tStart - tWindowStart) / msPerPixel;
+      const x2 = (tEnd - tWindowStart) / msPerPixel;
+      if (x2 < 0 || x1 > xMax) return false;
+      const xx1 = Math.max(0, Math.min(xMax, x1));
+      const xx2 = Math.max(0, Math.min(xMax, x2));
+      if (xx2 - xx1 <= 2) return false;
+      const top = (plotTopY || 0) + 4;
+      const bottom = (plotBottomY || overlayTopY) - 4;
+      const height = Math.max(12, bottom - top);
+      ctx.save();
+      ctx.fillStyle = droppedStyle.fill;
+      ctx.strokeStyle = droppedStyle.stroke;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.rect(xx1, top, xx2 - xx1, height);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
       return true;
     };
 
     const beats = this.beatSchedule || [];
     for (let i = 0; i < beats.length; i++) {
       const beat = beats[i];
-      if (!beat.hasQRS) continue;
-      const nextBeat = beats[(i + 1) % beats.length];
-      if (!nextBeat || !nextBeat.hasQRS) continue;
-
+      if (!beat) continue;
       const t0 = beat.rTime;
-      const t1 = nextBeat.rTime;
-      const baseRr = i === beats.length - 1 ? t1 + duration - t0 : t1 - t0;
-      const rrMs = Math.max(0, Math.round(baseRr));
+      if (!Number.isFinite(t0)) continue;
+      const hasQrs = beat.hasQRS !== false;
+      const nextBeat = beats[(i + 1) % beats.length];
+      const nextHasQrs = nextBeat && nextBeat.hasQRS !== false;
+      const t1 = nextBeat && Number.isFinite(nextBeat.rTime) ? nextBeat.rTime : null;
+
+      const baseRr =
+        hasQrs && nextHasQrs && t1 != null
+          ? i === beats.length - 1
+            ? t1 + duration - t0
+            : t1 - t0
+          : null;
+      const rrMs = baseRr != null ? Math.max(0, Math.round(baseRr)) : null;
 
       const kStart = Math.floor((tWindowStart - t0) / duration) - 1;
       const kEnd = Math.floor((tWindowEnd - t0) / duration) + 1;
       for (let k = kStart; k <= kEnd; k++) {
         const rOcc = t0 + k * duration;
-        const nextOcc = i === beats.length - 1 ? t1 + (k + 1) * duration : t1 + k * duration;
+        const nextOcc =
+          rrMs != null ? (i === beats.length - 1 ? t1 + (k + 1) * duration : t1 + k * duration) : null;
         const qrsStart = rOcc - beat.qrs / 2;
         const qrsEnd = qrsStart + beat.qrs;
         const qtEnd = qrsStart + beat.qt;
         const prStart = qrsStart - beat.pr;
+        const droppedActive =
+          this.highlights.Dropped === true &&
+          (this.currentRhythm === 'avb2_mobitz1' || this.currentRhythm === 'avb2_mobitz2') &&
+          beat.hasP &&
+          !hasQrs;
 
-        if (on.RR && drawBracket('RR', rOcc, nextOcc, rrMs)) counts.RR++;
-        if (on.PR && beat.hasP && beat.pr > 0 && drawBracket('PR', prStart, qrsStart, Math.round(beat.pr)))
+        if (droppedActive) {
+          const nextPStart = prStart + baseRrMs;
+          if (nextPStart > prStart) {
+            drawDroppedBox(prStart, nextPStart);
+          }
+        }
+
+        if (on.RR && rrMs != null && drawBracket('RR', rOcc, nextOcc, rrMs)) counts.RR++;
+        if (
+          on.PR &&
+          hasQrs &&
+          beat.hasP &&
+          beat.pr > 0 &&
+          drawBracket('PR', prStart, qrsStart, Math.round(beat.pr))
+        )
           counts.PR++;
-        if (on.QRSd && drawBracket('QRSd', qrsStart, qrsEnd, Math.round(beat.qrs))) counts.QRSd++;
-        if (on.QT && drawBracket('QT', qrsStart, qtEnd, Math.round(beat.qt))) counts.QT++;
+        if (hasQrs && on.QRSd && drawBracket('QRSd', qrsStart, qrsEnd, Math.round(beat.qrs))) counts.QRSd++;
+        if (hasQrs && on.QT && drawBracket('QT', qrsStart, qtEnd, Math.round(beat.qt))) counts.QT++;
       }
     }
     if (this.intervalDebug) {
@@ -1600,16 +1673,34 @@ class Ecg12Simulator {
   regenerateRhythm() {
     const preset = this.getCurrentPreset();
     const durationMs = (this.config.displayTime || 10) * 1000;
+    const baseRrMs = this.getCurrentRrMs();
+    const TARGET_DURATION_MS = 8000;
+    const isRegular =
+      this.currentRhythm === 'sinus' ||
+      this.currentRhythm === 'avb1' ||
+      this.currentRhythm === 'mvtach' ||
+      this.currentRhythm === 'stemi_inferior' ||
+      this.currentRhythm === 'stemi_anterior' ||
+      this.currentRhythm === 'stemi_lateral';
     this.atrialSchedule = [];
     if (this.currentRhythm === 'afib') {
       this.initAfibNoise();
     }
-    this.beatSchedule = this.buildBeatSchedule(preset, durationMs);
-    const lastBeat = this.beatSchedule[this.beatSchedule.length - 1];
-    const baseRrMs = this.getCurrentRrMs();
-    this.rhythmDurationMs = lastBeat
-      ? Math.max(durationMs, lastBeat.rTime + baseRrMs)
-      : durationMs;
+
+    if (isRegular) {
+      const nBeats = Math.max(1, Math.ceil(TARGET_DURATION_MS / baseRrMs));
+      this.rhythmDurationMs = nBeats * baseRrMs;
+    }
+
+    const generationDurationMs = isRegular ? this.rhythmDurationMs : durationMs;
+    this.beatSchedule = this.buildBeatSchedule(preset, generationDurationMs);
+
+    if (!isRegular) {
+      const lastBeat = this.beatSchedule[this.beatSchedule.length - 1];
+      this.rhythmDurationMs = lastBeat
+        ? Math.max(durationMs, lastBeat.rTime + baseRrMs)
+        : durationMs;
+    }
     this._sampleCache.clear();
     this.drawTrace();
     this.drawExpandedTrace();
@@ -1692,6 +1783,7 @@ class Ecg12Simulator {
     let cycleStart = 0;
     while (cycleStart < durationMs) {
       const rTime = cycleStart + this.intervals.prIntervalMs + this.intervals.qrsDurationMs / 2;
+      if (rTime >= durationMs) break;
       this.addBeatToSchedule(schedule, { rTime });
       cycleStart += baseRrMs;
     }
@@ -1703,6 +1795,7 @@ class Ecg12Simulator {
     let cycleStart = 0;
     while (cycleStart < durationMs) {
       const rTime = cycleStart + longPr + this.intervals.qrsDurationMs / 2;
+      if (rTime >= durationMs) break;
       this.addBeatToSchedule(schedule, { rTime, pr: longPr });
       cycleStart += baseRrMs;
     }

@@ -2181,6 +2181,13 @@
         .single-lead-section label{font-weight:600;font-size:.9rem}
         .single-lead-section select,.single-lead-section input[type="number"]{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text)}
         .single-lead-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:.9rem}
+        .single-lead-checks label{display:flex;align-items:center;gap:8px}
+        .single-lead-checks input[type="checkbox"]{margin:0;flex:0 0 auto}
+        .single-lead-checks .single-lead-hidden{display:none}
+        .single-lead-measure-hint{margin-top:8px;font-size:.85rem;color:var(--muted-2);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;display:none;line-height:1.4}
+        .single-lead-measure-hint.active{display:block}
+        #ecg12Module .ecg12-hidden{display:none}
+        #ecg12Module .ecg12-row[hidden]{display:none}
         .single-lead-buttons{display:flex;gap:10px}
         .single-lead-buttons button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);font-weight:600;cursor:pointer;color:var(--text)}
         .single-lead-canvas{position:relative;border:1px solid var(--border);border-radius:16px;height:320px;overflow:auto;background:var(--surface)}
@@ -3135,10 +3142,25 @@
                                 <label><input type="checkbox" id="ecgHighlightP"> P wave</label>
                                 <label><input type="checkbox" id="ecgHighlightQRS"> QRS</label>
                                 <label><input type="checkbox" id="ecgHighlightT"> T wave</label>
+                                <label id="ecgHighlightDroppedWrap" class="single-lead-hidden" hidden>
+                                    <input type="checkbox" id="ecgHighlightDropped"> Dropped beat
+                                </label>
+                            </div>
+                        </div>
+                        <div class="single-lead-section">
+                            <label>Intervals & tools</label>
+                            <div class="single-lead-checks">
                                 <label><input type="checkbox" id="ecgHighlightPR"> PR interval</label>
                                 <label><input type="checkbox" id="ecgHighlightQRSDur"> QRS duration</label>
                                 <label><input type="checkbox" id="ecgHighlightRR"> R–R interval</label>
                                 <label><input type="checkbox" id="ecgHighlightQT"> QT interval</label>
+                                <label><input type="checkbox" id="ecgMeasureTool"> Click &amp; measure</label>
+                            </div>
+                            <div id="ecgMeasureHint" class="single-lead-measure-hint">
+                                Click to set start/end.<br />
+                                Drag to measure.<br />
+                                Hold Shift to keep previous measurements.<br />
+                                Double-click a measurement to remove it.
                             </div>
                         </div>
                         <div class="single-lead-buttons">
@@ -3226,6 +3248,13 @@
                                     <div class="ecg12-row-left">
                                         <input type="checkbox" id="ecg12HighlightT" />
                                         <span>T wave</span>
+                                    </div>
+                                    <div class="ecg12-hint"></div>
+                                </div>
+                                <div class="ecg12-row ecg12-hidden" id="ecg12HighlightDroppedWrap" hidden>
+                                    <div class="ecg12-row-left">
+                                        <input type="checkbox" id="ecg12HighlightDropped" />
+                                        <span>Dropped beat</span>
                                     </div>
                                     <div class="ecg12-hint"></div>
                                 </div>
@@ -4507,10 +4536,14 @@ const coronaryMap = {
             const highlightP = document.getElementById('ecgHighlightP');
             const highlightQRS = document.getElementById('ecgHighlightQRS');
             const highlightT = document.getElementById('ecgHighlightT');
+            const highlightDropped = document.getElementById('ecgHighlightDropped');
+            const highlightDroppedWrap = document.getElementById('ecgHighlightDroppedWrap');
             const highlightPR = document.getElementById('ecgHighlightPR');
             const highlightQRSDur = document.getElementById('ecgHighlightQRSDur');
             const highlightRR = document.getElementById('ecgHighlightRR');
             const highlightQT = document.getElementById('ecgHighlightQT');
+            const measureToggle = document.getElementById('ecgMeasureTool');
+            const measureHint = document.getElementById('ecgMeasureHint');
             const playBtn = document.getElementById('ecgPlay');
             const pauseBtn = document.getElementById('ecgPause');
             const resetBtn = document.getElementById('ecgReset');
@@ -4562,6 +4595,19 @@ const coronaryMap = {
                 }
             };
 
+            const syncDroppedBeatVisibility = (rhythmId) => {
+                if (!highlightDroppedWrap) return;
+                const isMobitz = rhythmId === 'avb2_mobitz1' || rhythmId === 'avb2_mobitz2';
+                highlightDroppedWrap.classList.toggle('single-lead-hidden', !isMobitz);
+                highlightDroppedWrap.hidden = !isMobitz;
+                if (highlightDropped) {
+                    highlightDropped.disabled = !isMobitz;
+                    if (!isMobitz) {
+                        highlightDropped.checked = false;
+                    }
+                }
+            };
+
             const commitHeartRate = () => {
                 if (!heartRateInput) return;
                 const raw = parseInt(heartRateInput.value || '75', 10);
@@ -4579,6 +4625,7 @@ const coronaryMap = {
                 activeSingleLeadChoice = selectedChoice;
                 const rhythmId = mapSingleLeadChoiceToRhythm(selectedChoice);
                 syncSingleLeadHeartRateLock(rhythmId);
+                syncDroppedBeatVisibility(rhythmId);
                 sim.setRhythm(rhythmId);
                 commitHeartRate();
                 sim.setSelectedLead('II');
@@ -4588,7 +4635,8 @@ const coronaryMap = {
                 const highlights = {
                     P: !!highlightP?.checked,
                     QRS: !!highlightQRS?.checked,
-                    T: !!highlightT?.checked
+                    T: !!highlightT?.checked,
+                    Dropped: !!highlightDropped?.checked
                 };
                 const intervals = {
                     PR: !!highlightPR?.checked,
@@ -4598,10 +4646,12 @@ const coronaryMap = {
                 };
                 sim.setHighlights(highlights);
                 sim.setIntervalHighlights(intervals);
+                sim.setMeasureToolEnabled?.(!!measureToggle?.checked);
+                if (measureHint) measureHint.classList.toggle('active', !!measureToggle?.checked);
                 sim.drawExpandedTrace?.();
             };
 
-            [highlightP, highlightQRS, highlightT, highlightPR, highlightQRSDur, highlightRR, highlightQT].forEach((input) => {
+            [highlightP, highlightQRS, highlightT, highlightDropped, highlightPR, highlightQRSDur, highlightRR, highlightQT, measureToggle].forEach((input) => {
                 input?.addEventListener('change', updateHighlights);
             });
 
@@ -4615,6 +4665,7 @@ const coronaryMap = {
 
             populateRhythms();
             commitHeartRate();
+            syncDroppedBeatVisibility(mapSingleLeadChoiceToRhythm(activeSingleLeadChoice));
             updateHighlights();
             requestAnimationFrame(() => {
                 sim.handleResize?.();
@@ -4659,8 +4710,10 @@ const coronaryMap = {
             const measureToggle = document.getElementById('ecg12MeasureTool');
             const measureHint = document.getElementById('ecg12MeasureHint');
             const traceCanvas = document.getElementById('ecg12Trace');
+            const highlightDropped = document.getElementById('ecg12HighlightDropped');
+            const highlightDroppedWrap = document.getElementById('ecg12HighlightDroppedWrap');
 
-            const highlightIds = [['ecg12HighlightP','P'],['ecg12HighlightQRS','QRS'],['ecg12HighlightT','T']];
+            const highlightIds = [['ecg12HighlightP','P'],['ecg12HighlightQRS','QRS'],['ecg12HighlightT','T'],['ecg12HighlightDropped','Dropped']];
             const intervalIds = [['ecg12HighlightPR','PR'],['ecg12HighlightQRSDur','QRSd'],['ecg12HighlightQT','QT'],['ecg12HighlightRR','RR']];
             const stemiCoronaryMap = {
                 stemi_inferior: 'RCA',
@@ -4698,6 +4751,19 @@ const coronaryMap = {
                     heartRateInput.disabled = true;
                 } else {
                     heartRateInput.disabled = false;
+                }
+            };
+
+            const syncDroppedBeatVisibility = (rhythmId) => {
+                if (!highlightDroppedWrap) return;
+                const isMobitz = rhythmId === 'avb2_mobitz1' || rhythmId === 'avb2_mobitz2';
+                highlightDroppedWrap.classList.toggle('ecg12-hidden', !isMobitz);
+                highlightDroppedWrap.hidden = !isMobitz;
+                if (highlightDropped) {
+                    highlightDropped.disabled = !isMobitz;
+                    if (!isMobitz) {
+                        highlightDropped.checked = false;
+                    }
                 }
             };
 
@@ -4760,13 +4826,17 @@ const coronaryMap = {
                 const currentRhythm = sim.getCurrentRhythm ? sim.getCurrentRhythm() : 'sinus';
                 rhythmSelect.value = currentRhythm;
                 sync12LeadHeartRateLock(currentRhythm);
+                syncDroppedBeatVisibility(currentRhythm);
                 update12LeadHeartRateDisplay();
                 rhythmSelect.addEventListener('change', () => {
                     sim.setRhythm(rhythmSelect.value);
-                    sync12LeadHeartRateLock(sim.getCurrentRhythm ? sim.getCurrentRhythm() : rhythmSelect.value);
-                    rhythmSelect.value = sim.getCurrentRhythm ? sim.getCurrentRhythm() : rhythmSelect.value;
+                    const rhythmId = sim.getCurrentRhythm ? sim.getCurrentRhythm() : rhythmSelect.value;
+                    sync12LeadHeartRateLock(rhythmId);
+                    syncDroppedBeatVisibility(rhythmId);
+                    rhythmSelect.value = rhythmId;
                     update12LeadHeartRateDisplay();
                     highlightCoronaryForRhythm();
+                    updateHighlights();
                 });
             };
             populateRhythms();
