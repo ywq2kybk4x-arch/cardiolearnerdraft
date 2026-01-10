@@ -1312,6 +1312,22 @@
             opacity: 1;
             transform: translateY(0);
         }
+        .status-toast {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--surface-2) 100%);
+            color: var(--text);
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-left: 4px solid var(--primary);
+            padding: 12px 18px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+            animation: slideIn 0.35s ease;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
 
         /* Sticky controls when scrolling */
         .main-content {
@@ -6622,27 +6638,15 @@ const coronaryMap = {
         // Add notification function
         function showNotification(message) {
             const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 15px 25px;
-                border-radius: 10px;
-                box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-                z-index: 1000;
-                animation: slideIn 0.5s ease;
-                font-weight: 600;
-            `;
+            notification.className = 'status-toast';
             notification.textContent = message;
             document.body.appendChild(notification);
             
             setTimeout(() => {
-                notification.style.animation = 'slideOut 0.5s ease';
+                notification.style.animation = 'slideOut 0.35s ease';
                 setTimeout(() => {
                     document.body.removeChild(notification);
-                }, 500);
+                }, 350);
             }, 3000);
         }
 
