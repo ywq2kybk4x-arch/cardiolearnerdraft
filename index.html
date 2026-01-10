@@ -8219,8 +8219,16 @@ const coronaryMap = {
                 const xScale = pvLoopChart.scales.x;
                 const yScale = pvLoopChart.scales.y;
                 const valves = lastValvePoints;
+                const deadZonePx = 36;
                 const loopData = pvLoopChart.data.datasets[0]?.data || [];
                 const toPixel = (pt) => ({ x: xScale.getPixelForValue(pt.x), y: yScale.getPixelForValue(pt.y) });
+                const valvePoints = [valves.mvClose, valves.avOpen, valves.avClose, valves.mvOpen];
+                for (const pt of valvePoints) {
+                    const px = toPixel(pt);
+                    if (Math.hypot(pos.x - px.x, pos.y - px.y) <= deadZonePx) {
+                        return null;
+                    }
+                }
                 const findClosestIndex = (target) => {
                     let best = { idx: -1, dist: Infinity };
                     const targetPx = toPixel(target);
