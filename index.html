@@ -2477,46 +2477,6 @@
                             <img id="tamponadeImage" src="assets/PericarditisvsTamponade.png" alt="Pericarditis vs Cardiac Tamponade" style="display: none; width: 100%; max-width: 900px; margin: 16px auto 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);">
                         </div>
                         
-                        <div id="functionCurvesContainer" class="chart-container" style="grid-column: span 2; display: block;">
-                            <div class="chart-title">Cardiac &amp; Vascular Function Curves (Guyton Curves)</div>
-                            <canvas id="functionCurvesChart" style="height: 300px; display: block; box-sizing: border-box; width: 748px;" width="1496" height="600"></canvas>
-                            <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                                    <div>
-                                        <label style="font-weight: 600; color: #2c3e50; margin-bottom: 5px; display: block; font-size: 0.9em;">Inotropy</label>
-                                        <select id="inotropySelect" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd; font-size: 0.9em;">
-                                            <option value="decreased">Decreased (HF)</option>
-                                            <option value="normal" selected="">Normal</option>
-                                            <option value="increased">Increased (Inotropes)</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style="font-weight: 600; color: #2c3e50; margin-bottom: 5px; display: block; font-size: 0.9em;">Total Peripheral Resistance</label>
-                                        <select id="tprSelect" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd; font-size: 0.9em;">
-                                            <option value="decreased">Decreased (Sepsis)</option>
-                                            <option value="normal" selected="">Normal</option>
-                                            <option value="increased">Increased (Vasoconstriction)</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style="font-weight: 600; color: #2c3e50; margin-bottom: 5px; display: block; font-size: 0.9em;">Blood Volume</label>
-                                        <select id="bloodVolumeSelect" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd; font-size: 0.9em;">
-                                            <option value="decreased">Decreased (Hypovolemia)</option>
-                                            <option value="normal" selected="">Normal</option>
-                                            <option value="increased">Increased (Hypervolemia)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div style="margin-top: 12px; padding: 12px; background: white; border-radius: 6px; border-left: 4px solid #e74c3c;">
-                                    <div style="font-size: 0.85em; color: #2c3e50; line-height: 1.6;">
-                                        <strong>📊 Key Concepts:</strong><br>
-                                        <strong>Cardiac Function (Red):</strong> Logarithmic curve - steep rise initially, then gradual flattening. ↑ Inotropy shifts UP and LEFT.<br>
-                                        <strong>Venous Return (Blue):</strong> Linear descending. ↑ Volume shifts RIGHT (x-intercept). ↑ TPR = flatter slope.<br>
-                                        <strong>Equilibrium (Green dot):</strong> Intersection = operating point where venous return equals cardiac output.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                     
                     <!-- placeholder removed; key concepts now render below the PV loop -->
@@ -3805,7 +3765,7 @@ const coronaryMap = {
 
     <script>
         // Initialize charts
-        let pvLoopChart, functionCurvesChart;
+        let pvLoopChart;
         let pvLoopDragState = { active: null };
         let physioToastEl = null;
         let physioToastTimeout = null;
@@ -6723,13 +6683,9 @@ const coronaryMap = {
             if (pathologyKey !== 'normal') {
                 homeButton.style.display = 'block';
                 document.getElementById('reloadPathologyBtn').style.display = 'block';
-                // Hide function curves for pathologies
-                document.getElementById('functionCurvesContainer').style.display = 'none';
             } else {
                 homeButton.style.display = 'none';
                 document.getElementById('reloadPathologyBtn').style.display = 'none';
-                // Show function curves for normal
-                document.getElementById('functionCurvesContainer').style.display = 'block';
             }
             
             // Update banner color based on state
@@ -6816,7 +6772,6 @@ const coronaryMap = {
             initQuizChart();
             attachQuizListeners();
             updateCalculations();
-            updateFunctionCurves();
             // Show normal key concepts banner on initial load
             updatePathologyInfo('normal');
             const closeAnswerBtn = document.getElementById('closeAnswerModal');
@@ -6909,138 +6864,6 @@ const coronaryMap = {
                 }
             });
             
-            // Cardiac & Vascular Function Curves
-            const fcCtx = document.getElementById('functionCurvesChart').getContext('2d');
-            functionCurvesChart = new Chart(fcCtx, {
-                type: 'scatter',
-                data: {
-                    datasets: [
-                        {
-                            label: 'Cardiac function curve',
-                            data: [],
-                            borderColor: '#c0392b',
-                            backgroundColor: 'transparent',
-                            borderWidth: 3,
-                            pointRadius: 0,
-                            tension: 0.4,
-                            showLine: true
-                        },
-                        {
-                            label: '↑ inotropy',
-                            data: [],
-                            borderColor: '#c0392b',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2.5,
-                            borderDash: [8, 4],
-                            pointRadius: 0,
-                            tension: 0.4,
-                            showLine: true
-                        },
-                        {
-                            label: '↓ inotropy',
-                            data: [],
-                            borderColor: '#c0392b',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2.5,
-                            borderDash: [8, 4],
-                            pointRadius: 0,
-                            tension: 0.4,
-                            showLine: true
-                        },
-                        {
-                            label: 'Vascular function curve',
-                            data: [],
-                            borderColor: '#1a5276',
-                            backgroundColor: 'transparent',
-                            borderWidth: 3,
-                            pointRadius: 0,
-                            tension: 0,
-                            showLine: true
-                        },
-                        {
-                            label: '↑ TPR / ↑ volume',
-                            data: [],
-                            borderColor: '#1a5276',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2.5,
-                            borderDash: [8, 4],
-                            pointRadius: 0,
-                            tension: 0,
-                            showLine: true
-                        },
-                        {
-                            label: '↓ TPR / ↓ volume',
-                            data: [],
-                            borderColor: '#1a5276',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2.5,
-                            borderDash: [8, 4],
-                            pointRadius: 0,
-                            tension: 0,
-                            showLine: true
-                        },
-                        {
-                            label: 'Equilibrium Point',
-                            data: [],
-                            borderColor: '#27ae60',
-                            backgroundColor: '#27ae60',
-                            pointRadius: 10,
-                            pointStyle: 'circle',
-                            pointBorderWidth: 3,
-                            pointBorderColor: 'white',
-                            showLine: false
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            type: 'linear',
-                            title: {
-                                display: true,
-                                text: 'RA pressure or EDV',
-                                font: { size: 14, weight: 'bold' }
-                            },
-                            min: 0,
-                            max: 10,
-                            ticks: {
-                                display: false  // Hide numbers on x-axis
-                            },
-                            grid: {
-                                display: true,
-                                color: 'rgba(0,0,0,0.1)'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Cardiac output/venous return',
-                                font: { size: 14, weight: 'bold' }
-                            },
-                            min: 0,
-                            max: 32,
-                            ticks: {
-                                display: false  // Hide numbers on y-axis
-                            },
-                            grid: {
-                                display: true,
-                                color: 'rgba(0,0,0,0.1)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            enabled: false  // Disable tooltips for cleaner schematic look
-                        }
-                    }
-                }
-            });
         }
 
         function updateHfrefToggleActiveState() {
@@ -7085,11 +6908,6 @@ const coronaryMap = {
             document.getElementById('afterload').addEventListener('input', handleSliderChange);
             document.getElementById('contractility').addEventListener('input', handleSliderChange);
             document.getElementById('heartRate').addEventListener('input', handleSliderChange);
-
-            // Function curves controls
-            document.getElementById('inotropySelect').addEventListener('change', updateFunctionCurves);
-            document.getElementById('tprSelect').addEventListener('change', updateFunctionCurves);
-            document.getElementById('bloodVolumeSelect').addEventListener('change', updateFunctionCurves);
 
             // Pharmacology toggles
             ['pharm-vasodilator', 'pharm-inotrope', 'pharm-beta', 'pharm-diuretic'].forEach(id => {
@@ -8523,318 +8341,6 @@ const coronaryMap = {
             Chart.register(loopAnnotationsPlugin);
         }
         
-        function updateFunctionCurves() {
-            const inotropy = document.getElementById('inotropySelect').value;
-            const tpr = document.getElementById('tprSelect').value;
-            const bloodVolume = document.getElementById('bloodVolumeSelect').value;
-            
-            // Generate cardiac function curves - SIGMOID CURVE
-            // TPR also affects cardiac output: ↓TPR → ↑CO, ↑TPR → ↓CO
-            function generateCardiacCurve(inotropicState, tprState, xMax) {
-                const curve = [];
-                
-                // Parameters: maximum CO - VERY LARGE SPREAD for extremely evident changes
-                let maxCO, steepness, midpoint;
-                
-                if (inotropicState === 'increased') {
-                    maxCO = 32;           // VERY high maximum - extremely evident increase
-                    steepness = 3.0;      // Steeper slope  
-                    midpoint = 1.5;       // Earlier rise - shifted left
-                } else if (inotropicState === 'normal') {
-                    maxCO = 18;           // Normal maximum
-                    steepness = 2.2;      // Normal slope
-                    midpoint = 3.0;       // Normal position
-                } else {  // decreased
-                    maxCO = 8;            // VERY low maximum - extremely evident decrease
-                    steepness = 1.5;      // Less steep
-                    midpoint = 4.5;       // Later rise - shifted right
-                }
-                
-                // TPR effect on cardiac output curve - MUCH MORE DRAMATIC
-                // Decreased TPR (less afterload) → curve shifts WAY UP (higher CO for same preload)
-                // Increased TPR (more afterload) → curve shifts WAY DOWN (lower CO for same preload)
-                let tprMultiplier = 1.0;
-                if (tprState === 'decreased') {
-                    tprMultiplier = 1.6;  // 60% higher - VERY obvious upward shift
-                } else if (tprState === 'increased') {
-                    tprMultiplier = 0.55;  // 45% lower - VERY obvious downward shift
-                }
-                
-                // Apply TPR effect to maxCO
-                maxCO = maxCO * tprMultiplier;
-                
-                // Generate sigmoid curve from RAP = 0 to xMax
-                for (let rap = 0; rap <= xMax; rap += 0.05) {
-                    // Sigmoid function: CO = maxCO / (1 + e^(-steepness * (rap - midpoint)))
-                    const sigmoid = 1 / (1 + Math.exp(-steepness * (rap - midpoint)));
-                    let co = maxCO * sigmoid;
-                    
-                    curve.push({ x: rap, y: co });
-                }
-                
-                return curve;
-            }
-            
-            // Generate venous return curves - FLAT PLATEAU THEN STEEP DIAGONAL
-            // VERY DRAMATIC differences for TPR and blood volume changes
-            function generateVenousReturnCurve(tprState, volumeState) {
-                const curve = [];
-                
-                // Maximum VR at RAP=0 - VERY EVIDENT changes with volume
-                let maxVR;
-                if (volumeState === 'increased') {
-                    maxVR = 18;  // MUCH higher plateau for increased volume
-                } else if (volumeState === 'normal') {
-                    maxVR = 11;  // Normal plateau
-                } else {  // decreased
-                    maxVR = 5;   // MUCH lower plateau for decreased volume
-                }
-                
-                // Plateau ends at RAP = 1.0 mmHg
-                const plateauEnd = 1.0;
-                
-                // 1. FLAT PLATEAU (RAP 0 to 1.0)
-                for (let rap = 0; rap <= plateauEnd; rap += 0.05) {
-                    curve.push({ x: rap, y: maxVR });
-                }
-                
-                // 2. X-INTERCEPT - VERY DRAMATIC differences
-                // TPR affects slope angle, volume affects x-intercept position
-                let descentRAP;  // Where curve reaches zero (x-intercept)
-                
-                // Base x-intercept affected by blood volume - MORE SPREAD
-                let baseIntercept;
-                if (volumeState === 'increased') {
-                    baseIntercept = 8.0;  // FAR right for increased volume
-                } else if (volumeState === 'normal') {
-                    baseIntercept = 5.0;  // Normal position
-                } else {  // decreased
-                    baseIntercept = 3.0;  // FAR left for decreased volume
-                }
-                
-                // TPR modifies the slope - MORE DRAMATIC effect
-                if (tprState === 'increased') {
-                    // MUCH Flatter slope - x-intercept extends further right
-                    descentRAP = baseIntercept + 2.5;
-                } else if (tprState === 'normal') {
-                    descentRAP = baseIntercept;
-                } else {  // decreased TPR
-                    // MUCH Steeper slope - x-intercept moves closer
-                    descentRAP = baseIntercept - 1.5;
-                }
-                
-                // Ensure minimum x-intercept
-                descentRAP = Math.max(2.0, descentRAP);
-                
-                // Calculate slope: from (plateauEnd, maxVR) to (descentRAP, 0)
-                const slope = -maxVR / (descentRAP - plateauEnd);
-                
-                // Generate straight line from plateau end to zero
-                for (let rap = plateauEnd; rap <= descentRAP; rap += 0.05) {
-                    let vr = maxVR + slope * (rap - plateauEnd);
-                    vr = Math.max(0, vr);  // Ensure non-negative
-                    curve.push({ x: rap, y: vr });
-                }
-                
-                // Ensure final point at zero
-                curve.push({ x: descentRAP, y: 0 });
-                
-                // Store the x-intercept for axis calculation
-                curve.xIntercept = descentRAP;
-                
-                return curve;
-            }
-            
-            // Calculate equilibrium point (intersection of cardiac and venous return curves)
-            function findEquilibrium(cardiacCurve, venousReturnCurve) {
-                let minDiff = Infinity;
-                let equilibrium = { x: 2, y: 5 };
-                
-                // Find intersection point with higher precision
-                for (let i = 0; i < cardiacCurve.length; i++) {
-                    const ccPoint = cardiacCurve[i];
-                    // Find closest venous return point
-                    const vrPoint = venousReturnCurve.find(p => Math.abs(p.x - ccPoint.x) < 0.08);
-                    if (vrPoint) {
-                        const diff = Math.abs(ccPoint.y - vrPoint.y);
-                        if (diff < minDiff) {
-                            minDiff = diff;
-                            equilibrium = { x: ccPoint.x, y: (ccPoint.y + vrPoint.y) / 2 };
-                        }
-                    }
-                }
-                return equilibrium;
-            }
-            
-            // First generate venous return curve to get x-intercept for axis calculation
-            const currentVR = generateVenousReturnCurve(tpr, bloodVolume);
-            const normalVR = generateVenousReturnCurve('normal', 'normal');
-            
-            // Calculate dynamic x-axis max: 1 unit after the FURTHEST venous return x-intercept
-            // Must accommodate both normal (always shown) and current VR curve
-            const xIntercept = currentVR.xIntercept || 5.0;
-            const normalXIntercept = normalVR.xIntercept || 5.0;
-            const maxXIntercept = Math.max(xIntercept, normalXIntercept);
-            const dynamicXMax = maxXIntercept + 1.0;  // End 1 unit after x-intercept
-            
-            // Generate cardiac curves with proper x extent
-            // Normal cardiac curve = normal inotropy + normal TPR (always the baseline reference)
-            const normalCardiac = generateCardiacCurve('normal', 'normal', dynamicXMax);
-            
-            // Current cardiac curves incorporate both inotropy AND current TPR state
-            const currentNormalInotropyCardiac = generateCardiacCurve('normal', tpr, dynamicXMax);
-            const increasedCardiac = generateCardiacCurve('increased', tpr, dynamicXMax);
-            const decreasedCardiac = generateCardiacCurve('decreased', tpr, dynamicXMax);
-            
-            // Calculate dynamic y-axis max - MUST accommodate ALL displayed curves
-            // Normal cardiac curve is ALWAYS shown, plus one altered curve if selected
-            
-            // Get max Y from normal cardiac curve (always displayed)
-            const normalCardiacMaxY = Math.max(...normalCardiac.map(p => p.y));
-            
-            // Get max Y from the current cardiac curve (affected by both inotropy and TPR)
-            let currentCardiacMaxY = Math.max(...currentNormalInotropyCardiac.map(p => p.y));
-            if (inotropy === 'increased') {
-                currentCardiacMaxY = Math.max(...increasedCardiac.map(p => p.y));
-            } else if (inotropy === 'decreased') {
-                currentCardiacMaxY = Math.max(...decreasedCardiac.map(p => p.y));
-            }
-            
-            // Get max Y from venous return curves (normal is always shown, plus current if different)
-            const normalVRMaxY = normalVR[0]?.y || 11;
-            const currentVRMaxY = currentVR[0]?.y || 11;
-            
-            // Final maxY is the maximum of all displayed curves + padding
-            const maxY = Math.max(normalCardiacMaxY, currentCardiacMaxY, normalVRMaxY, currentVRMaxY) + 3;
-            
-            // Update axis limits dynamically
-            functionCurvesChart.options.scales.x.max = dynamicXMax;
-            functionCurvesChart.options.scales.y.max = maxY;
-            
-            // Determine which cardiac curve is active (based on inotropy selection, but also affected by TPR)
-            let currentCardiac;
-            if (inotropy === 'increased') {
-                currentCardiac = increasedCardiac;
-            } else if (inotropy === 'decreased') {
-                currentCardiac = decreasedCardiac;
-            } else {
-                currentCardiac = currentNormalInotropyCardiac;
-            }
-            
-            const equilibrium = findEquilibrium(currentCardiac, currentVR);
-            
-            // Update chart datasets
-            // Cardiac function curves (red) - Normal is SOLID, altered is DASHED
-            // Show altered curve when EITHER inotropy OR TPR is changed
-            const cardiacChanged = (inotropy !== 'normal' || tpr !== 'normal');
-            
-            if (!cardiacChanged) {
-                // Everything normal - show single solid curve
-                functionCurvesChart.data.datasets[0].data = normalCardiac;
-                functionCurvesChart.data.datasets[0].borderWidth = 3;
-                functionCurvesChart.data.datasets[0].borderDash = [];
-                functionCurvesChart.data.datasets[0].label = 'Cardiac function curve';
-                functionCurvesChart.data.datasets[1].data = [];
-                functionCurvesChart.data.datasets[2].data = [];
-            } else {
-                // Show normal as solid (primary reference)
-                functionCurvesChart.data.datasets[0].data = normalCardiac;
-                functionCurvesChart.data.datasets[0].borderWidth = 3;
-                functionCurvesChart.data.datasets[0].borderDash = [];
-                functionCurvesChart.data.datasets[0].label = 'Cardiac function curve';
-                
-                // Show altered curve as DASHED
-                // Determine the label based on what changed
-                let alteredLabel = '';
-                if (inotropy === 'increased' && tpr === 'decreased') {
-                    alteredLabel = '↑ inotropy + ↓ TPR';
-                } else if (inotropy === 'increased' && tpr === 'increased') {
-                    alteredLabel = '↑ inotropy + ↑ TPR';
-                } else if (inotropy === 'increased') {
-                    alteredLabel = '↑ inotropy';
-                } else if (inotropy === 'decreased' && tpr === 'decreased') {
-                    alteredLabel = '↓ inotropy + ↓ TPR';
-                } else if (inotropy === 'decreased' && tpr === 'increased') {
-                    alteredLabel = '↓ inotropy + ↑ TPR';
-                } else if (inotropy === 'decreased') {
-                    alteredLabel = '↓ inotropy';
-                } else if (tpr === 'decreased') {
-                    alteredLabel = '↓ TPR';
-                } else if (tpr === 'increased') {
-                    alteredLabel = '↑ TPR';
-                }
-                
-                // Use dataset 1 for upward shifts, dataset 2 for downward shifts
-                if (inotropy === 'increased' || (inotropy === 'normal' && tpr === 'decreased')) {
-                    functionCurvesChart.data.datasets[1].data = currentCardiac;
-                    functionCurvesChart.data.datasets[1].borderWidth = 2.5;
-                    functionCurvesChart.data.datasets[1].borderDash = [8, 4];
-                    functionCurvesChart.data.datasets[1].label = alteredLabel;
-                    functionCurvesChart.data.datasets[2].data = [];
-                } else {
-                    functionCurvesChart.data.datasets[2].data = currentCardiac;
-                    functionCurvesChart.data.datasets[2].borderWidth = 2.5;
-                    functionCurvesChart.data.datasets[2].borderDash = [8, 4];
-                    functionCurvesChart.data.datasets[2].label = alteredLabel;
-                    functionCurvesChart.data.datasets[1].data = [];
-                }
-            }
-            
-            // Venous return curves (blue) - Normal is SOLID, altered is DASHED
-            if (tpr === 'normal' && bloodVolume === 'normal') {
-                // Normal is primary - show as solid
-                functionCurvesChart.data.datasets[3].data = normalVR;
-                functionCurvesChart.data.datasets[3].borderWidth = 3;
-                functionCurvesChart.data.datasets[3].borderDash = [];
-                functionCurvesChart.data.datasets[3].label = 'Vascular function curve';
-                functionCurvesChart.data.datasets[4].data = [];
-                functionCurvesChart.data.datasets[5].data = [];
-            } else {
-                // Show normal as solid (primary reference)
-                functionCurvesChart.data.datasets[3].data = normalVR;
-                functionCurvesChart.data.datasets[3].borderWidth = 3;
-                functionCurvesChart.data.datasets[3].borderDash = [];
-                functionCurvesChart.data.datasets[3].label = 'Vascular function curve';
-                
-                // Show altered curve as DASHED
-                if (tpr === 'increased' || bloodVolume === 'increased') {
-                    functionCurvesChart.data.datasets[4].data = currentVR;
-                    functionCurvesChart.data.datasets[4].borderWidth = 2.5;
-                    functionCurvesChart.data.datasets[4].borderDash = [8, 4];
-                    
-                    // Update label based on what changed
-                    if (tpr === 'increased' && bloodVolume === 'increased') {
-                        functionCurvesChart.data.datasets[4].label = '↑ TPR + ↑ volume';
-                    } else if (tpr === 'increased') {
-                        functionCurvesChart.data.datasets[4].label = '↑ TPR';
-                    } else {
-                        functionCurvesChart.data.datasets[4].label = '↑ volume, venous tone';
-                    }
-                    functionCurvesChart.data.datasets[5].data = [];
-                } else {
-                    functionCurvesChart.data.datasets[5].data = currentVR;
-                    functionCurvesChart.data.datasets[5].borderWidth = 2.5;
-                    functionCurvesChart.data.datasets[5].borderDash = [8, 4];
-                    
-                    // Update label based on what changed
-                    if (tpr === 'decreased' && bloodVolume === 'decreased') {
-                        functionCurvesChart.data.datasets[5].label = '↓ TPR + ↓ volume';
-                    } else if (tpr === 'decreased') {
-                        functionCurvesChart.data.datasets[5].label = '↓ TPR';
-                    } else {
-                        functionCurvesChart.data.datasets[5].label = '↓ volume, venous tone';
-                    }
-                    functionCurvesChart.data.datasets[4].data = [];
-                }
-            }
-            
-            // Equilibrium point
-            functionCurvesChart.data.datasets[6].data = [equilibrium];
-            
-            functionCurvesChart.update('none');
-        }
-        
-        
         function resetParameters() {
             // Reset sliders to normal values AND reset pathology so PV loop shows normal
             document.getElementById('preload').value = 120;
@@ -8880,9 +8386,6 @@ const coronaryMap = {
             // Hide the home and reload buttons (but keep banner visible for normal)
             document.getElementById('homeButton').style.display = 'none';
             document.getElementById('reloadPathologyBtn').style.display = 'none';
-            
-            // Show function curves again
-            document.getElementById('functionCurvesContainer').style.display = 'block';
             
             // Restore normal key concepts
             updatePathologyInfo('normal');
