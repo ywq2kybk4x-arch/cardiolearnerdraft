@@ -2209,8 +2209,8 @@
         #ecg12Module .ecg12-measure-hint.active{display:block}
         #ecg12Module .ecg12-buttons{display:flex;gap:10px}
         #ecg12Module .ecg12-buttons button{flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);font-weight:700;cursor:pointer;color:var(--text)}
-        #ecg12Module .ecg12-display{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0;box-shadow:var(--shadow-sm)}
-        #ecg12Module .ecg12-canvas-wrap{position:relative;width:100%;height:360px;border:1px solid var(--border);border-radius:14px;overflow:auto;background:var(--surface-2)}
+        #ecg12Module .ecg12-display{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-shadow:var(--shadow-sm)}
+        #ecg12Module .ecg12-canvas-wrap{position:relative;width:100%;height:300px;max-height:none;aspect-ratio:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:auto;background:#fff}
         #ecg12Module .ecg12-expanded-wrap{height:260px}
         #ecg12Module .ecg12-expanded-header{font-weight:800;color:#0f172a;margin:2px 0 8px}
         #ecg12Module .ecg12-canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
@@ -2222,7 +2222,7 @@
 
         #singleLeadEcgContainer{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:var(--shadow-sm)}
         #singleLeadEcgContainer h3{margin-top:0;margin-bottom:12px;font-size:1.1rem}
-        .single-lead-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px}
+        .single-lead-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;align-items:start}
         .single-lead-controls{display:flex;flex-direction:column;gap:14px;border:1px solid var(--border);border-radius:16px;padding:14px;background:var(--surface-2)}
         .single-lead-section{display:flex;flex-direction:column;gap:10px}
         .single-lead-section label{font-weight:600;font-size:.9rem}
@@ -2237,21 +2237,22 @@
         #ecg12Module .ecg12-row[hidden]{display:none}
         .single-lead-buttons{display:flex;gap:10px}
         .single-lead-buttons button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);font-weight:600;cursor:pointer;color:var(--text)}
-        .single-lead-canvas{position:relative;border:1px solid var(--border);border-radius:16px;height:320px;overflow:auto;background:var(--surface)}
+        .single-lead-canvas{position:relative;width:100%;height:220px;max-height:none;aspect-ratio:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff}
         .single-lead-canvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-        .single-lead-display{display:flex;flex-direction:column;gap:12px}
-        .single-lead-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+        .single-lead-display{display:flex;flex-direction:column;gap:0}
+        .single-lead-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.9rem;color:var(--muted);margin-top:8px}
         .single-lead-legend span{display:flex;align-items:center;gap:8px}
+        .single-lead-legend .is-hidden{display:none}
         .single-lead-legend .swatch{width:16px;height:16px;border-radius:4px;display:inline-block}
         .ecg-quiz-section{margin-top:32px;border:1px solid rgba(148,163,184,.35);border-radius:24px;padding:24px;background:var(--surface,#fff);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:16px}
         .ecg-quiz-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
         .ecg-quiz-header-meta{display:flex;gap:12px;font-size:.9rem;color:var(--muted);flex-wrap:wrap}
-        .ecg-quiz-paper{background:var(--kc-bg);border:1px solid var(--kc-border);border-radius:18px;padding:12px;box-shadow:var(--kc-shadow)}
-        .ecg12-quiz-display{border-radius:16px;border:1px solid rgba(148,163,184,.35);background:var(--surface,#fff);padding:12px;width:100%}
-        .ecg12-quiz-layout{display:flex;flex-direction:column;gap:16px}
+        .ecg-quiz-paper{background:var(--kc-bg);border:1px solid var(--kc-border);border-radius:18px;padding:10px;box-shadow:var(--kc-shadow)}
+        .ecg12-quiz-display{border-radius:16px;border:1px solid rgba(148,163,184,.35);background:var(--surface,#fff);padding:10px;width:100%}
+        .ecg12-quiz-layout{display:flex;flex-direction:column;gap:12px}
         .ecg12-quiz-layout-main,.ecg12-quiz-layout-expanded{flex:1 1 auto;width:100%;min-width:0}
-        .ecg12-quiz-display .ecg12-canvas-wrap{position:relative;width:100%;height:360px;border-radius:14px;overflow:hidden;border:1px solid rgba(148,163,184,.35);background:transparent}
-        .ecg12-quiz-display .ecg12-expanded-wrap{height:260px}
+        .ecg12-quiz-display .ecg12-canvas-wrap{position:relative;width:100%;height:300px;max-height:none;aspect-ratio:auto;border-radius:12px;overflow:hidden;border:1px solid rgba(148,163,184,.35);background:transparent}
+        .ecg12-quiz-display .ecg12-expanded-wrap{height:220px}
         .ecg12-quiz-display .ecg12-canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
         .ecg-quiz-measure-hint{font-size:.85rem;color:var(--muted-2);margin-top:6px;opacity:.85}
         .ecg-quiz-meta{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
@@ -3188,9 +3189,9 @@
                         </div>
                         <div class="single-lead-legend">
                             <span><span class="swatch" style="background:#1f2937;"></span>Default</span>
-                            <span><span class="swatch" style="background:#2563eb;"></span>P wave</span>
-                            <span><span class="swatch" style="background:#d33f49;"></span>QRS</span>
-                            <span><span class="swatch" style="background:#2f855a;"></span>T wave</span>
+                            <span id="singleLeadLegendP"><span class="swatch" style="background:#2563eb;"></span>P wave</span>
+                            <span id="singleLeadLegendQRS"><span class="swatch" style="background:#d33f49;"></span>QRS</span>
+                            <span id="singleLeadLegendT"><span class="swatch" style="background:#2f855a;"></span>T wave</span>
                         </div>
                     </div>
                 </div>
@@ -3387,7 +3388,7 @@
                 <div id="ecgQuizChoices" class="ecg-quiz-choices"></div>
                 <div class="ecg-quiz-actions">
                     <button type="button" id="ecgQuizSubmitBtn" class="btn btn-primary">Submit Answer</button>
-                    <button type="button" id="ecgQuizNextBtn" class="btn btn-ghost" disabled>Next ECG</button>
+                    <button type="button" id="ecgQuizNextBtn" class="btn btn-ghost">Next ECG</button>
                 </div>
                 <div id="ecgQuizFeedback" class="ecg-quiz-feedback">Select the rhythm that matches this printout.</div>
                 <div id="ecgQuizSummary" class="ecg-quiz-summary" style="display:none;"></div>
@@ -4090,6 +4091,7 @@ const coronaryMap = {
 
             submitBtn.addEventListener('click', handleQuizSubmit);
             nextBtn.addEventListener('click', handleQuizNext);
+            nextBtn.disabled = false;
 
             gridWrap.addEventListener('scroll', () => ecgQuizSim?.drawReadoutOverlay?.());
             traceCanvas.addEventListener('click', (event) => {
@@ -4221,7 +4223,7 @@ const coronaryMap = {
                 ecgQuizElements.submit.disabled = question.status === 'correct';
             }
             if (ecgQuizElements.next) {
-                ecgQuizElements.next.disabled = question.status !== 'correct';
+                ecgQuizElements.next.disabled = false;
             }
 
             document.querySelectorAll('input[name="ecg-quiz-choice"]').forEach((input) => {
@@ -4548,6 +4550,9 @@ const coronaryMap = {
             const highlightQRSDur = document.getElementById('ecgHighlightQRSDur');
             const highlightRR = document.getElementById('ecgHighlightRR');
             const highlightQT = document.getElementById('ecgHighlightQT');
+            const legendP = document.getElementById('singleLeadLegendP');
+            const legendQRS = document.getElementById('singleLeadLegendQRS');
+            const legendT = document.getElementById('singleLeadLegendT');
             const measureToggle = document.getElementById('ecgMeasureTool');
             const measureHint = document.getElementById('ecgMeasureHint');
             const playBtn = document.getElementById('ecgPlay');
@@ -4654,6 +4659,9 @@ const coronaryMap = {
                 sim.setIntervalHighlights(intervals);
                 sim.setMeasureToolEnabled?.(!!measureToggle?.checked);
                 if (measureHint) measureHint.classList.toggle('active', !!measureToggle?.checked);
+                legendP?.classList.toggle('is-hidden', !highlights.P);
+                legendQRS?.classList.toggle('is-hidden', !highlights.QRS);
+                legendT?.classList.toggle('is-hidden', !highlights.T);
                 sim.drawExpandedTrace?.();
             };
 
