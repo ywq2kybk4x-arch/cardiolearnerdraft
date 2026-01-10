@@ -183,6 +183,13 @@ const RHYTHM_PRESETS = {
     hrClamp: { min: 90, max: 160 },
     intervals: { prIntervalMs: 0, qrsDurationMs: 90, qtIntervalMs: 380, pWaveDurationMs: 0, tWaveDurationMs: 180 }
   },
+  aflutter: {
+    id: 'aflutter',
+    label: 'Atrial Flutter',
+    defaultHR: 150,
+    hrClamp: { min: 90, max: 180 },
+    intervals: { prIntervalMs: 0, qrsDurationMs: 90, qtIntervalMs: 360, pWaveDurationMs: 0, tWaveDurationMs: 160 }
+  },
   stemi_inferior: {
     id: 'stemi_inferior',
     label: 'Inferior STEMI (II, III, aVF)',
@@ -1557,7 +1564,9 @@ class Ecg12Simulator {
 
   getIntervalReadout() {
     return {
-      prMs: this.currentRhythm === 'afib' ? null : Math.round(this.intervals.prIntervalMs),
+      prMs: this.currentRhythm === 'afib' || this.currentRhythm === 'aflutter'
+        ? null
+        : Math.round(this.intervals.prIntervalMs),
       qrsMs: Math.round(this.intervals.qrsDurationMs),
       qtMs: Math.round(this.intervals.qtIntervalMs)
     };
@@ -1677,6 +1686,7 @@ class Ecg12Simulator {
     const TARGET_DURATION_MS = 8000;
     const isRegular =
       this.currentRhythm === 'sinus' ||
+      this.currentRhythm === 'aflutter' ||
       this.currentRhythm === 'avb1' ||
       this.currentRhythm === 'mvtach' ||
       this.currentRhythm === 'stemi_inferior' ||
@@ -1714,6 +1724,9 @@ class Ecg12Simulator {
     switch (id) {
       case 'afib':
         this.generateAFibBeats(schedule, durationMs);
+        break;
+      case 'aflutter':
+        this.generateAtrialFlutterBeats(schedule, durationMs);
         break;
       case 'avb1':
         this.generateFirstDegreeBeats(schedule, durationMs);
@@ -1753,7 +1766,7 @@ class Ecg12Simulator {
       this.generateSinusBeats(schedule, durationMs);
     }
     schedule.sort((a, b) => a.rTime - b.rTime);
-    if (id === 'afib') {
+    if (id === 'afib' || id === 'aflutter') {
       schedule.forEach((beat) => {
         beat.hasP = false;
         beat.pr = 0;
@@ -1962,6 +1975,22 @@ class Ecg12Simulator {
     }
   }
 
+  generateAtrialFlutterBeats(schedule, durationMs) {
+    const baseRrMs = this.getCurrentRrMs();
+    let cycleStart = 0;
+    while (cycleStart < durationMs) {
+      const rTime = cycleStart + this.intervals.qrsDurationMs / 2;
+      if (rTime >= durationMs) break;
+      this.addBeatToSchedule(schedule, {
+        rTime,
+        hasP: false,
+        hasT: false,
+        pr: 0
+      });
+      cycleStart += baseRrMs;
+    }
+  }
+
   generateVentricularTachBeats(schedule, durationMs, options = {}) {
     const { polymorphic } = options;
     const rr = 60000 / Math.max(this.config.heartRate, polymorphic ? 190 : 170);
@@ -2117,6 +2146,23 @@ class Ecg12Simulator {
       0.25 * Math.sin(2 * Math.PI * 16.0 * timeSec + 1.3) +
       0.2 * Math.sin(2 * Math.PI * 22.0 * timeSec + 2.1);
     return baseAmpPx * drift * (0.85 * sum + 0.15 * rough);
+  }
+
+  flutterBaseline(tMs) {
+    const periodMs = 200;
+    const phase = ((tMs % periodMs) + periodMs) % periodMs / periodMs;
+    let wave;
+    if (phase < 0.15) {
+      const u = phase / 0.15;
+      wave = -0.25 + 1.25 * (0.5 - 0.5 * Math.cos(Math.PI * u));
+    } else {
+      const u = (phase - 0.15) / 0.85;
+      const decay = 1 - u;
+      const notch = 0.18 * Math.sin(2 * Math.PI * (u + 0.08)) * (1 - u);
+      wave = 1.0 * decay + notch - 0.2;
+    }
+    const ampPx = 0.17 * MV_TO_PX_12;
+    return ampPx * wave;
   }
 
   afibQrsBlanking(timeMsFromR) {
@@ -2317,6 +2363,7 @@ class Ecg12Simulator {
     const qrsParts = { q: 0, r: 0, s: 0 };
     const skew = this.getLeadSkewMs(leadKey);
     const isAfib = this.currentRhythm === 'afib';
+    const isFlutter = this.currentRhythm === 'aflutter';
     const stemiMultiplier = this.getStemiLeadMultiplier(leadKey);
     const hasStemi = this.isStemiRhythm() && stemiMultiplier !== 0;
     let nearestDtFromR = Infinity;
@@ -2327,7 +2374,7 @@ class Ecg12Simulator {
     for (const beat of this.beatSchedule) {
       if (!beat.hasP && !beat.hasQRS) continue;
 
-      if (!isAfib && beat.hasP) {
+      if (!isAfib && !isFlutter && beat.hasP) {
         const pCenter = beat.rTime - beat.pr + 40;
         if (Math.abs(time - pCenter) <= 160) {
           p += this.drawP(time, pCenter, 80);
@@ -2407,6 +2454,12 @@ class Ecg12Simulator {
       const blankT = this.afibTBlanking(nearestDtFromT);
       baseline = this.afibBaseline(tMs) * blankQRS * blankT;
     }
+    if (isFlutter) {
+      const blankQRS = this.afibQrsBlanking(nearestDtFromR);
+      const blankT = this.afibTBlanking(nearestDtFromT);
+      const flutterBlank = 0.7 + 0.3 * blankQRS * blankT;
+      baseline = this.flutterBaseline(tMs) * flutterBlank;
+    }
 
     return {
       total: p + qrs + tWave + baseline + st,
@@ -2458,7 +2511,7 @@ class Ecg12Simulator {
       const dist = Math.abs(time - center);
       if (dist < window && dist < closest.dist) closest = { type, dist };
     };
-    const isAfib = this.currentRhythm === 'afib';
+    const isAfib = this.currentRhythm === 'afib' || this.currentRhythm === 'aflutter';
     for (const beat of this.beatSchedule) {
       if (!isAfib && beat.hasP) consider('P', beat.rTime - beat.pr + 40, 90);
       consider('QRS', beat.rTime, beat.qrs);
