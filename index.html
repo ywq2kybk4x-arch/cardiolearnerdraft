@@ -2233,6 +2233,8 @@
         .single-lead-checks .single-lead-hidden{display:none}
         .single-lead-measure-hint{margin-top:8px;font-size:.85rem;color:var(--muted-2);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;display:none;line-height:1.4}
         .single-lead-measure-hint.active{display:block}
+        .measure-clear-btn{padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-weight:600;font-size:.85rem;cursor:pointer;color:var(--text);justify-self:start}
+        .measure-clear-btn:disabled{opacity:.55;cursor:not-allowed}
         #ecg12Module .ecg12-hidden{display:none}
         #ecg12Module .ecg12-row[hidden]{display:none}
         .single-lead-buttons{display:flex;gap:10px}
@@ -3167,6 +3169,7 @@
                                 <label><input type="checkbox" id="ecgHighlightRR"> R–R interval</label>
                                 <label><input type="checkbox" id="ecgHighlightQT"> QT interval</label>
                                 <label><input type="checkbox" id="ecgMeasureTool"> Click &amp; measure</label>
+                                <button type="button" id="ecgClearMeasurements" class="measure-clear-btn" hidden>Clear measurements</button>
                             </div>
                             <div id="ecgMeasureHint" class="single-lead-measure-hint">
                                 Click to set start/end.<br />
@@ -3306,6 +3309,7 @@
                                     <div class="ecg12-row-left">
                                         <input type="checkbox" id="ecg12MeasureTool" />
                                         <span>Click &amp; Measure</span>
+                                        <button type="button" id="ecg12ClearMeasurements" class="measure-clear-btn" hidden>Clear measurements</button>
                                     </div>
                                     <div class="ecg12-hint"></div>
                                 </div>
@@ -4569,6 +4573,7 @@ const coronaryMap = {
             const legendT = document.getElementById('singleLeadLegendT');
             const measureToggle = document.getElementById('ecgMeasureTool');
             const measureHint = document.getElementById('ecgMeasureHint');
+            const clearMeasurementsBtn = document.getElementById('ecgClearMeasurements');
             const playBtn = document.getElementById('ecgPlay');
             const pauseBtn = document.getElementById('ecgPause');
             const resetBtn = document.getElementById('ecgReset');
@@ -4683,6 +4688,16 @@ const coronaryMap = {
                 input?.addEventListener('change', updateHighlights);
             });
 
+            clearMeasurementsBtn?.addEventListener('click', () => {
+                sim.clearMeasurements?.();
+            });
+            if (clearMeasurementsBtn) {
+                clearMeasurementsBtn.hidden = true;
+                sim.onMeasurementsChange = (count) => {
+                    clearMeasurementsBtn.hidden = count <= 0;
+                };
+            }
+
             playBtn?.addEventListener('click', () => sim.play());
             pauseBtn?.addEventListener('click', () => sim.pause());
             resetBtn?.addEventListener('click', () => {
@@ -4737,6 +4752,7 @@ const coronaryMap = {
             const rhythmSelect = document.getElementById('ecg12RhythmPreset');
             const measureToggle = document.getElementById('ecg12MeasureTool');
             const measureHint = document.getElementById('ecg12MeasureHint');
+            const clearMeasurementsBtn = document.getElementById('ecg12ClearMeasurements');
             const traceCanvas = document.getElementById('ecg12Trace');
             const highlightDropped = document.getElementById('ecg12HighlightDropped');
             const highlightDroppedWrap = document.getElementById('ecg12HighlightDroppedWrap');
@@ -4892,6 +4908,15 @@ const coronaryMap = {
 
             [...highlightIds, ...intervalIds].forEach(([id]) => document.getElementById(id)?.addEventListener('change', updateHighlights));
             measureToggle?.addEventListener('change', updateHighlights);
+            clearMeasurementsBtn?.addEventListener('click', () => {
+                sim.clearMeasurements?.();
+            });
+            if (clearMeasurementsBtn) {
+                clearMeasurementsBtn.hidden = true;
+                sim.onMeasurementsChange = (count) => {
+                    clearMeasurementsBtn.hidden = count <= 0;
+                };
+            }
 
             document.getElementById('ecg12Play')?.addEventListener('click', () => sim.play());
             document.getElementById('ecg12Pause')?.addEventListener('click', () => sim.pause());

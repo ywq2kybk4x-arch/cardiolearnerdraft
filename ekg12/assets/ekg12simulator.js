@@ -672,6 +672,7 @@ class Ecg12Simulator {
   clearMeasurements(redraw = true) {
     this.measurements = [];
     this.pendingMeasure = null;
+    this.onMeasurementsChange?.(this.measurements.length);
     if (redraw) this.drawExpandedTrace();
   }
 
@@ -687,14 +688,27 @@ class Ecg12Simulator {
     return { x, y };
   }
 
+  getOrthogonalMeasurePoint(anchor, point) {
+    const dx = point.x - anchor.x;
+    const dy = point.y - anchor.y;
+    if (Math.abs(dy) >= Math.abs(dx)) {
+      return { x: anchor.x, y: point.y };
+    }
+    return { x: point.x, y: anchor.y };
+  }
+
   handleBigMouseMove(event) {
     if (!this.measureToolEnabled) return;
     const point = this.getBigCanvasPoint(event);
     if (!point) return;
     this._bigMouse = { ...point, inside: true };
     if (this.pendingMeasure) {
-      this.pendingMeasure.bx = point.x;
-      this.pendingMeasure.by = point.y;
+      const snapped = this.getOrthogonalMeasurePoint(
+        { x: this.pendingMeasure.ax, y: this.pendingMeasure.ay },
+        point
+      );
+      this.pendingMeasure.bx = snapped.x;
+      this.pendingMeasure.by = snapped.y;
     }
     this.drawExpandedTrace();
   }
@@ -724,13 +738,18 @@ class Ecg12Simulator {
         live: true
       };
     } else {
+      const snapped = this.getOrthogonalMeasurePoint(
+        { x: this.pendingMeasure.ax, y: this.pendingMeasure.ay },
+        point
+      );
       this.measurements.push({
         ax: this.pendingMeasure.ax,
         ay: this.pendingMeasure.ay,
-        bx: point.x,
-        by: point.y
+        bx: snapped.x,
+        by: snapped.y
       });
       this.pendingMeasure = null;
+      this.onMeasurementsChange?.(this.measurements.length);
     }
     this.drawExpandedTrace();
   }
@@ -742,6 +761,7 @@ class Ecg12Simulator {
     const hitIndex = this.findMeasurementAtPoint(point);
     if (hitIndex !== -1) {
       this.measurements.splice(hitIndex, 1);
+      this.onMeasurementsChange?.(this.measurements.length);
       this.drawExpandedTrace();
       event.preventDefault();
     }
