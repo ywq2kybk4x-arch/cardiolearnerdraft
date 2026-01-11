@@ -3919,11 +3919,25 @@ const coronaryMap = {
         };
 
         const RHYTHM_INSIGHTS = {
+            sinus: {
+                incorrect: 'Confirm normal physiology: a P wave before every QRS, a fixed PR interval, regular R–R spacing, and a narrow QRS.',
+                success: 'Normal sinus rhythm shows organized P waves before each narrow QRS, a stable PR interval, and regular R–R spacing.',
+                focusLead: 'II',
+                extraLeads: ['II'],
+                leadRegions: ['II']
+            },
             afib: {
                 incorrect: 'Ask yourself: do you see organized P waves or an undulating baseline? Check the irregular R–R spacing carefully.',
                 success: 'Notice the fibrillatory baseline and irregular R–R spacing best seen in leads II and V1.',
                 highlights: { P: false, QRS: true, T: false },
                 intervals: { RR: true },
+                focusLead: 'II',
+                extraLeads: ['II','V1'],
+                leadRegions: ['II','V1']
+            },
+            aflutter: {
+                incorrect: 'Look for a sawtooth pattern in the atrial activity, especially in leads II and V1.',
+                success: 'The sawtooth flutter waves are the giveaway—best appreciated in leads II and V1.',
                 focusLead: 'II',
                 extraLeads: ['II','V1'],
                 leadRegions: ['II','V1']
@@ -3940,8 +3954,8 @@ const coronaryMap = {
             avb2_mobitz1: {
                 incorrect: 'Do the PR intervals progressively lengthen before a beat drops? Track sequential PR segments.',
                 success: 'Watch the PR interval gradually lengthen then drop in lead II—classic Wenckebach.',
-                highlights: { P: true, QRS: true, T: false },
-                intervals: { PR: true, RR: true },
+                highlights: { P: true, QRS: true, T: false, Dropped: true },
+                intervals: { PR: true },
                 focusLead: 'II',
                 extraLeads: ['II'],
                 leadRegions: ['II']
@@ -3949,8 +3963,8 @@ const coronaryMap = {
             avb2_mobitz2: {
                 incorrect: 'Are PR intervals constant with intermittent dropped beats? Check leads II and V1 carefully.',
                 success: 'Constant PR intervals with intermittent dropped QRS complexes are clear in II and V1.',
-                highlights: { P: true, QRS: true, T: false },
-                intervals: { PR: true, RR: true },
+                highlights: { P: true, QRS: true, T: false, Dropped: true },
+                intervals: { PR: true },
                 focusLead: 'II',
                 extraLeads: ['II','V1'],
                 leadRegions: ['II','V1']
@@ -5144,9 +5158,9 @@ const coronaryMap = {
             aorticStenosis: {
                 correct: 'Correct! A stiff aortic valve raises afterload, while preload and contractility stay near baseline to preserve output.',
                 parameters: {
-                    preload: 'LV filling is typically preserved—should preload stay around No change?',
-                    afterload: 'A stiff valve increases resistance—should afterload be Increased?',
-                    contractility: 'Contractility is usually normal initially—did you leave it near No change?'
+                    preload: 'Outflow is obstructed but filling is preserved; what should happen to preload?',
+                    afterload: 'A stenotic valve raises resistance to ejection; what should happen to afterload?',
+                    contractility: 'Myocardial strength is usually intact early; what should happen to contractility?'
                 },
                 expected: { preload: 1, afterload: 2, contractility: 1 },
                 explanation: 'High systolic pressure stretches the PV loop upward, EDV stays moderate (slight compensatory increase) while ESV rises a bit because the valve is hard to eject across.'
@@ -5154,9 +5168,9 @@ const coronaryMap = {
             aorticRegurg: {
                 correct: 'Correct! Regurgitant volume increases preload while afterload often drops thanks to the low-resistance leak back into the LV.',
                 parameters: {
-                    preload: 'Regurgitation dumps volume into the LV—should preload be Increased?',
-                    afterload: 'Blood can escape into both the aorta and atrium—should afterload trend toward Reduced?',
-                    contractility: 'Contractility is usually preserved—did you keep it near No change?'
+                    preload: 'Diastolic backflow floods the LV with extra volume; what should happen to preload?',
+                    afterload: 'Aortic runoff lowers effective resistance; what should happen to afterload?',
+                    contractility: 'Systolic function is usually preserved early; what should happen to contractility?'
                 },
                 expected: { preload: 2, afterload: 0, contractility: 1 },
                 explanation: 'Large regurgitant volume widens the loop with high EDV, modest ESV, and a somewhat lower peak pressure due to the volume-loaded ventricle.'
@@ -5164,9 +5178,9 @@ const coronaryMap = {
             mitralStenosis: {
                 correct: 'Correct! Thickened leaflets limit filling, so preload goes down while afterload and contractility remain around baseline.',
                 parameters: {
-                    preload: 'A tight mitral valve limits flow—should preload be Reduced?',
-                    afterload: 'Afterload stays roughly normal—did you keep it near No change?',
-                    contractility: 'Contractility remains preserved—was it left near No change?'
+                    preload: 'Restricted inflow limits LV filling; what should happen to preload?',
+                    afterload: 'Outflow resistance is not the primary issue; what should happen to afterload?',
+                    contractility: 'LV systolic function is preserved; what should happen to contractility?'
                 },
                 expected: { preload: 0, afterload: 1, contractility: 1 },
                 explanation: 'Filling restriction narrows the loop (low EDV) while ESV and systolic pressure stay close to normal, so stroke volume is reduced.'
@@ -5174,9 +5188,9 @@ const coronaryMap = {
             mitralRegurg: {
                 correct: 'Correct! Mitral regurgitation is a volume overload—preload increases and afterload drops while contractility stays normal.',
                 parameters: {
-                    preload: 'Blood leaks back into the atrium—should preload be Increased?',
-                    afterload: 'Forward output now sees a low-resistance regurgitant path—should afterload move toward Reduced?',
-                    contractility: 'Contractility is maintained—did you leave it near No change?'
+                    preload: 'Systolic backflow returns to the LV and boosts filling; what should happen to preload?',
+                    afterload: 'Ejection has a low-resistance leak path; what should happen to afterload?',
+                    contractility: 'Systolic function is maintained early; what should happen to contractility?'
                 },
                 expected: { preload: 2, afterload: 0, contractility: 1 },
                 explanation: 'Volume overload pushes EDV high and widens the loop; ESV can stay near normal while systolic pressure dips as the LV ejects through the leak.'
@@ -5184,9 +5198,9 @@ const coronaryMap = {
             hfref: {
                 correct: 'Correct! Systolic failure piles up preload and afterload while contractility falls due to pump weakness.',
                 parameters: {
-                    preload: 'Poor ejection leaves more blood in the ventricle—should preload be Increased?',
-                    afterload: 'Neurohormonal activation keeps afterload high—did you set it to Increased?',
-                    contractility: 'The weak LV cannot generate force—should contractility be Reduced?'
+                    preload: 'Poor ejection leaves residual volume and raises filling; what should happen to preload?',
+                    afterload: 'Compensatory vasoconstriction raises resistance; what should happen to afterload?',
+                    contractility: 'The LV pump is weak; what should happen to contractility?'
                 },
                 expected: { preload: 2, afterload: 2, contractility: 0 },
                 explanation: 'Weak contractility leaves a tall, wide loop with high ESV and a lower peak pressure despite elevated afterload.'
@@ -5194,9 +5208,9 @@ const coronaryMap = {
             hfpef: {
                 correct: 'Correct! Diastolic dysfunction lowers preload, afterload stays high if hypertensive, and contractility remains normal.',
                 parameters: {
-                    preload: 'A stiff ventricle fills poorly—should preload be Reduced?',
-                    afterload: 'Hypertension is common—can afterload be Increased?',
-                    contractility: 'Systolic pump function is preserved—did you leave it near No change?'
+                    preload: 'Stiff LV limits filling; what should happen to preload?',
+                    afterload: 'Many patients are hypertensive; what should happen to afterload?',
+                    contractility: 'Systolic function is preserved; what should happen to contractility?'
                 },
                 expected: { preload: 0, afterload: 2, contractility: 1 },
                 explanation: 'Stiff LV fills poorly (low EDV) but systolic pressure stays high due to hypertension; ESV stays near normal.'
@@ -5204,9 +5218,9 @@ const coronaryMap = {
             septicShock: {
                 correct: 'Correct! Distributive shock drops preload and afterload while the heart often becomes hyperdynamic.',
                 parameters: {
-                    preload: 'Relative vasodilation decreases venous return—should preload be Reduced?',
-                    afterload: 'Systemic resistance plummets—did you move afterload to Reduced?',
-                    contractility: 'The heart often becomes hyperdynamic—should contractility be Increased?'
+                    preload: 'Vasodilation reduces venous return; what should happen to preload?',
+                    afterload: 'Systemic resistance collapses; what should happen to afterload?',
+                    contractility: 'Early sepsis often drives a hyperdynamic heart; what should happen to contractility?'
                 },
                 expected: { preload: 0, afterload: 0, contractility: 2 },
                 explanation: 'Vasodilation brings low afterload/preload—loop shrinks downward with low systolic pressure, while contractility may rise to preserve output.'
@@ -5214,9 +5228,9 @@ const coronaryMap = {
             cardiogenicShock: {
                 correct: 'Correct! Pump failure increases preload, keeps afterload high, and severely reduces contractility.',
                 parameters: {
-                    preload: 'Blood pools behind the failing LV—should preload be Increased?',
-                    afterload: 'Compensatory vasoconstriction keeps afterload Elevated—did you leave it at Increased?',
-                    contractility: 'Contractility crashes—should it be Reduced?'
+                    preload: 'Pump failure causes blood to pool upstream; what should happen to preload?',
+                    afterload: 'Reflex vasoconstriction raises resistance; what should happen to afterload?',
+                    contractility: 'The failing LV loses force; what should happen to contractility?'
                 },
                 expected: { preload: 2, afterload: 2, contractility: 0 },
                 explanation: 'Failing pump widens the loop (high EDV/ESV) but lowers peak pressure because contractility is poor, despite high afterload.'
@@ -7281,9 +7295,12 @@ const coronaryMap = {
                     title.textContent = `Correct loop: ${preset ? preset.name : 'Target'}`;
                 }
                 if (body) {
-                    const contractText = preset ? `Contractility ≈ ${preset.contractility.toFixed(1)}×.` : '';
+                    const expected = guidance?.expected || {};
+                    const preloadLabel = QUIZ_SLIDER_LABELS[expected.preload ?? 1] || 'No change';
+                    const afterloadLabel = QUIZ_SLIDER_LABELS[expected.afterload ?? 1] || 'No change';
+                    const contractilityLabel = QUIZ_SLIDER_LABELS[expected.contractility ?? 1] || 'No change';
                     const explanation = guidance ? guidance.explanation : target.desc;
-                    body.innerHTML = `<p style="margin-bottom: 6px;">Preload (EDV): ${target.edv} mL · ESV: ${target.esv} mL · Peak systolic: ${target.systolic} mmHg.</p><p style="margin: 0;">${explanation} ${contractText}</p>`;
+                    body.innerHTML = `<p style="margin-bottom: 6px;">Preload: ${preloadLabel} · Afterload: ${afterloadLabel} · Contractility: ${contractilityLabel}.</p><p style="margin: 0;">${explanation}</p>`;
                 }
                 panel.classList.add('visible');
             }
